@@ -10,7 +10,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 HERE = Path(__file__).resolve().parent
-CHARTS = ["overview", "pareto", "efficiency", "size", "localllama", "adaptive", "latency", "heldout"]
+CHARTS = ["compare", "overview", "pareto", "efficiency", "size", "localllama", "adaptive", "latency", "heldout"]
 LANGS = ["en", "zh"]
 
 
