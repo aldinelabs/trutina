@@ -2,20 +2,20 @@
 
 [English](README.md) | 中文
 
-**trutina-4b** 是一个类型化决策模型（typed decision model）：给它一段 state（文字，可以带图片）和若干带类型的问题，它为每个选项返回一个校准过的概率，全程不生成任何文本。
-它是在 Qwen3.5-4B 上加了**多出口读出（multi-exit readout）**：答案可以在第 12、16、20、24 或 32 层读出。默认的 **adaptive** 模式下，每个请求在第一个足够有把握的出口停下；不够有把握就从停下的地方接着往下算。简单题大约只用一半的网络，难题会用满 32 层。
+**trutina-4b** 是一个类型化决策模型（typed decision model）。模型的输入为一段状态描述（state，文本，可包含图像）及若干带类型的问题，输出为每个候选项上经过校准的概率分布；整个过程不生成文本。
+该模型以 Qwen3.5-4B 为骨干，引入了**多出口读出（multi-exit readout）**机制，可在第 12、16、20、24 或 32 层给出答案。在默认的**自适应深度（adaptive）**模式下，每个请求在首个置信度达到阈值的出口处终止计算；若未达到阈值，则从该层的隐状态继续向后计算。对于较简单的问题，模型约使用一半的层数；对于较困难的问题，则使用全部 32 层。
 
 权重：[aldinelabs/trutina-4b](https://huggingface.co/aldinelabs/trutina-4b) · 许可证：Apache-2.0
 
-| 基准 | 满深度（32 层） | adaptive（默认） |
+| 基准 | 完整深度（32 层） | 自适应深度（默认） |
 |---|---|---|
 | **JevBench 公开集**（231 题，准确率） | **87.0%** · p50 113 ms | 86.1% · 平均 22.1 层 · p50 71 ms |
-| **LocalLLaMA typed-decisions**（`test`，零样本，2,000 题） | **74.85%** · KL 0.149 · p50 201 ms | 74.85% · KL 0.178 · 平均 28.2 层 · p50 177 ms |
+| **LocalLLaMA typed-decisions**（`test` 划分，零样本，2,000 题） | **74.85%** · KL 0.149 · p50 201 ms | 74.85% · KL 0.178 · 平均 28.2 层 · p50 177 ms |
 
-- JevBench 公开集：在榜单公开集上并列第五；排在前面的四个系统都要先生成推理文本再作答。
-- LocalLLaMA：零样本榜第二，开放权重模型中第一。
-- 上表延迟是 M5 Pro 上用 MLX 单题测得。在单张 RTX PRO 6000（CUDA，含 HTTP）上：满深度 p50 28.3 ms，adaptive 21.1 ms（[详见评测](#评测)）。支持的输入：文字和图片；choice（最多 255 个选项）、score（2–10 级）、是否题。
-- 以上都是我们在公开集上自测的；这两个集都没有用于训练，也没有用于挑选权重（见[评测](#评测)）。
+- JevBench 公开集：在榜单公开集上并列第五。排名更高的四个系统均需先生成推理文本再给出答案。
+- LocalLLaMA：在零样本榜单中位列第二，在开放权重模型中位列第一。
+- 上表延迟在 M5 Pro 上以 MLX 逐题测得。在单张 RTX PRO 6000（CUDA，含 HTTP 开销）上，完整深度的 p50 为 28.3 ms，自适应深度为 21.1 ms（详见[评测](#评测)）。支持的输入为文本与图像；支持的题型为选择题（choice，最多 255 个选项）、等级评分题（score，2–10 级）和是非题（noul）。
+- 以上结果均为我们在公开数据上的自测结果。上述两个数据集既未用于训练，也未用于权重选择（详见[评测](#评测)）。
 
 ## 快速上手
 
@@ -50,7 +50,7 @@ model.decide({
 #                 "probabilities": {"0": 0.205, "1": 0.623, "2": 0.172}}}}
 ```
 
-HTTP 服务（`POST /v1/systemone`，以及 OpenAI 风格的 `POST /v1/decisions`）：
+HTTP 服务（`POST /v1/systemone`，以及兼容 OpenAI 风格的 `POST /v1/decisions`）：
 
 ```bash
 python scripts/serve.py --port 8000
@@ -60,7 +60,7 @@ python scripts/serve.py --port 8000
 curl -s localhost:8000/v1/systemone -d '{"state": "The invoice total is $1,240.", "questions": {"over": {"type": "noul", "instructions": "Is the total over $1,000?"}}}'
 ```
 
-CUDA（PyTorch + transformers，仅文字，支持 shallow / adaptive / 满深度）：
+CUDA（PyTorch + transformers，仅支持文本，支持 shallow、adaptive 与 deep 三种深度）：
 
 ```python
 from trutina.torch_engine import TorchTrutina
@@ -72,48 +72,48 @@ model = TorchTrutina.load("aldinelabs/trutina-4b", device="cuda")
 python scripts/serve.py --engine torch --port 8000
 ```
 
-安装 `flash-linear-attention` 和 `causal-conv1d` 可以用上线性注意力的快速 kernel。
+安装 `flash-linear-attention` 与 `causal-conv1d` 后，线性注意力层将使用优化的 CUDA kernel。
 
 ## 请求格式
 
-`/v1/systemone` 的请求体是 `{"state": ..., "questions": {...}, "depth": ...}`：
+`/v1/systemone` 的请求体为 `{"state": ..., "questions": {...}, "depth": ...}`：
 
-| 题型 | `criteria` | 返回 |
+| 题型 | `criteria` | 返回字段 |
 |---|---|---|
 | `choice` | `{"<选项>": "<描述>", ...}`，2–255 个选项 | `choice`、`confidence`、`probabilities` |
-| `score` | `["<最低级>", ..., "<最高级>"]`（或 `{"label", "description"}` 对象），2–10 级 | `score`（等级的期望值）、`probabilities` |
-| `noul` | 可选 `{"true": "...", "false": "..."}` | `noul` = P(yes) |
+| `score` | `["<最低等级>", ..., "<最高等级>"]`（或 `{"label", "description"}` 对象），2–10 级 | `score`（等级的期望值）、`probabilities` |
+| `noul` | 可选，`{"true": "...", "false": "..."}` | `noul` = P(yes) |
 
-`state` 可以是字符串，也可以是 OpenAI 风格的内容片段列表（`{"type": "input_text", "text": ...}`、`{"type": "input_image", "image_url": "data:image/png;base64,..."}`）。`confidence` = 1 − H(p) / log K。同一请求里的所有问题共享 state，作为一个 batch 一起算。
+`state` 可以是字符串，也可以是 OpenAI 风格的内容片段列表（`{"type": "input_text", "text": ...}`、`{"type": "input_image", "image_url": "data:image/png;base64,..."}`）。`confidence` 定义为 1 − H(p) / log K。同一请求中的全部问题共享同一 state，并作为一个批次统一计算。
 
-`depth` 决定一个请求最多用多少层：`shallow`（在第 12 层作答）、`adaptive`（默认，见下）或 `deep`（满 32 层；MLX 引擎上还会对每道 choice 题的选项做最多 4 种循环轮换后取平均）。
+`depth` 规定单个请求可使用的最大层数：`shallow`（在第 12 层作答）、`adaptive`（默认，见下节）或 `deep`（使用全部 32 层；在 MLX 引擎上，还会对每道选择题的选项顺序做至多 4 次循环轮换并对结果取平均）。
 
-## Adaptive 深度
+## 自适应深度
 
 ```
- tokens ─► 第 1–12 层 ─► 出口 12 ─► 有把握？ ── 是 ─► 作答
+ tokens ─► 第 1–12 层 ─► 出口 12 ─► 达到阈值？ ── 是 ─► 输出
                              │ 否
-                             ▼  （从第 12 层的隐状态继续，不重算）
-           第 13–16 层 ─► 出口 16 ─► 有把握？ ── 是 ─► 作答
+                             ▼  （沿用第 12 层的隐状态继续计算，不重复计算）
+           第 13–16 层 ─► 出口 16 ─► 达到阈值？ ── 是 ─► 输出
                              │ 否
            第 17–20 层 ─► 出口 20 ─►      …
            第 21–24 层 ─► 出口 24 ─►      …
-           第 25–32 层 ─► 最终读出 ──────────────────► 作答
+           第 25–32 层 ─► 最终读出 ──────────────────► 输出
 ```
 
-每个出口读的都是同一样东西：每个选项标签的概率。「有把握」的意思是：请求里每道题的最高概率都达到同一个校准后的阈值（0.84）。由于是从出口处的隐状态继续往下算，没在早期出口停下的代价只是一个很小的出口头，而不是再跑一遍前向。
+各出口读取的是同一组量，即各选项标签的概率。终止条件为：请求中每道题的最大类别概率均不低于同一个经校准的阈值（0.84）。由于后续计算沿用出口处的隐状态，未在早期出口终止的请求仅额外承担一个小型出口头的计算，而无需重新执行前向传播。
 
-各出口单独作答的准确率（经过温度校准；在合并 LoRA 之前的训练检查点上测得，合并后发布模型的数字最多相差 0.1）：
+各出口单独作答时的准确率（经温度校准；在合并 LoRA 之前的训练检查点上测得，与合并后的发布权重相差不超过 0.1）：
 
-| 出口层 | 12 | 16 | 20 | 24 | 32 | adaptive |
+| 出口层 | 12 | 16 | 20 | 24 | 32 | 自适应 |
 |---|---|---|---|---|---|---|
-| 我们的验证集 | 50.0 | 73.5 | 85.8 | 87.4 | 87.9 | 87.5 |
+| 验证集 | 50.0 | 73.5 | 85.8 | 87.4 | 87.9 | 87.5 |
 | JevBench 公开集 | 42.9 | 71.9 | 87.0 | 87.9 | 87.0 | 86.1 |
 | LocalLLaMA test | 43.5 | 59.3 | 72.8 | 75.2 | 74.75 | 74.75 |
 
-adaptive 在验证集上的作答位置：7% 的题在第 12 层，28% 在第 16 层，26% 在第 20 层，9% 在第 24 层，29% 用满 32 层。平均 22.2 层，准确率只损失 0.4 个点。阈值是在验证集上选的：在准确率损失不超过约半个点的前提下，选最激进的那个。
+自适应深度在验证集上的终止层分布为：第 12 层 7%，第 16 层 28%，第 20 层 26%，第 24 层 9%，第 32 层 29%。平均使用 22.2 层，准确率下降 0.4 个百分点。阈值在验证集上确定：在准确率下降不超过约 0.5 个百分点的约束下，取计算量最小的阈值。
 
-没有训练过的出口就做不到这一点：直接在未训练模型的中间层读 LM head（即「logit lens」），到第 19 层左右之前都是随机水平。
+这一性质依赖于经过训练的出口。若在未经训练的模型中间层直接应用 LM head（即 logit lens），在约第 19 层之前，准确率与随机猜测相当。
 
 ## 架构
 
@@ -123,68 +123,68 @@ adaptive 在验证集上的作答位置：7% 的题在第 12 层，28% 在第 16
          第 1–12 层  ──► lens 12 ──┐
          第 13–16 层 ──► lens 16 ──┤
          第 17–20 层 ──► lens 20 ──┤   LM head 中选项字母 (A)…(Z) 对应的行
-         第 21–24 层 ──► lens 24 ──┼─► 在 "Best answer: (" 处读出 ─► ÷ 出口温度 ─► softmax
+         第 21–24 层 ──► lens 24 ──┼─► 在 "Best answer: (" 位置读出 ─► ÷ 出口温度 ─► softmax
          第 25–32 层 ──► norm ─────┘
 
  骨干：Qwen3.5-4B（24 层 Gated DeltaNet + 8 层注意力），LoRA 已合并
 ```
 
-- **在一个位置读选项字母。** 每道题渲染一次：chat template（关闭 thinking），选项标为 (A)、(B)……，在输入的前后各出现一次（「三明治」结构：模型读输入时已经知道问题，作答前又能再看一遍选项），最后以 `Best answer: (` 结尾。答案就是该位置上 LM head 里各选项字母对应行的 softmax。从 LM head 读选项字母这一点和其他决策模型相同（如 decider-4b、JevK5）；它保留了骨干自身的先验，不训练就能在 JevBench 公开集上拿到 79.7%。
-- **Tuned-lens 出口（我们的设计）。** 每个早期出口是残差流上的一个仿射变换 `norm(h + W h + b)`，带各自的 logit 缩放，每个约 650 万参数，共 2600 万。出口读的是和最后一层相同的 LM head 字母行。训练方式是蒸馏最后一层的答案分布，并且出口的输入做了 detach：出口学的是「提前预测最终答案」，却不能把骨干往别处拉，所以满深度的准确率和没有出口时一样。
-- **接着算，而不是重来。** adaptive 推理把骨干分段运行（第 1–12 层、13–16 层……），保留每个 token 在分段边界处的隐状态，下一段从这里继续。一个没在第 12 层停下的请求，第 1–12 层只算过一次，额外代价只是每道题在出口处的一次 2560×2560 矩阵乘。
-- **每个出口单独校准。** 每个出口有自己的温度（0.83–1.04），在验证集上拟合，所以第 16 层的 0.84 和第 32 层的 0.84 含义相同。这正是一个共享停止阈值能成立的原因。
-- **一个请求一个 batch。** 同一请求的问题共享 state，作为一个 padded batch 一起跑；是否停下按整个请求判断，所以延迟是一次前向，而不是每题一次。
-- **超过 26 个选项：分组淘汰（我们的设计）。** 模型只见过字母 A–Z，所以更多选项的 choice 题分两轮：先均分成每组不超过 26 个，再让各组的领先者进入决赛。每个选项仍然都有概率（决赛选手按决赛结果，其余按组内得分）。在 MASSIVE（59 种意图，不在训练集中）上 top-1 为 79.3%，而常见做法——模型从未训练过的两字母标签（AA、AB……）——只有 59.4%（`trutina/wide.py`）。
-- **图片。** 直接使用 Qwen3.5 的视觉塔（冻结），图片 token 放进 state，配合多模态 RoPE，读出方式不变。
-- **微调。** 在每个线性层（注意力、Gated DeltaNet 投影、MLP）上做 rank 16 的 LoRA，用约 26.6 万道公开决策题和约 3.5 万道图片题的软标签与硬标签训练；训练时打乱选项顺序，并随机去掉选项描述。LoRA 已合并进发布的权重，所以检查点可以当作普通的 Qwen3.5-4B 加载。
+- **单位置的选项字母读出。** 每道题渲染为一条序列：使用 chat template（关闭 thinking），选项标记为 (A)、(B)……，问题在输入的前后各出现一次（"三明治"结构：模型在读取输入时已知问题，作答前可再次读取选项），序列以 `Best answer: (` 结尾。答案为该位置上 LM head 中各选项字母所对应行的 softmax。从 LM head 读取选项字母的做法与其他决策模型（如 decider-4b、JevK5）一致；该做法保留了骨干模型自身的先验，未经训练即可在 JevBench 公开集上取得 79.7% 的准确率。
+- **Tuned-lens 出口（本工作提出）。** 每个早期出口是作用于残差流的仿射变换 `norm(h + W h + b)`，并配有独立的 logit 缩放系数；每个出口约 650 万参数，合计约 2600 万。各出口与最后一层共用 LM head 中的字母行。训练目标为蒸馏最后一层的答案分布，且出口的输入经过梯度截断（detach）：出口学习提前预测最终答案，但不会改变骨干网络的表示，因此完整深度下的准确率与不加出口时一致。
+- **续算而非重算。** 自适应推理将骨干网络分段执行（第 1–12 层、第 13–16 层等），保留各 token 在分段边界处的隐状态，下一段由此继续。未在第 12 层终止的请求，其第 1–12 层只计算一次，额外开销仅为每道题在出口处的一次 2560×2560 矩阵乘法。
+- **逐出口校准。** 每个出口有独立的温度系数（0.83–1.04），在验证集上拟合，因此第 16 层的 0.84 与第 32 层的 0.84 具有相同的含义。这是单一共享终止阈值得以成立的前提。
+- **按请求批处理。** 同一请求中的问题共享 state，作为一个填充后的批次统一计算；终止判断以整个请求为单位，因此单个请求的延迟对应一次前向传播，而非每题一次。
+- **超过 26 个选项时的分组淘汰（本工作提出）。** 模型训练时只使用字母 A–Z 作为标签，因此选项更多的选择题分两轮处理：先将选项均分为若干组（每组不超过 26 个），再由各组的领先选项进入决赛。每个选项仍有对应概率（进入决赛的选项按决赛结果计算，其余按组内得分计算）。在 MASSIVE（59 个意图类别，未用于训练）上，该方法的 top-1 准确率为 79.3%；作为对照，常见的双字母标签方案（AA、AB……，模型未经此类训练）为 59.4%（见 `trutina/wide.py`）。
+- **图像输入。** 直接使用 Qwen3.5 的视觉编码器（参数冻结），图像 token 置于 state 中，配合多模态 RoPE，读出方式保持不变。
+- **微调。** 在所有线性层（注意力、Gated DeltaNet 投影与 MLP）上施加秩为 16 的 LoRA，使用约 26.6 万道公开决策题与约 3.5 万道图像题的软标签和硬标签进行训练；训练中随机打乱选项顺序，并随机删去选项描述。LoRA 已合并入发布权重，因此该检查点可按标准 Qwen3.5-4B 加载。
 
 ## 评测
 
-除特别注明外，所有数字都来自发布的权重。下面每个基准都没有参与训练，挑选权重只看我们自己的验证损失。
+除特别说明外，以下结果均基于发布权重。下列基准均未参与训练，权重选择仅依据我们自己的验证集损失。
 
-**JevBench 公开集**（231 题：easy、original、hard 三个文件；准确率）：
+**JevBench 公开集**（231 题，含 easy、original、hard 三个文件；指标为准确率）：
 
 | 模型 | 全部 | Hard（94 题） |
 |---|---|---|
-| trutina-4b，满深度 | **87.0** | 73.4 |
-| trutina-4b，adaptive | 86.1 | |
-| Qwen3.5-4B，相同 prompt，未训练 | 79.7 | |
+| trutina-4b，完整深度 | **87.0** | 73.4 |
+| trutina-4b，自适应深度 | 86.1 | |
+| Qwen3.5-4B，相同 prompt，未微调 | 79.7 | |
 
-在我们查看的公开榜单快照（2026-10-12）上，这 231 题中比我们高的有四个系统：两个带推理的 API 模型（97.8、97.4），和两个先生成推理再作答的 26B-A4B 模型（88.7、87.4）。榜单的总分还包括封闭集、校准和速度，这些我们自己测不了。
+在我们参考的公开榜单快照（2026-10-12）中，这 231 题上得分高于本模型的系统共四个：两个带推理的 API 模型（97.8、97.4），以及两个先生成推理再作答的 26B-A4B 模型（88.7、87.4）。榜单总分还包括封闭集、校准与速度等维度，这些维度无法自行测量。
 
-**LocalLLaMA typed-decisions**（`test`，400 个 case / 2,000 题；零样本榜）：
+**LocalLLaMA typed-decisions**（`test` 划分，400 个 case，共 2,000 题；零样本榜单）：
 
 | 模型 | 准确率 | KL ↓ |
 |---|---|---|
 | meraGPT Decider 1（托管 API） | 76.8 | 0.096 |
-| **trutina-4b**（满深度） | **74.85** | 0.149 |
-| trutina-4b（adaptive，平均 28 层） | 74.85 | 0.178 |
+| **trutina-4b**（完整深度） | **74.85** | 0.149 |
+| trutina-4b（自适应深度，平均 28 层） | 74.85 | 0.178 |
 | Liquid AI d1 | 74.2 | 0.475 |
 | TypeSafe Jev 1.13.0 | 72.7 | 1.442 |
 | OpenDecider-small（开放权重） | 67.1 | 0.211 |
 
-其他行来自数据集卡片。我们每道题单独作为一条序列；卡片的协议是一个 case 的五道题放在一个请求里发。模型的输出不受这种分组影响。
+其余各行取自数据集卡片。我们将每道题作为独立序列处理；数据集卡片的协议为将同一 case 的五道题置于一个请求中发送。本模型的输出不受这种分组方式的影响。
 
-**其他 held-out 决策集**（零样本 = 相同骨干和 prompt，不加微调）：
+**其他 held-out 决策数据集**（零样本基线指相同骨干与相同 prompt、不经微调）：
 
-| 数据集 | 零样本 | trutina-4b |
+| 数据集 | 零样本基线 | trutina-4b |
 |---|---|---|
-| DecisionBench medium（按 state 平均的准确率） | 75.2 | **83.2** |
-| DecisionBench hard（按 state 平均的准确率） | **53.6** | 49.6 |
+| DecisionBench medium（按 state 宏平均的准确率） | 75.2 | **83.2** |
+| DecisionBench hard（按 state 宏平均的准确率） | **53.6** | 49.6 |
 | this-that complex decisions | 43.8 | **51.3** |
 | fast-decisions（17 个单标签领域） | 61.5 | 61.4（ECE 0.251 → 0.122） |
-| JudgeBench（两种顺序都对才算对） | 46.0 | **52.1** |
+| JudgeBench（两种选项顺序均判断正确方计为正确） | 46.0 | **52.1** |
 
-训练分布之外的提升幅度中等，DecisionBench hard 还不如未训练的骨干。
+在训练分布之外，微调带来的提升幅度有限；在 DecisionBench hard 上，微调后的模型低于未微调的骨干模型。
 
-**Decision Index 0.3（公开套件），估计值。** 约 44（±3）。这是用官方打分器在约 1.2 万条请求的分层抽样上算的（每个基准至少 48 条），不是全量运行。
+**Decision Index 0.3（公开套件），估计值。** 约 44（±3）。该数值使用官方评分程序，在约 1.2 万条请求的分层抽样上计算（每个子基准至少 48 条），并非完整评测的结果。
 
-**单张 RTX PRO 6000 上的延迟**（串行，一次一个请求，经过 `scripts/serve.py --engine torch`，含 HTTP 往返，预热后测；使用 JevBench 公开集 231 题）。作为对照，下面也列出 JevBench v1.5.4 在其自有 GPU 节点上测得的原始延迟（串行，每个请求一个判断，使用其 450 道公开 standard 和 judge 题）：
+**单张 RTX PRO 6000 上的延迟**（串行，每次一个请求，经 `scripts/serve.py --engine torch`，包含 HTTP 往返，预热后测量；使用 JevBench 公开集的 231 题）。作为参照，下表同时列出 JevBench v1.5.4 在其自有 GPU 节点上测得的原始延迟（串行，每个请求包含一个判断，使用其 450 道公开 standard 与 judge 题）：
 
 | 系统 | GPU | p50 ms | p95 ms | 测量方 |
 |---|---|---|---|---|
-| **trutina-4b，adaptive** | RTX PRO 6000 | **21.1** | 107.4 | 我们 |
-| **trutina-4b，满深度** | RTX PRO 6000 | **28.3** | 112.1 | 我们 |
+| **trutina-4b，自适应深度** | RTX PRO 6000 | **21.1** | 107.4 | 本文 |
+| **trutina-4b，完整深度** | RTX PRO 6000 | **28.3** | 112.1 | 本文 |
 | Cygnet（Gemma-4-12B） | RTX PRO 6000 | 39.8 | 99.1 | JevBench |
 | AutoJev-27B | RTX PRO 6000 | 88.1 | 225.9 | JevBench |
 | Surogate Rune 26B-A4B v3 | RTX PRO 6000 | 100.5 | 285.6 | JevBench |
@@ -193,52 +193,52 @@ adaptive 在验证集上的作答位置：7% 的题在第 12 层，28% 在第 16
 | decider-4b v2 | RTX 5090 | 26.4 | 127.5 | JevBench |
 | Jev 1.13.0 | 托管 API | 616.5 | 674.0 | JevBench |
 
-两边的请求集不同（我们的包含公开集里的长政策文档题，p95 主要由它们决定），所以这张表只看量级，不作排名。adaptive 的平均延迟 33.7 ms（平均 22.1 层）；满深度的平均值是 99 ms，因为有一个请求遇到了一次性的 kernel 编译（6.7 s），它的 p80 是 46.9 ms。同一次运行的准确率：满深度 87.0%，adaptive 86.1%，与 MLX 完全一致。
+两组测量所用的请求集不同（本文的请求集包含公开集中较长的政策文档类题目，p95 主要由这些题目决定），因此该表仅用于比较数量级，不构成排名。自适应深度的平均延迟为 35.3 ms（平均 22.1 层）；完整深度的平均延迟为 99 ms，原因是其中一个请求触发了一次性的 kernel 编译（6.7 s），其 p80 为 46.9 ms。同一次运行中的准确率为：完整深度 87.0%，自适应深度 86.1%，与 MLX 引擎的结果完全一致。
 
-**图片**（我们的验证集，属于训练分布内）：Mind2Web 91.9、A-OKVQA 89.6、ScienceQA 96.2、渲染的工作流截图 84.9。
+**图像任务**（我们的验证集，属于训练同分布数据）：Mind2Web 91.9，A-OKVQA 89.6，ScienceQA 96.2，渲染的工作流截图 84.9。
 
 ## 训练数据
 
-约 26.6 万道来自公开数据集的题目，外加约 3.5 万道图片题：
+约 26.6 万道来自公开数据集的题目，另有约 3.5 万道图像题：
 
 - 决策与分类：tasksource、LegalBench、CUAD、MAUD、ShARC、HaluEval；
-- 阅读理解与多跳：DROP、MuSiQue、HotpotQA、2WikiMultihopQA、StrategyQA、TAT-QA、ROPES、BoolQ；
-- 分级标签与软标签：ChaosNLI、SummEval、MT-Bench 人工评判、Measuring Hate Speech、SBIC；
-- 社区的决策数据集，其中一部分由其他开源模型生成；
-- 程序化生成、答案可验证的任务，以及时间推理（TempReason、Test of Time）；
-- 图片：A-OKVQA、ScienceQA、Mind2Web、渲染的工作流截图。
+- 阅读理解与多跳推理：DROP、MuSiQue、HotpotQA、2WikiMultihopQA、StrategyQA、TAT-QA、ROPES、BoolQ；
+- 等级标签与软标签：ChaosNLI、SummEval、MT-Bench 人工评判、Measuring Hate Speech、SBIC；
+- 社区决策数据集，其中部分由其他开源模型生成；
+- 程序化生成、答案可验证的任务，以及时间推理数据（TempReason、Test of Time）；
+- 图像：A-OKVQA、ScienceQA、Mind2Web、渲染的工作流截图。
 
-排除在训练之外的：
-- 上面列出的所有基准（Decision Index 各套件、DecisionBench、this-that、JudgeBench、fast-decisions、MASSIVE）；
-- 来自 LocalLLaMA 工作流的数据；
-- JevBench 的题目以及 Jev 系列模型的输出。
+以下数据未用于训练：
+- 上文列出的全部基准（Decision Index 各套件、DecisionBench、this-that、JudgeBench、fast-decisions、MASSIVE）；
+- 来源于 LocalLLaMA 工作流的数据；
+- JevBench 的题目及 Jev 系列模型的输出。
 
-开发过程中我们看过 LocalLLaMA 和 JevBench 公开集的分数（作为漂移监测，以及选择 prompt 格式时），所以它们并不是完全盲测。
+在开发过程中，我们查看过 LocalLLaMA 与 JevBench 公开集的分数（用于监测性能漂移以及选择 prompt 格式），因此这两项评测并非严格意义上的盲测。
 
-## 局限
+## 局限性
 
-- 单次前向里做多步日期和数字运算比较弱（JevBench 时间类题目：7/15）。
-- 在有争议的多选判断上（DecisionBench hard）不如未训练的骨干。
-- 概率是按我们的验证集分布校准的；如果要用在高风险的阈值上，请在自己的数据上重新校准。
-- 在小显存 GPU 上，超过约 3.2 万 token 的输入会很慢；读出本身除了骨干的上下文长度外没有长度限制。
-- 训练数据几乎全是英文。
+- 在单次前向传播中完成多步日期与数值运算的能力较弱（JevBench 时间类题目：7/15）。
+- 在存在争议的多选判断任务（DecisionBench hard）上，表现低于未微调的骨干模型。
+- 概率按我们验证集的分布校准；若用于高风险场景下的阈值决策，建议在目标数据上重新校准。
+- 在显存较小的 GPU 上，超过约 3.2 万 token 的输入推理速度较慢；读出机制本身除骨干模型的上下文长度外无其他长度限制。
+- 训练数据几乎全部为英文。
 
 ## 仓库结构
 
 ```
 src/trutina/
-  engine.py        MLX 引擎：加载发布版、深度模式、图片
-  torch_engine.py  CUDA 引擎（文字；shallow / adaptive / 满深度）
-  readout.py       训练和推理共用的 prompt 格式
+  engine.py        MLX 引擎：加载发布权重、深度模式、图像输入
+  torch_engine.py  CUDA 引擎（仅文本；shallow / adaptive / deep）
+  readout.py       训练与推理共用的 prompt 格式
   wide.py          超过 26 个选项时的分组淘汰
   api.py           /v1/systemone 的解析与输出；decisions_api.py：/v1/decisions
-  backbone.py      带早退出的 Qwen3.5 前向；mlx_vision.py：视觉塔与多模态 RoPE
-  vision.py        图片预处理；schema.py：请求类型
+  backbone.py      支持早退出的 Qwen3.5 前向；mlx_vision.py：视觉编码器与多模态 RoPE
+  vision.py        图像预处理；schema.py：请求类型
   model.py, head.py, decider.py, train.py, pt/   早期 pointer-head 研究模型（v0/v1）
 scripts/
-  serve.py, decide.py      服务
-  export_release.py        从训练产物构建发布目录
-  webui.py, ../webui/      训练看板
+  serve.py, decide.py      推理服务
+  export_release.py        由训练产物构建发布目录
+  webui.py, ../webui/      训练与评测看板
 tests/
 ```
 
@@ -249,4 +249,4 @@ uv run pytest
 
 ## 许可证
 
-代码和权重均为 Apache-2.0。权重派生自 [Qwen/Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B)（Apache-2.0）。
+代码与权重均采用 Apache-2.0 许可证。权重派生自 [Qwen/Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B)（Apache-2.0）。

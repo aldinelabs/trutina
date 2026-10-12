@@ -247,7 +247,7 @@ one decision per request, its 450 open standard and judge items):
 | Jev 1.13.0 | hosted API | 616.5 | 674.0 | JevBench |
 
 The request sets differ (ours includes the public set's long-policy tasks, which set our p95), so read
-this as an order of magnitude, not a ranking. The adaptive mean is 33.7 ms (22.1 layers on average);
+this as an order of magnitude, not a ranking. The adaptive mean is 35.3 ms (22.1 layers on average);
 the full-depth mean is 99 ms because one request paid a one-off kernel compilation (6.7 s), with
 p80 at 46.9 ms. Accuracy on the same run: 87.0% full depth, 86.1% adaptive, identical to MLX.
 

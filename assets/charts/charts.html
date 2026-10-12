@@ -74,7 +74,7 @@ document.documentElement.lang = LANG;
 const zh = LANG === "zh";
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const fmt1 = v => (Math.round(v * 10) / 10).toFixed(1);
-const ms = zh ? " 毫秒" : " ms";
+const ms = " ms";
 
 function frame({ title, sub, body, src }) {
   return `<header><img src="brand/aldine-tm.svg" alt="Aldine"></header>
@@ -105,10 +105,10 @@ function pareto() {
   let g = "";
   for (const t of [50, 60, 70, 80, 90, 100]) g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/><text class="axis" x="${m.l - 14}" y="${y(t) + 5}" text-anchor="end">${t}</text>`;
   for (const t of [10, 30, 100, 300, 1000, 3000, 10000]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${m.t}" y2="${H - m.b}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - m.b + 26}" text-anchor="middle">${t >= 1000 ? t / 1000 + " s" : t + " ms"}</text>`;
-  g += `<text class="axis-title" x="${(m.l + W - m.r) / 2}" y="${H - 4}" text-anchor="middle">${zh ? "每个判断的 p50 延迟（对数刻度），越靠左越快" : "p50 latency per decision (log scale), faster to the left"}</text>`;
+  g += `<text class="axis-title" x="${(m.l + W - m.r) / 2}" y="${H - 4}" text-anchor="middle">${zh ? "单次判断的 p50 延迟（对数坐标，越靠左越快）" : "p50 latency per decision (log scale), faster to the left"}</text>`;
   g += `<text class="axis-title" transform="translate(16 ${(m.t + H - m.b) / 2}) rotate(-90)" text-anchor="middle">${zh ? "JevBench 公开集 Intelligence" : "JevBench open-set Intelligence"}</text>`;
   g += `<rect x="${x(us.p50_ms)}" y="${y(us.i_open)}" width="${W - m.r - x(us.p50_ms)}" height="${H - m.b - y(us.i_open)}" rx="${18}" fill="var(--fg)" opacity=".035"/>`;
-  g += `<text class="lbl-sub" x="${W - m.r - 16}" y="${H - m.b - 16}" text-anchor="end">${zh ? "比 trutina-4b 更慢且更不准" : "slower and less accurate than trutina-4b"}</text>`;
+  g += `<text class="lbl-sub" x="${W - m.r - 16}" y="${H - m.b - 16}" text-anchor="end">${zh ? "延迟更高且准确率更低" : "slower and less accurate than trutina-4b"}</text>`;
   g += `<path d="M${front.map(r => `${x(r.p50_ms).toFixed(1)},${y(r.i_open).toFixed(1)}`).join(" L")}" fill="none" stroke="var(--fg)" stroke-width="1.6" stroke-dasharray="5 5" opacity=".55"/>`;
   for (const r of rows) {
     const cx = x(r.p50_ms), cy = y(r.i_open);
@@ -131,7 +131,7 @@ function pareto() {
   }
   g += `<text class="lbl-us" x="${x(us.p50_ms) - 18}" y="${y(us.i_open) - 18}" text-anchor="end">trutina-4b</text>`;
   g += `<text class="lbl-sub" x="${x(us.p50_ms) - 18}" y="${y(us.i_open) + 2}" text-anchor="end">69.0 · 28 ms</text>`;
-  const L = zh ? ["trutina-4b", "其他 4B 模型", "其他自部署模型", "托管 API", "帕累托前沿"] : ["trutina-4b", "other 4B models", "other self-hosted models", "hosted APIs", "Pareto frontier"];
+  const L = zh ? ["trutina-4b", "其他 4B 模型", "其他本地部署模型", "托管 API", "帕累托前沿"] : ["trutina-4b", "other 4B models", "other self-hosted models", "hosted APIs", "Pareto frontier"];
   const legend = `<div class="legend">
     <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="var(--fg)"/></svg></i>${L[0]}</span>
     <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="var(--muted)"/></svg></i>${L[1]}</span>
@@ -139,10 +139,10 @@ function pareto() {
     <span><i><svg width="16" height="16"><rect x="2" y="2" width="12" height="12" rx="3" fill="#fff" stroke="var(--faint)" stroke-width="2"/></svg></i>${L[3]}</span>
     <span><i><svg width="26" height="10"><line x1="0" x2="26" y1="5" y2="5" stroke="var(--fg)" stroke-width="1.6" stroke-dasharray="5 4" opacity=".6"/></svg></i>${L[4]}</span></div>`;
   return frame(zh ? {
-    title: "处在准确率与延迟的帕累托前沿上",
-    sub: "在 JevBench v1.5.4 榜单上，没有任何系统同时比 trutina-4b 更快、更准：比它准的都更慢，比它快的都更不准。",
+    title: "trutina-4b 位于准确率–延迟帕累托前沿",
+    sub: "在 JevBench v1.5.4 榜单中，不存在延迟与准确率同时优于 trutina-4b 的系统：准确率更高的系统延迟均更高，延迟更低的系统准确率均更低。",
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
-    src: `其他系统：JevBench v1.5.4 官方结果，公开集 Intelligence 与原始 p50 延迟，由维护者在自有 GPU（H100、RTX 5090、RTX PRO 6000、A6000）上测得，托管 API 为端到端时间。trutina-4b：Intelligence 由我们按 v1.5 公式在公开题上计算，延迟由我们在单张 RTX PRO 6000 上经 HTTP 服务测得。图中 ${rows.length} 个系统（Intelligence ≥ 45）。`,
+    src: `其他系统数据取自 JevBench v1.5.4 官方结果：公开集 Intelligence 与原始 p50 延迟，由榜单维护方在其自有 GPU（H100、RTX 5090、RTX PRO 6000、A6000）上测得；托管 API 为端到端延迟。trutina-4b 的 Intelligence 按 v1.5 公式在公开题上自行计算，延迟在单张 RTX PRO 6000 上经 HTTP 服务自行测得。图中共 ${rows.length} 个系统（Intelligence ≥ 45）。`,
   } : {
     title: "On the accuracy–latency frontier",
     sub: "No system on the JevBench v1.5.4 board is both faster and more accurate than trutina-4b. Everything more accurate is slower, and everything faster is less accurate.",
@@ -156,8 +156,8 @@ function efficiency() {
   const FLOOR = 65;
   const others = D.jevbench.rows.filter(r => r.i_open >= FLOOR && r.kind !== "cpu").map(r => ({ ...r, ei: r.i_open / r.p50_ms }));
   const rows = [
-    { name: zh ? "trutina-4b · adaptive" : "trutina-4b · adaptive", i_open: T.i_open, p50_ms: T.latency_rtxpro6000.adaptive.p50, us: true, hw: "RTX PRO 6000", params_b: 4 },
-    { name: zh ? "trutina-4b · 满深度" : "trutina-4b · full depth", i_open: T.i_open, p50_ms: T.latency_rtxpro6000.full.p50, us: true, hw: "RTX PRO 6000", params_b: 4 },
+    { name: zh ? "trutina-4b · 自适应深度" : "trutina-4b · adaptive", i_open: T.i_open, p50_ms: T.latency_rtxpro6000.adaptive.p50, us: true, hw: "RTX PRO 6000", params_b: 4 },
+    { name: zh ? "trutina-4b · 完整深度" : "trutina-4b · full depth", i_open: T.i_open, p50_ms: T.latency_rtxpro6000.full.p50, us: true, hw: "RTX PRO 6000", params_b: 4 },
     ...others,
   ].map(r => ({ ...r, ei: r.i_open / r.p50_ms })).sort((a, b) => b.ei - a.ei).slice(0, 12);
   const W = 1470, rowH = 44, top = 8, H = rows.length * rowH + top + 34, lx = 470;
@@ -173,10 +173,10 @@ function efficiency() {
   });
   const next = rows.find(r => !r.us);
   return frame(zh ? {
-    title: "Efficiency Index：每毫秒换来的准确率",
-    sub: `Efficiency Index = JevBench 公开集 Intelligence ÷ p50 延迟（毫秒），在 Intelligence ≥ ${FLOOR} 的系统中比较。trutina-4b 为 ${rows[0].ei.toFixed(2)}，是第二名 ${pretty(next.name)}（${next.ei.toFixed(2)}）的 ${(rows[0].ei / next.ei).toFixed(1)} 倍。`,
+    title: "Efficiency Index：单位延迟的准确率",
+    sub: `Efficiency Index 定义为 JevBench 公开集 Intelligence 与 p50 延迟（ms）之比，比较范围为 Intelligence ≥ ${FLOOR} 的系统。trutina-4b 的指数为 ${rows[0].ei.toFixed(2)}，为次优系统 ${pretty(next.name)}（${next.ei.toFixed(2)}）的 ${(rows[0].ei / next.ei).toFixed(1)} 倍。`,
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
-    src: `只比较 Intelligence ≥ ${FLOOR} 的系统，避免快但准确率低得多的模型主导这个比值；不设门槛时，几个 Intelligence 56–62、在 H100 上约 16 毫秒的 4B 模型比值更高。数据来源同帕累托图；trutina-4b 的延迟为我们在 RTX PRO 6000 上自测，其他为 JevBench 在各自 GPU 上实测，硬件不完全相同。`,
+    src: `设置 Intelligence ≥ ${FLOOR} 的门槛，是为避免延迟极低而准确率明显偏低的模型主导该比值；若不设门槛，若干 Intelligence 为 56–62、在 H100 上延迟约 16 ms 的 4B 模型指数更高。数据来源同帕累托图。trutina-4b 的延迟在 RTX PRO 6000 上自行测得，其他系统由 JevBench 在各自的 GPU 上测得，硬件条件不完全一致。`,
   } : {
     title: "Efficiency Index: accuracy per millisecond",
     sub: `Efficiency Index = JevBench open-set Intelligence ÷ p50 latency in ms, among systems with Intelligence ≥ ${FLOOR}. trutina-4b scores ${rows[0].ei.toFixed(2)}, ${(rows[0].ei / next.ei).toFixed(1)}× the next system, ${pretty(next.name)} (${next.ei.toFixed(2)}).`,
@@ -202,10 +202,10 @@ function size() {
     g += `<text class="${r.us ? "val" : "val-muted"}" x="${x(r.i_open) + 10}" y="${cy + 5}">${fmt1(r.i_open)}</text>`;
   });
   return frame(zh ? {
-    title: "4B 的体量，12–27B 的水平",
-    sub: "JevBench 公开集 Intelligence。trutina-4b 比其他所有 4B 模型高 6.5 分，与多数 26–35B 系统持平或更高，并且只做一次前向，不生成推理 token。",
+    title: "4B 参数规模达到 12–27B 模型的水平",
+    sub: "指标为 JevBench 公开集 Intelligence。trutina-4b 高出其余 4B 模型 6.5 分，与多数 26–35B 系统相当或更高；且仅需单次前向传播，不生成推理 token。",
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
-    src: "JevBench v1.5.4 官方结果（公开集 Intelligence，0–100）。参数量以各系统自己的命名为准。trutina-4b 的 Intelligence 由我们按 v1.5 公式在公开题上计算，封闭集成绩尚未测量。",
+    src: "数据取自 JevBench v1.5.4 官方结果（公开集 Intelligence，0–100）。参数量以各系统名称所标为准。trutina-4b 的 Intelligence 按 v1.5 公式在公开题上自行计算，封闭集成绩尚未测量。",
   } : {
     title: "A 4B model in the 12–27B tier",
     sub: "JevBench open-set Intelligence. trutina-4b is 6.5 points ahead of every other 4B model and level with or ahead of most 26–35B systems, in one forward pass with no reasoning tokens.",
@@ -224,7 +224,7 @@ function localllama() {
   rows.forEach((r, i) => {
     const cy = top + i * rowH + rowH / 2;
     g += `<text class="${r.ours ? "lbl-us" : "lbl"}" x="${lx - 16}" y="${cy + 1}" text-anchor="end">${esc(r.name)}</text>`;
-    g += `<text class="lbl-sub" x="${lx - 16}" y="${cy + 19}" text-anchor="end">${r.open ? (zh ? "开放权重" : "open weights") : (zh ? "通过 API 评测" : "scored via API")}</text>`;
+    g += `<text class="lbl-sub" x="${lx - 16}" y="${cy + 19}" text-anchor="end">${r.open ? (zh ? "开放权重" : "open weights") : (zh ? "经 API 评测" : "scored via API")}</text>`;
     g += bar(lx, cy - 13, x(r.acc) - lx, 26, r.ours ? "var(--fg)" : r.open ? "var(--muted)" : "var(--pale)");
     g += `<text class="${r.ours ? "val" : "val-muted"}" x="${x(r.acc) + 10}" y="${cy + 6}">${r.acc}</text>`;
   });
@@ -239,10 +239,10 @@ function localllama() {
   });
   const cards = (a, b) => `<div class="row"><div class="card" style="flex:1.9"><h2>${a}</h2>${svgTag(W, H)}${g}</svg></div><div class="card"><h2>${b}</h2>${svgTag(W2, H)}${k}</svg></div></div>`;
   return frame(zh ? {
-    title: "零样本处理没见过的业务流程",
-    sub: "LocalLLaMA typed-decisions 测试集：agent 监控、客服、发票、安全事件，训练中都没有出现。开放权重模型第一，总榜第二，仅次于一个托管 API。",
-    body: cards("准确率 <span>· 2,000 题</span>", "与标准答案分布的 KL <span>· 越低越好</span>"),
-    src: "其他行来自 LocalLLaMA/typed-decisions 数据集卡片的零样本榜。trutina-4b 由我们用发布的权重以满深度测得（adaptive：准确率相同，平均 28 层）。",
+    title: "未见业务流程上的零样本表现",
+    sub: "LocalLLaMA typed-decisions 测试集，涵盖 agent 监控、客户服务、发票处理与安全事件等场景，均未出现在训练数据中。trutina-4b 在开放权重模型中位列第一，总榜位列第二，仅次于一个托管 API。",
+    body: cards("准确率 <span>· 2,000 题</span>", "与标注分布的 KL 散度 <span>· 越低越好</span>"),
+    src: "其他系统数据取自 LocalLLaMA/typed-decisions 数据集卡片中的零样本榜单。trutina-4b 使用发布权重以完整深度自行测得（自适应深度：准确率相同，平均 28 层）。",
   } : {
     title: "Zero-shot on business workflows it never saw",
     sub: "LocalLLaMA typed-decisions test: agent monitoring, support, invoices and security incidents, none of them in training. First among open-weight models, second overall behind one hosted API.",
@@ -259,14 +259,14 @@ function adaptive() {
   for (const t of [40, 50, 60, 70, 80, 90]) g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/><text class="axis" x="${m.l - 12}" y="${y(t) + 5}" text-anchor="end">${t}%</text>`;
   for (const l of E.layers) g += `<text class="axis" x="${x(l)}" y="${H - m.b + 26}" text-anchor="middle">${l}</text>`;
   g += `<text class="axis-title" x="${(m.l + W - m.r) / 2}" y="${H - 2}" text-anchor="middle">${zh ? "出口层" : "exit layer"}</text>`;
-  const series = [["jevbench", zh ? "JevBench 公开集" : "JevBench public", "var(--fg)", 3], ["val", zh ? "我们的验证集" : "our validation split", "var(--muted)", 2.2], ["localllama", "LocalLLaMA", "var(--faint)", 2.2]];
+  const series = [["jevbench", zh ? "JevBench 公开集" : "JevBench public", "var(--fg)", 3], ["val", zh ? "验证集" : "our validation split", "var(--muted)", 2.2], ["localllama", "LocalLLaMA", "var(--faint)", 2.2]];
   for (const [k2, , c, w] of series) {
     const pts = E.layers.map((l, i) => [x(l), y(E[k2][i])]);
     g += `<path d="M${pts.map(p => p.join(",")).join(" L")}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"/>`;
     for (const p of pts) g += `<circle cx="${p[0]}" cy="${p[1]}" r="5" fill="var(--card)" stroke="${c}" stroke-width="2.2"/>`;
   }
-  g += `<text class="lbl-sub" x="${W - m.r}" y="${y(46)}" text-anchor="end">${zh ? "没有训练过的出口时，中间层" : "without trained exits, intermediate layers"}</text>`;
-  g += `<text class="lbl-sub" x="${W - m.r}" y="${y(46) + 18}" text-anchor="end">${zh ? "到第 19 层左右之前都是随机水平" : "read at chance level until about layer 19"}</text>`;
+  g += `<text class="lbl-sub" x="${W - m.r}" y="${y(46)}" text-anchor="end">${zh ? "若不训练出口，中间层读出" : "without trained exits, intermediate layers"}</text>`;
+  g += `<text class="lbl-sub" x="${W - m.r}" y="${y(46) + 18}" text-anchor="end">${zh ? "在约第 19 层之前接近随机水平" : "read at chance level until about layer 19"}</text>`;
   const lineLegend = `<div class="legend">${series.map(([, name, c, w]) => `<span><i><svg width="26" height="12"><line x1="0" x2="26" y1="6" y2="6" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/><circle cx="13" cy="6" r="4" fill="#fff" stroke="${c}" stroke-width="2"/></svg></i>${name}</span>`).join("")}</div>`;
   const sh = E.share_val, keys = ["12", "16", "20", "24", "32"], SW = 520, tones = ["var(--fg)", "var(--ink-2)", "var(--muted)", "var(--faint)", "var(--pale)"];
   let acc = 0, s = "";
@@ -277,16 +277,16 @@ function adaptive() {
     acc += w;
   });
   const kp = (k2, v, f) => `<div class="kpi inner" style="padding:22px 24px"><span class="k">${k2}</span><span class="v" style="font-size:40px">${v}</span><span class="f">${f}</span></div>`;
-  const K = zh ? [["平均层数", `22.1<small>/ 32</small>`, "JevBench 公开集"], ["准确率", `86.1<small>%</small>`, "满深度为 87.0%"], ["p50，RTX PRO 6000", `21.1<small>毫秒</small>`, "满深度为 28.3 毫秒"], ["平均延迟，RTX PRO 6000", `35.3<small>毫秒</small>`, "全部请求，含 HTTP"]]
+  const K = zh ? [["平均层数", `22.1<small>/ 32</small>`, "JevBench 公开集"], ["准确率", `86.1<small>%</small>`, "完整深度为 87.0%"], ["p50，RTX PRO 6000", `21.1<small>ms</small>`, "完整深度为 28.3 ms"], ["平均延迟，RTX PRO 6000", `35.3<small>ms</small>`, "全部请求，含 HTTP 开销"]]
     : [["Layers used", `22.1<small>/ 32</small>`, "on average, JevBench public"], ["Accuracy", `86.1<small>%</small>`, "87.0% at full depth"], ["p50, RTX PRO 6000", `21.1<small>ms</small>`, "28.3 ms at full depth"], ["Mean, RTX PRO 6000", `35.3<small>ms</small>`, "all requests, HTTP included"]];
   const body = `<div class="row"><div class="card" style="flex:1.6"><h2>${zh ? "各出口单独作答的准确率 <span>· 经温度校准</span>" : "Accuracy of each exit <span>· temperature-calibrated</span>"}</h2>${lineLegend}${svgTag(W, H)}${g}</svg></div>
       <div style="flex:1; display:flex; flex-direction:column; gap:20px">
-        <div class="card" style="flex:none"><h2>${zh ? "adaptive 在哪一层作答 <span>· 我们的验证集</span>" : "Where adaptive answers <span>· our validation split</span>"}</h2><svg width="${SW}" height="96">${s}</svg></div>
+        <div class="card" style="flex:none"><h2>${zh ? "自适应深度的终止层分布 <span>· 验证集</span>" : "Where adaptive answers <span>· our validation split</span>"}</h2><svg width="${SW}" height="96">${s}</svg></div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px">${K.map(a => kp(...a)).join("")}</div></div></div>`;
   return frame(zh ? {
-    title: "Adaptive 深度：答案稳定就停",
-    sub: "第 12、16、20、24 层各有一个 tuned-lens 出口，读的是和最后一层相同的选项字母。请求在第一个有把握的出口停下，否则从这里接着往下算，不重算前面的层。",
-    body, src: "各出口准确率在合并 LoRA 前的训练检查点上测得（发布权重最多相差 0.1）。延迟：单张 RTX PRO 6000，经 scripts/serve.py 串行请求，JevBench 公开题。",
+    title: "自适应深度：置信度达到阈值即终止计算",
+    sub: "第 12、16、20、24 层各设一个 tuned-lens 出口，与最后一层读取相同的选项字母。请求在首个置信度达到阈值的出口处终止；否则沿用该层隐状态继续计算，无需重复计算前序各层。",
+    body, src: "各出口准确率在合并 LoRA 之前的训练检查点上测得（与发布权重相差不超过 0.1）。延迟测量条件：单张 RTX PRO 6000，经 scripts/serve.py 串行发送请求，JevBench 公开题。",
   } : {
     title: "Adaptive depth: stop once the answer settles",
     sub: "Tuned-lens exits at layers 12, 16, 20 and 24 read the same option letters as the final layer. A request stops at the first confident exit; otherwise it carries on from there without recomputing earlier layers.",
@@ -297,8 +297,8 @@ function adaptive() {
 /* ---------- Latency on RTX PRO 6000 ---------- */
 function latency() {
   const rows = [
-    { name: "trutina-4b · adaptive", p50: T.latency_rtxpro6000.adaptive.p50, p95: T.latency_rtxpro6000.adaptive.p95, hw: "RTX PRO 6000", us: true, by: zh ? "我们" : "us" },
-    { name: zh ? "trutina-4b · 满深度" : "trutina-4b · full depth", p50: T.latency_rtxpro6000.full.p50, p95: T.latency_rtxpro6000.full.p95, hw: "RTX PRO 6000", us: true, by: zh ? "我们" : "us" },
+    { name: zh ? "trutina-4b · 自适应深度" : "trutina-4b · adaptive", p50: T.latency_rtxpro6000.adaptive.p50, p95: T.latency_rtxpro6000.adaptive.p95, hw: "RTX PRO 6000", us: true, by: zh ? "本文" : "us" },
+    { name: zh ? "trutina-4b · 完整深度" : "trutina-4b · full depth", p50: T.latency_rtxpro6000.full.p50, p95: T.latency_rtxpro6000.full.p95, hw: "RTX PRO 6000", us: true, by: zh ? "本文" : "us" },
     ...[["Cygnet", "Cygnet · 12B"], ["AutoJev-27B (RTX PRO 6000)", "AutoJev · 27B"], ["Surogate Rune 26B-A4B v3 (RTX PRO 6000)", "Surogate Rune · 26B-A4B"], ["swanOne", "swanOne"], ["Jev 1.13.0", zh ? "Jev 1.13.0 · 托管 API" : "Jev 1.13.0 · hosted API"]]
       .map(([n, label]) => { const r = pick(n); return { name: label, p50: r.p50_ms, p95: r.p95_ms, hw: r.hw === "api" ? (zh ? "端到端" : "end to end") : r.hw, by: "JevBench" }; }),
   ];
@@ -318,10 +318,10 @@ function latency() {
   const legend = `<div class="legend"><span><i><svg width="26" height="14"><rect width="26" height="14" rx="7" fill="var(--fg)"/></svg></i>p50</span>
     <span><i><svg width="26" height="14"><line x1="0" x2="20" y1="7" y2="7" stroke="var(--fg)" stroke-width="2"/><circle cx="20" cy="7" r="4.5" fill="#fff" stroke="var(--fg)" stroke-width="2"/></svg></i>p95</span></div>`;
   return frame(zh ? {
-    title: "同一张 GPU 上，速度接近最强模型的两倍",
-    sub: "RTX PRO 6000 上每个判断的延迟，一次一个请求。开启 adaptive 后，trutina-4b 的中位延迟为 21 毫秒，约为这张卡上最准的 Cygnet（39.8 毫秒）的一半。",
+    title: "同一 GPU 上，速度接近最高准确率模型的两倍",
+    sub: "RTX PRO 6000 上单次判断的延迟，串行发送请求。启用自适应深度时，trutina-4b 的中位延迟为 21 ms，约为该 GPU 上准确率最高的系统 Cygnet（39.8 ms）的一半。",
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
-    src: "其他系统：JevBench v1.5.4 在其 RTX PRO 6000 节点上测得的原始延迟（450 道公开 standard 和 judge 题），Jev 为托管 API 的端到端时间。trutina-4b：我们在单张 RTX PRO 6000 上经自带 HTTP 服务测得，预热后跑 231 道 JevBench 公开题。两边请求集不同，差距只看量级。",
+    src: "其他系统为 JevBench v1.5.4 在其 RTX PRO 6000 节点上测得的原始延迟（450 道公开 standard 与 judge 题）；Jev 为托管 API 的端到端延迟。trutina-4b 在单张 RTX PRO 6000 上经自带 HTTP 服务自行测得，预热后运行 231 道 JevBench 公开题。两组测量的请求集不同，差异仅宜作数量级比较。",
   } : {
     title: "Nearly twice as fast as the best model on the same GPU",
     sub: "Per-decision latency on an RTX PRO 6000, one request at a time. With adaptive depth trutina-4b answers in 21 ms at the median, about half the 39.8 ms of Cygnet, the most accurate system measured on that GPU.",
@@ -351,14 +351,14 @@ function dumbbell(rows, lo, hi, labels) {
 }
 
 function finetune() {
-  const sub = { accuracy: zh ? "准确率" : "accuracy", "state-macro acc.": zh ? "按 state 平均的准确率" : "state-macro accuracy", "pair accuracy": zh ? "两种顺序都对才算对" : "pair accuracy, both orders" };
+  const sub = { accuracy: zh ? "准确率" : "accuracy", "state-macro acc.": zh ? "按 state 宏平均的准确率" : "state-macro accuracy", "pair accuracy": zh ? "两种选项顺序均正确方计为正确" : "pair accuracy, both orders" };
   const name = { "JevBench public": zh ? "JevBench 公开集" : "JevBench public" };
   const rows = T.heldout.filter(r => r.set !== "DecisionBench hard").map(r => ({ set: name[r.set] || r.set, sub: sub[r.metric] || r.metric, before: r.zero_shot, after: r.trutina }));
-  const body = dumbbell(rows, 40, 90, zh ? { before: "Qwen3.5-4B，相同 prompt，未训练", vs: "未训练" } : { before: "Qwen3.5-4B, same prompt, untrained", vs: "untrained" });
+  const body = dumbbell(rows, 40, 90, zh ? { before: "Qwen3.5-4B，相同 prompt，未微调", vs: "未微调" } : { before: "Qwen3.5-4B, same prompt, untrained", vs: "untrained" });
   return frame(zh ? {
-    title: "微调在 held-out 基准上带来的提升",
-    sub: "相同骨干，相同 prompt。这些数据集都没有用于训练，也没有用于挑选权重。fast-decisions 准确率持平，但校准误差减半（ECE 0.251 → 0.122）。",
-    body, src: "全部由我们测得。未列出：DecisionBench hard，trutina-4b（49.6）低于未训练的骨干（53.6）；完整的 held-out 结果见模型卡片。",
+    title: "微调在 held-out 基准上的增益",
+    sub: "对照组使用相同骨干与相同 prompt。上述数据集既未用于训练，也未用于权重选择。fast-decisions 上准确率持平，但校准误差降低约一半（ECE 0.251 → 0.122）。",
+    body, src: "全部结果均为自行测得。图中未列出 DecisionBench hard：该基准上 trutina-4b（49.6）低于未微调的骨干模型（53.6）。完整的 held-out 结果见模型卡片。",
   } : {
     title: "What the fine-tune adds on held-out benchmarks",
     sub: "Same backbone, same prompt. None of these sets was used for training or for choosing weights. fast-decisions accuracy is flat, but its calibration error halves (ECE 0.251 → 0.122).",
@@ -368,14 +368,14 @@ function finetune() {
 
 function vision() {
   const names = zh ? { "Rendered workflow screenshots": "渲染的工作流截图" } : {};
-  const subs = { ScienceQA: zh ? "科学题，带插图" : "science questions with diagrams", Mind2Web: zh ? "网页操作：下一步点哪里" : "web agents: which element to act on",
-    "A-OKVQA": zh ? "需要常识的看图问答" : "visual questions needing world knowledge", "Rendered workflow screenshots": zh ? "把工作流状态渲染成图片后做判断" : "workflow states rendered as images" };
+  const subs = { ScienceQA: zh ? "含插图的科学问答" : "science questions with diagrams", Mind2Web: zh ? "网页智能体：目标元素选择" : "web agents: which element to act on",
+    "A-OKVQA": zh ? "依赖世界知识的视觉问答" : "visual questions needing world knowledge", "Rendered workflow screenshots": zh ? "以图像形式呈现的工作流状态" : "workflow states rendered as images" };
   const rows = T.vision.map(r => ({ ...r, sub: subs[r.set], set: names[r.set] || r.set }));
-  const body = dumbbell(rows, 70, 100, zh ? { before: "v2（仅文字微调，没有见过图片训练）", vs: "v2" } : { before: "v2 (text-only fine-tune, no image training)", vs: "v2" });
+  const body = dumbbell(rows, 70, 100, zh ? { before: "v2（仅文本微调，未经图像训练）", vs: "v2" } : { before: "v2 (text-only fine-tune, no image training)", vs: "v2" });
   return frame(zh ? {
-    title: "图片输入：同一套读出，直接看图做判断",
-    sub: "Qwen3.5 的视觉塔保持冻结，图片 token 放进 state，读出方式不变。加入约 3.5 万道图片题训练后，网页操作类判断从 75.0 提升到 91.9。",
-    body, src: "我们自己的验证集（与训练同分布，不是公开基准）。对照组是同一架构的 v2：只做了文字微调，图片题等于零样本。Decision Index 的视觉套件尚未运行。",
+    title: "图像输入：沿用同一读出机制",
+    sub: "Qwen3.5 视觉编码器参数保持冻结，图像 token 置于 state 中，读出方式不变。加入约 3.5 万道图像题训练后，网页智能体类判断的准确率由 75.0 提升至 91.9。",
+    body, src: "评测数据为自建验证集（与训练数据同分布，非公开基准）。对照组为同一架构的 v2，仅经文本微调，在图像题上相当于零样本。Decision Index 视觉套件尚未评测。",
   } : {
     title: "Images in, decisions out, with the same readout",
     sub: "The Qwen3.5 vision tower stays frozen; image tokens go into the state and the readout is unchanged. Training on about 35k image questions lifts web-agent decisions from 75.0 to 91.9.",
@@ -387,13 +387,13 @@ function vision() {
 function overview() {
   const kp = (k, v, f) => `<div class="kpi"><span class="k">${k}</span><span class="v">${v}</span><span class="f">${f}</span></div>`;
   const A = zh ? [
-    ["JevBench 公开集", `87.0<small>%</small>`, "榜单公开集并列第五；前四名都要先生成推理"],
-    ["JevBench Intelligence", `69.0`, "所有 4B 模型中最高（第二名 62.5），与 26–27B 系统相当"],
-    ["LocalLLaMA 零样本", `74.85<small>%</small>`, "开放权重第一，总榜第二；KL 0.149"],
-    ["延迟，RTX PRO 6000", `21<small>毫秒</small>`, "adaptive 的 p50；满深度 28 毫秒"],
-    ["Adaptive 深度", `22<small>/ 32 层</small>`, "平均层数，准确率只少 0.9 个点"],
-    ["最多 255 个选项", `79.3<small>%</small>`, "MASSIVE 59 类；分组淘汰（两字母标签为 59.4%）"],
-    ["许可证", `Apache<small>2.0</small>`, "权重和代码；MLX、CUDA 引擎与 HTTP 服务"]] : [
+    ["JevBench 公开集", `87.0<small>%</small>`, "公开集并列第五；排名更高的四个系统均先生成推理文本"],
+    ["JevBench Intelligence", `69.0`, "4B 模型中最高（次优为 62.5），与 26–27B 系统相当"],
+    ["LocalLLaMA 零样本", `74.85<small>%</small>`, "开放权重模型第一，总榜第二；KL 0.149"],
+    ["延迟，RTX PRO 6000", `21<small>ms</small>`, "自适应深度的 p50；完整深度为 28 ms"],
+    ["自适应深度", `22<small>/ 32 层</small>`, "平均层数；准确率下降 0.9 个百分点"],
+    ["最多 255 个选项", `79.3<small>%</small>`, "MASSIVE，59 类；分组淘汰（双字母标签方案为 59.4%）"],
+    ["许可证", `Apache<small>2.0</small>`, "权重与代码；提供 MLX、CUDA 引擎及 HTTP 服务"]] : [
     ["JevBench public set", `87.0<small>%</small>`, "Ties 5th on the board's public set; the four above generate reasoning first"],
     ["JevBench Intelligence", `69.0`, "Highest of any 4B model (next: 62.5); level with 26–27B systems"],
     ["LocalLLaMA zero-shot", `74.85<small>%</small>`, "First among open weights, second overall; KL 0.149"],
@@ -405,9 +405,9 @@ function overview() {
       <div class="kpis">${A.slice(0, 4).map(a => kp(...a)).join("")}</div>
       <div class="kpis" style="grid-template-columns: repeat(3, 1fr)">${A.slice(4).map(a => kp(...a)).join("")}</div></div>`;
   return frame(zh ? {
-    title: "trutina-4b：一次前向，给出校准过的判断",
-    sub: "带 adaptive 深度的 4B 类型化决策模型。支持文字和图片上的选择题、打分题和是否题，为每个选项给出概率，不生成文本。",
-    body, src: "trutina-4b 的 JevBench Intelligence 由我们按 v1.5 公式在公开题上计算；其他系统来自官方 v1.5.4 结果。方法与全部注意事项见模型卡片。",
+    title: "trutina-4b：单次前向传播的校准决策模型",
+    sub: "具备自适应深度的 4B 类型化决策模型。支持基于文本与图像的选择题、等级评分题与是非题，为每个选项输出概率，不生成文本。",
+    body, src: "trutina-4b 的 JevBench Intelligence 按 v1.5 公式在公开题上自行计算；其他系统数据取自官方 v1.5.4 结果。评测方法与全部说明详见模型卡片。",
   } : {
     title: "trutina-4b: calibrated decisions in one forward pass",
     sub: "A 4B typed decision model with adaptive depth. Choice, score and yes/no questions over text and images, with a probability for every option and no generated text.",
