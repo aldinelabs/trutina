@@ -1,21 +1,23 @@
 # trutina
 
 **trutina-4b** is a typed decision model: give it a state (text, optionally with images) and typed
-questions, and it returns a calibrated probability for every option, in one forward pass and
-without generating any text. It is Qwen3.5-4B fine-tuned to read its answer from the
-language-model head at one position, with tuned-lens early exits for an adaptive depth mode.
+questions, and it returns a calibrated probability for every option without generating any text.
+It is Qwen3.5-4B with a **multi-exit readout**: the answer can be read at layer 12, 16, 20, 24 or 32,
+and in the default **adaptive** mode each request stops at the first layer that is confident
+enough, continuing from where it stopped when it is not. Easy questions finish in about half the
+network; hard ones get all 32 layers.
 
 Weights: [aldinelabs/trutina-4b](https://huggingface.co/aldinelabs/trutina-4b) · Licence: Apache-2.0
 
-| | |
-|---|---|
-| **JevBench public set** (231 tasks) | **87.0%** accuracy, full depth · 86.1% adaptive (22 layers on average) · ties for 5th on the board's public set; the four above generate reasoning first |
-| **LocalLLaMA typed-decisions test** (zero-shot, 2,000 questions) | **74.85%** accuracy, KL 0.149 · 2nd overall, 1st among open weights |
-| Latency (M5 Pro, MLX, one question) | JevBench p50 113 ms full depth, 71 ms adaptive · LocalLLaMA p50 201 ms, 177 ms |
-| Inputs | text and images; choice (up to 255 options), score (2–10 levels), yes/no |
+| Benchmark | Full depth (32 layers) | Adaptive (default) |
+|---|---|---|
+| **JevBench public set** (231 tasks, accuracy) | **87.0%** · p50 113 ms | 86.1% · 22.1 layers on average · p50 71 ms |
+| **LocalLLaMA typed-decisions** (`test`, zero-shot, 2,000 questions) | **74.85%** · KL 0.149 · p50 201 ms | 74.85% · KL 0.178 · 28.2 layers · p50 177 ms |
 
-These are our own measurements on public sets; neither set was used for training or for picking
-weights (details under [Evaluation](#evaluation)).
+- JevBench public: ties for 5th on the board's public set; the four systems above it generate reasoning text before answering.
+- LocalLLaMA: 2nd in the zero-shot table and 1st among open-weight models.
+- Latency is per question on an M5 Pro with MLX. Inputs: text and images; choice (up to 255 options), score (2–10 levels), yes/no.
+- These are our own measurements on public sets; neither set was used for training or for picking weights (see [Evaluation](#evaluation)).
 
 ## Quickstart
 
@@ -84,33 +86,92 @@ The `/v1/systemone` body is `{"state": ..., "questions": {...}, "depth": ...}`:
 `{"type": "input_image", "image_url": "data:image/png;base64,..."}`). `confidence` is
 1 − H(p) / log K. All questions in a request share the state and run as one batch.
 
-`depth` trades latency for accuracy:
+`depth` picks how much of the network a request may use: `shallow` (answer at layer 12),
+`adaptive` (default, below) or `deep` (all 32 layers, averaged over up to 4 rotations of each
+choice question's options).
 
-| `depth` | What runs | JevBench public | Layers |
-|---|---|---|---|
-| `shallow` | stop at the first exit (layer 12) | — | 12 |
-| `adaptive` (default) | exits at layers 12, 16, 20, 24; stop at the first one whose top probability reaches the calibrated threshold for every question | 86.1% | 22 on average |
-| `deep` | all 32 layers, averaged over up to 4 rotations of each choice question's options | — | 32 × up to 4 |
+## Adaptive depth
 
-Full depth without rotations (what the benchmark numbers use) is 87.0%.
+```
+ tokens ─► layers 1–12 ─► exit 12 ─► confident? ── yes ─► answer
+                              │ no
+                              ▼  (continue from layer 12's hidden state, nothing is recomputed)
+           layers 13–16 ─► exit 16 ─► confident? ── yes ─► answer
+                              │ no
+           layers 17–20 ─► exit 20 ─►      …
+           layers 21–24 ─► exit 24 ─►      …
+           layers 25–32 ─► final readout ─────────────────► answer
+```
 
-## How it works
+Every exit reads the same thing: a probability for each option label. "Confident" means the top
+probability reaches one calibrated threshold (0.84) for every question in the request. Because the
+pass continues from the exit's hidden state, an early miss costs only the small exit head, not
+a second forward pass.
 
-- **Readout.** Each question becomes one prompt: the chat template with thinking off, the options
-  labelled (A), (B), … shown before and after the input (a "sandwich"), ending in `Best answer: (`.
-  The answer distribution is the softmax over the LM-head rows of the option letters at that
-  position, divided by a calibrated temperature. Nothing is generated.
-- **Fine-tune.** LoRA (rank 16, every linear layer) on soft and hard labels from about 266k
-  public decision questions, with option order shuffled and descriptions randomly dropped. The LoRA
-  is merged into the released weights.
-- **Early exits.** One tuned-lens transform per exit at layers 12, 16, 20 and 24, distilled from
-  the final layer. `adaptive` stops early when the exit is confident enough.
-- **Calibration.** A temperature per exit, fitted on our validation split.
-- **More than 26 options.** The model only ever saw the letters A–Z, so larger choice questions run
-  as a two-round tournament: groups of at most 26, then a final among each group's leaders
-  (`trutina/wide.py`). On MASSIVE (59 intents, not in training) this gives 79.3% top-1, against
-  59.4% for untrained two-letter labels.
-- **Images.** The Qwen3.5 vision tower is used as is (frozen); image tokens are placed in the state.
+Accuracy of each exit on its own (temperature-calibrated; measured on the training checkpoint before
+the LoRA was merged, which moves the released model's numbers by at most 0.1):
+
+| Exit layer | 12 | 16 | 20 | 24 | 32 | adaptive |
+|---|---|---|---|---|---|---|
+| Our validation split | 50.0 | 73.5 | 85.8 | 87.4 | 87.9 | 87.5 |
+| JevBench public | 42.9 | 71.9 | 87.0 | 87.9 | 87.0 | 86.1 |
+| LocalLLaMA test | 43.5 | 59.3 | 72.8 | 75.2 | 74.75 | 74.75 |
+
+Where adaptive answers on our validation split: layer 12 for 7% of questions, 16 for 28%, 20 for 26%,
+24 for 9%, and the full 32 layers for 29%. That averages 22.2 layers, for a 0.4-point accuracy cost.
+The threshold was set on our validation split as the most aggressive one that costs at most about
+half a point of accuracy.
+
+Without the trained exits this is impossible: reading the untrained model's LM head at
+intermediate layers (a "logit lens") gives chance-level answers up to about layer 19.
+
+## Architecture
+
+```
+                      ┌────────────── Qwen3.5-4B (24 Gated DeltaNet + 8 attention layers), LoRA merged ──────────────┐
+ prompt ─► embed ─► … layer 12 ─┬─ … layer 16 ─┬─ … layer 20 ─┬─ … layer 24 ─┬─ … layer 32 ─► final norm ─┐
+                                │              │              │              │                          │
+                             lens 12        lens 16        lens 20        lens 24                       │
+                                └──────────────┴──────┬───────┴──────────────┘                          │
+                                                      ▼                                                 ▼
+                                        logits = LM-head rows of the option letters (A)…(Z) at "Best answer: ("
+                                                      ▼
+                                       ÷ per-exit temperature → softmax over the options
+```
+
+- **Letter readout at one position.** Each question is rendered once: the chat template with
+  thinking off, the options labelled (A), (B), … shown both before and after the input (a
+  "sandwich", so the model reads the input already knowing the question and sees the options again
+  right before answering), ending in `Best answer: (`. The answer is the softmax over the LM-head
+  rows of the option letters at that position. Reading option letters from the LM head is shared
+  with other decision models (e.g. decider-4b, JevK5); it keeps the backbone's own prior, and
+  untrained it already reaches 79.7% on the JevBench public set.
+- **Tuned-lens exits (ours).** Each early exit is one affine map in the residual stream,
+  `norm(h + W h + b)`, with its own logit scale, about 6.5M parameters each and 26M in total. The
+  exits read the same LM-head letter rows as the final layer. They are trained by distillation from
+  the final layer's answer distribution, with their inputs detached: the exits learn to predict the
+  final answer early, and they cannot pull the backbone away from it, so full-depth accuracy is the
+  same as without them.
+- **Resume, don't restart.** Adaptive inference runs the backbone in segments (layers 1–12, 13–16,
+  …) and keeps the hidden states of every token at the segment boundary; the next segment starts
+  from them. A request that does not stop at layer 12 has paid for layers 1–12 once, plus one
+  2560×2560 matmul per question at the exit.
+- **Calibrated per exit.** Each exit has its own temperature (0.83–1.04) fitted on our validation
+  split, so a 0.84 at layer 16 means the same as a 0.84 at layer 32. That is what makes one shared
+  stopping threshold work.
+- **One batch per request.** The questions of a request share the state and run as one padded
+  batch; the stop decision is per request, so latency is one forward pass, not one per question.
+- **More than 26 options: a tournament (ours).** The model only ever saw the letters A–Z, so larger
+  choice questions run in two rounds: balanced groups of at most 26, then a final among each group's
+  leaders. Every option still gets a probability (finalists by the final, the rest by their group
+  scores). On MASSIVE (59 intents, not in training) this gives 79.3% top-1, against 59.4% for the
+  usual alternative, two-letter labels (AA, AB, …) that the model never trained on (`trutina/wide.py`).
+- **Images.** The Qwen3.5 vision tower is used as is (frozen); image tokens go into the state with
+  multimodal RoPE, and the readout is unchanged.
+- **Fine-tune.** LoRA rank 16 on every linear layer (attention, Gated DeltaNet projections, MLP),
+  trained on soft and hard labels from about 266k public decision questions plus 35k image
+  questions. Options are shuffled and descriptions randomly dropped. The LoRA is merged into the
+  released weights, so the checkpoint loads as a plain Qwen3.5-4B.
 
 ## Evaluation
 
@@ -119,7 +180,7 @@ training, and weights were selected on our own validation loss only.
 
 **JevBench public set** (231 tasks: easy, original and hard files; accuracy):
 
-| | All | Hard (94) |
+| Model | All | Hard (94) |
 |---|---|---|
 | trutina-4b, full depth | **87.0** | 73.4 |
 | trutina-4b, adaptive | 86.1 | |
