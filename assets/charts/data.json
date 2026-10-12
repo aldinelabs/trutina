@@ -1448,56 +1448,105 @@
     "name": "meraGPT Decider 1",
     "acc": 76.8,
     "kl": 0.096,
-    "open": false
+    "open": false,
+    "by": "card"
    },
    {
     "name": "Trutina",
-    "acc": 74.85,
+    "acc": 74.7,
     "kl": 0.149,
     "open": true,
-    "ours": true
+    "ours": true,
+    "by": "us"
    },
    {
     "name": "Liquid AI d1",
     "acc": 74.2,
     "kl": 0.475,
-    "open": false
+    "open": false,
+    "by": "card"
+   },
+   {
+    "name": "Sieve-4B",
+    "acc": 74.1,
+    "kl": 0.122,
+    "open": true,
+    "ours": false,
+    "by": "us"
    },
    {
     "name": "TypeSafe Jev 1.13.0",
     "acc": 72.7,
     "kl": 1.442,
-    "open": false
+    "open": false,
+    "by": "card"
    },
    {
     "name": "Featherless Simple Jev",
     "acc": 71.6,
     "kl": 0.488,
-    "open": false
+    "open": false,
+    "by": "card"
    },
    {
     "name": "prima-ratio + 12B",
     "acc": 70.2,
     "kl": 0.564,
-    "open": true
+    "open": true,
+    "by": "card"
+   },
+   {
+    "name": "decider-4b",
+    "acc": 67.7,
+    "kl": 0.314,
+    "open": true,
+    "ours": false,
+    "by": "us"
    },
    {
     "name": "OpenDecider-small",
     "acc": 67.1,
     "kl": 0.211,
-    "open": true
+    "open": true,
+    "by": "card"
+   },
+   {
+    "name": "spark-s1",
+    "acc": 66.9,
+    "kl": 1.214,
+    "open": true,
+    "ours": false,
+    "by": "us"
+   },
+   {
+    "name": "JevK5 v0.3",
+    "acc": 62.5,
+    "kl": 0.398,
+    "open": true,
+    "ours": false,
+    "by": "us"
+   },
+   {
+    "name": "Plumb-4B",
+    "acc": 60.8,
+    "kl": 0.411,
+    "open": true,
+    "ours": false,
+    "by": "us"
    },
    {
     "name": "Bongard-mini",
     "acc": 59.4,
     "kl": 0.256,
-    "open": true
+    "open": true,
+    "by": "card"
    },
    {
     "name": "Jeff-Gemma4-E2B",
     "acc": 56.1,
     "kl": 0.403,
-    "open": true
+    "open": true,
+    "by": "card"
    }
   ]
  },

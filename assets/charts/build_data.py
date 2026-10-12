@@ -152,6 +152,15 @@ def main():
             {"name": "Jeff-Gemma4-E2B", "acc": 56.1, "kl": 0.403, "open": True}]},
     }
     data["compete"] = compete()
+    # LocalLLaMA: the dataset card's zero-shot rows, plus the six 4B systems we ran (same 5-questions-per-request protocol)
+    card = [dict(r, by="card") for r in data["localllama"]["rows"] if not r.get("ours")]
+    names = dict(SYSTEMS)
+    for s, n in SYSTEMS:
+        f = COMPETE / f"{s}.json"
+        if f.exists():
+            r = json.loads(f.read_text())["sets"]["localllama"]
+            card.append({"name": n, "acc": round(r["acc"] * 100, 1), "kl": round(r["kl"], 3), "open": True, "ours": s == "trutina", "by": "us"})
+    data["localllama"]["rows"] = sorted(card, key=lambda r: -r["acc"])
     (HERE / "data.json").write_text(json.dumps(data, indent=1))
     (HERE / "data.js").write_text("window.DATA = " + json.dumps(data) + ";\n")  # for file:// pages
     print(len(rows), "JevBench rows")
