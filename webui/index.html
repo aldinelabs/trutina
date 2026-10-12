@@ -112,6 +112,19 @@ aside { border-right: 1px solid var(--border); display: flex; flex-direction: co
 .bsec { padding: 8px 16px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); background: var(--panel); border-bottom: 1px solid var(--border); }
 @media (max-width: 560px) { .brow { grid-template-columns: minmax(0, 1fr) 56px 56px; } .brow .track { grid-column: 1 / -1; order: 5; } }
 
+.cprog { display: grid; grid-template-columns: minmax(110px, .9fr) minmax(120px, 2fr) minmax(150px, 1.4fr); gap: 4px 16px; align-items: center;
+         padding: 9px 16px; border-bottom: 1px solid var(--border); }
+.cprog:last-child { border-bottom: 0; }
+.cprog .nm { display: flex; align-items: center; gap: 8px; font-weight: 500; min-width: 0; }
+.cprog .st { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cprog .fail { grid-column: 1 / -1; font-size: 12px; color: var(--bad); font-family: var(--mono); overflow-wrap: anywhere; }
+td.us, th.us { background: color-mix(in srgb, var(--s1) 7%, transparent); }
+td.sub { padding-left: 28px; color: var(--muted); }
+td .bar { display: block; height: 3px; border-radius: 2px; background: var(--faint); margin-top: 4px; opacity: .6; }
+td.us .bar { background: var(--s1); opacity: 1; }
+td.best .bar { opacity: 1; }
+tr.parent td:first-child { cursor: pointer; }
+@media (max-width: 560px) { .cprog { grid-template-columns: minmax(0, 1fr) 90px; } .cprog .track { grid-column: 1 / -1; order: 5; } }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); flex: none; }
 .dot.running, .dot.loading, .dot.starting { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 20%, transparent); }
 .dot.stopped, .dot.interrupted, .dot.stale { background: var(--warn); }
@@ -823,13 +836,63 @@ function renderBenchList() {
   const nav = $("#runlist");
   if (!benches.length) { nav.innerHTML = `<p class="muted" style="padding:8px 10px;margin:0;font-size:13px">No benchmark reports yet.</p>`; return; }
   nav.innerHTML = benches.map(b => `<button class="run" type="button" data-bench="${esc(b.name)}" aria-current="${b.name === benchName}">
-      <span class="dot done"></span>
+      <span class="dot ${b.running ? "running" : "done"}"></span>
       <span style="min-width:0"><div class="name">${esc(b.title)}</div><div class="sub">${esc(b.model || "")} · ${fmt.ago(b.modified)}</div></span>
       <span class="pct num">${b.headline?.value != null ? BFMT[b.headline.fmt || "pct"](b.headline.value) : ""}</span></button>`).join("");
 }
 
 const openGroups = new Set();
+function renderCompete(b) {
+  const sys = b.systems, ids = sys.map(x => x.system);
+  const prog = sys.map(x => {
+    const f = x.total ? x.done / x.total : 0;
+    const st = x.status === "done" ? `done · ${fmt.int(x.total)} requests` : x.status === "failed" ? "failed"
+      : x.status === "starting" ? "starting server…" : `${esc(x.set || "")} · ${fmt.int(x.done)} / ${fmt.int(x.total)}`;
+    return `<div class="cprog"><div class="nm"><span class="dot ${x.status}"></span>${esc(x.system)}</div>
+      <div class="track" role="img" aria-label="${esc(x.system)} ${(f * 100).toFixed(0)}%"><i style="width:${(f * 100).toFixed(1)}%"></i></div>
+      <div class="st" title="${esc((x.repo || "") + (x.revision ? "@" + x.revision.slice(0, 8) : "") + " · " + (x.gpu || ""))}">${st}${x.updated ? " · " + fmt.ago(x.updated) : ""}</div>
+      ${x.failure ? `<div class="fail">${esc(x.failure)}</div>` : ""}</div>`;
+  }).join("");
+  const kids = {}, tops = [];
+  for (const r of b.rows) {
+    const parent = r.name.includes("/") ? r.name.split("/")[0] : null;
+    if (parent && b.rows.some(x => x.name === parent)) (kids[parent] ||= []).push(r); else tops.push(r);
+  }
+  const cell = (r, id) => {
+    const v = r.scores[id];
+    if (v == null) return `<td class="${id === "trutina" ? "us" : ""}">—</td>`;
+    const known = ids.map(i => r.scores[i]).filter(x => x != null);
+    const best = r.lower ? Math.min(...known) : Math.max(...known), hi = Math.max(...known);
+    const txt = r.metric === "ms" ? fmt.f(v, 1) + " ms" : fmt.pct(v);
+    const err = r.errors?.[id] ? ` <span class="muted" title="requests refused or unreadable">(${r.errors[id]} err)</span>` : "";
+    const kl = r.kl?.[id] != null ? `<div class="muted" style="font-size:11px">KL ${fmt.f(r.kl[id], 3)}</div>` : "";
+    const p95 = r.p95?.[id] != null ? `<div class="muted" style="font-size:11px">p95 ${fmt.f(r.p95[id], 1)}</div>` : "";
+    return `<td class="${id === "trutina" ? "us" : ""} ${v === best ? "best" : ""}">${txt}${err}${kl}${p95}<span class="bar" style="width:${(v / (hi || 1) * 100).toFixed(0)}%"></span></td>`;
+  };
+  const trow = (r, sub) => `<tr class="${kids[r.name] ? "parent" : ""}" ${kids[r.name] ? `data-group="${esc(r.name)}"` : ""}>
+      <td class="${sub ? "sub" : ""}">${kids[r.name] ? `<span class="caret">${openGroups.has(r.name) ? "▾" : "▸"}</span> ` : ""}${esc(sub ? r.name.split("/").slice(1).join("/") : r.name)}
+      ${r.n ? `<span class="muted" style="font-size:11px"> ${fmt.int(r.n)} q</span>` : ""}</td>${ids.map(id => cell(r, id)).join("")}</tr>`;
+  const body = tops.map(r => trow(r, false) + (openGroups.has(r.name) ? (kids[r.name] || []).map(c => trow(c, true)).join("") : "")).join("");
+  const wins = tops.filter(r => r.group === "accuracy" && r.scores.trutina != null).filter(r => {
+    const known = ids.map(i => r.scores[i]).filter(x => x != null); return r.scores.trutina === Math.max(...known); }).length;
+  const ran = tops.filter(r => r.group === "accuracy" && r.scores.trutina != null).length;
+  const done = sys.reduce((a, x) => a + (x.done || 0), 0), total = sys.reduce((a, x) => a + (x.total || 0), 0);
+  const kpis = [["Progress", total ? `${(done / total * 100).toFixed(0)}<small>%</small>` : "—", `${fmt.int(done)} / ${fmt.int(total)} requests`],
+    ["Systems", String(sys.length), `${sys.filter(x => x.status === "done").length} done · ${sys.filter(x => x.status === "failed").length} failed`],
+    ["trutina best on", `${wins}<small> of ${ran}</small>`, "accuracy benchmarks so far"]];
+  $("#view").innerHTML = `
+  <header class="run-head"><div><h1>${esc(b.title)}</h1>
+    <div class="meta"><span class="mono">${esc(sys[0]?.gpu || "")}</span><span>${new Date((b.created || 0) * 1000).toLocaleString()}</span></div></div></header>
+  <section class="kpis" style="grid-template-columns:repeat(${kpis.length},minmax(0,1fr))">${kpis.map(([l, v, f]) => `<div class="kpi"><span class="label">${esc(l)}</span><span class="value">${v}</span><span class="foot">${esc(f)}</span></div>`).join("")}</section>
+  <section class="card"><div class="card-h"><h2>Progress</h2><span class="muted" style="font-size:12px">refreshes every 30 s</span></div>${prog}</section>
+  <section class="card"><div class="card-h"><h2>Results</h2><span class="muted" style="font-size:12px">bold = best · click ▸ for subsets</span></div>
+    <div class="tablewrap"><table><thead><tr><th>Benchmark</th>${sys.map(x => `<th class="${x.system === "trutina" ? "us" : ""}" title="${esc((x.repo || "") + (x.revision ? "@" + x.revision.slice(0, 8) : ""))}">${esc(x.system)}</th>`).join("")}</tr></thead>
+    <tbody>${body || `<tr><td colspan="${sys.length + 1}" class="muted">No results yet.</td></tr>`}</tbody></table></div></section>
+  ${(b.notes || []).length ? `<section class="card"><div class="card-h"><h2>Notes</h2></div><div class="card-b">${b.notes.map(n => `<p class="muted" style="margin:0 0 6px;font-size:13px">${esc(n)}</p>`).join("")}</div></section>` : ""}`;
+}
+
 function renderBench() {
+  if (bench?.kind === "compete") return renderCompete(bench);
   const b = bench; if (!b) { $("#view").innerHTML = `<div class="empty"><h1>No benchmark reports yet</h1><code>python lab/eval/bench_report.py heldout results.json --out runs/bench/name.json</code></div>`; return; }
   const rows = b.rows, hasBase = rows.some(r => r.baseline != null);
   const kids = {}, tops = [];

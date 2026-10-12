@@ -156,11 +156,60 @@ class Runs:
                 out.append({"name": f.stem, "title": r.get("title", f.stem), "kind": r.get("kind"),
                             "model": r.get("model"), "headline": r.get("headline"), "created": r.get("created") or f.stat().st_mtime,
                             "modified": f.stat().st_mtime})
+        for d in sorted((self.root / "bench").glob("compete*/")):
+            r = self.compete(d)
+            if r:
+                out.append({"name": d.name, "title": r["title"], "kind": "compete", "model": r["model"], "headline": r["headline"],
+                            "created": r["created"], "modified": r["modified"], "running": r["running"]})
         return sorted(out, key=lambda r: -r["modified"])
+
+    def compete(self, d: Path) -> dict | None:
+        """Head-to-head runs (lab/modal/compete_modal.py): one progress file per system under <runs>/bench/compete*/,
+        merged into one report with a score per system for every benchmark."""
+        parts = [p for p in (read_json(f) for f in sorted(d.glob("*.json"))) if isinstance(p, dict) and p.get("system")]
+        if not parts:
+            return None
+        order = ["trutina", "spark", "decider", "jevk5", "plumb", "sieve"]
+        parts.sort(key=lambda p: order.index(p["system"]) if p["system"] in order else len(order))
+        names = sorted({k for p in parts for k in p.get("sets", {})})
+        rows = []
+        for k in names:
+            metric = "pair_acc" if k.startswith("judgebench") else "state_macro_acc" if k.startswith("decisionbench") else "acc"
+            scores = {p["system"]: (p["sets"].get(k) or {}).get(metric) for p in parts}
+            n = max(((p["sets"].get(k) or {}).get("n") or 0) for p in parts)
+            extra = {p["system"]: (p["sets"].get(k) or {}).get("kl") for p in parts} if k == "localllama" else None
+            rows.append({"name": k, "group": "accuracy", "metric": metric, "n": n, "scores": scores, "kl": extra,
+                         "errors": {p["system"]: (p["sets"].get(k) or {}).get("errors") for p in parts}})
+        for key, label in (("latency_jevbench_ms", "latency p50, JevBench public"), ("latency_adaptive_ms", "latency p50, adaptive")):
+            if any(p.get(key) for p in parts):
+                rows.append({"name": label, "group": "latency", "metric": "ms", "lower": True,
+                             "scores": {p["system"]: (p.get(key) or {}).get("p50") for p in parts},
+                             "p95": {p["system"]: (p.get(key) or {}).get("p95") for p in parts}})
+        modified = max(f.stat().st_mtime for f in d.glob("*.json"))
+        running = any(p.get("status") in ("starting", "running") for p in parts)
+        done = sum(p.get("done", 0) for p in parts)
+        total = sum(p.get("total", 0) for p in parts)
+        return {"title": "4B decision models, head to head" + (" (smoke)" if d.name.endswith("smoke") else ""), "kind": "compete",
+                "model": " · ".join(p["system"] for p in parts), "created": min(p.get("started", modified) for p in parts),
+                "modified": modified, "running": running,
+                "headline": {"label": "requests done", "value": done / total if total else None, "fmt": "pct"},
+                "systems": [{k: p.get(k) for k in ("system", "repo", "revision", "gpu", "status", "set", "done", "total",
+                                                    "started", "updated", "failure", "error_counts")} for p in parts],
+                "rows": rows,
+                "notes": ["Every system runs in its own container with the server its authors ship, at the pinned revision; one client sends "
+                          "the same requests to all of them, one at a time, on the same GPU type, and scores them the same way.",
+                          "A request a server refuses counts as wrong. DecisionBench: state-macro accuracy; JudgeBench: pair accuracy "
+                          "(both orders right); otherwise accuracy. trutina runs at full depth; 'adaptive' rows are its default mode.",
+                          "Latency is HTTP wall time per request on the JevBench public tasks after a warm-up."]}
 
     def bench(self, name: str) -> dict:
         if not re.fullmatch(SEGMENT, name):
             raise ValueError("Bad report name.")
+        if name.startswith("compete") and (self.root / "bench" / name).is_dir():
+            r = self.compete(self.root / "bench" / name)
+            if r is None:
+                raise FileNotFoundError(name)
+            return {"name": name, **r}
         r = read_json(self.root / "bench" / f"{name}.json")
         if not isinstance(r, dict):
             raise FileNotFoundError(name)
