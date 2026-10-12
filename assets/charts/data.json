@@ -1417,7 +1417,29 @@
   "massive": {
    "tournament": 79.3,
    "two_letter_labels": 59.4
-  }
+  },
+  "vision": [
+   {
+    "set": "ScienceQA",
+    "before": 91.6,
+    "after": 96.2
+   },
+   {
+    "set": "Mind2Web",
+    "before": 75.0,
+    "after": 91.9
+   },
+   {
+    "set": "A-OKVQA",
+    "before": 87.4,
+    "after": 89.6
+   },
+   {
+    "set": "Rendered workflow screenshots",
+    "before": 84.6,
+    "after": 84.9
+   }
+  ]
  },
  "localllama": {
   "source": "LocalLLaMA/typed-decisions dataset card, zero-shot table",

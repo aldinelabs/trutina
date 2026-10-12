@@ -74,6 +74,10 @@ def main():
                 {"set": "fast-decisions", "metric": "accuracy", "zero_shot": 61.5, "trutina": 61.4},
                 {"set": "DecisionBench hard", "metric": "state-macro acc.", "zero_shot": 53.6, "trutina": 49.6}],
             "massive": {"tournament": 79.3, "two_letter_labels": 59.4},
+            # image questions, our validation split (in-distribution): v2 (text-only fine-tune) vs the release
+            "vision": [{"set": "ScienceQA", "before": 91.6, "after": 96.2}, {"set": "Mind2Web", "before": 75.0, "after": 91.9},
+                       {"set": "A-OKVQA", "before": 87.4, "after": 89.6},
+                       {"set": "Rendered workflow screenshots", "before": 84.6, "after": 84.9}],
         },
         "localllama": {"source": "LocalLLaMA/typed-decisions dataset card, zero-shot table", "rows": [
             {"name": "meraGPT Decider 1", "acc": 76.8, "kl": 0.096, "open": False},
