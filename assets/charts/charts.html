@@ -62,11 +62,15 @@ footer .site { font-family: var(--mono); white-space: nowrap; color: var(--ink-2
 .kpi .v { font-size: 54px; font-weight: 600; letter-spacing: -0.03em; line-height: 1; }
 .kpi .v small { font-size: 22px; color: var(--muted); font-weight: 500; letter-spacing: 0; margin-left: 4px; }
 .kpi .f { font-size: 15px; color: var(--ink-2); line-height: 1.45; }
-.grid5 { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: 1fr 1fr; gap: 18px; flex: 1; min-height: 0; }
-.panel { background: var(--card); border-radius: var(--r-card); padding: 20px 22px 16px; display: flex; flex-direction: column; gap: 4px; min-height: 0;
+.grid5 { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr); gap: 14px; flex: 1; min-height: 0; }
+.panel { background: var(--card); border-radius: var(--r-card); padding: 16px 22px 12px; display: flex; flex-direction: column; gap: 4px; min-height: 0;
   box-shadow: 0 0 0 1px oklch(0.153 0.006 107.1 / .05), 0 1px 3px 0 oklch(0 0 0 / .06); }
 .panel h3 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
-.panel .m { font-size: 12.5px; color: var(--muted); line-height: 1.35; min-height: 34px; }
+.panel .m { font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+.panel.sum { justify-content: center; gap: 10px; }
+.panel.sum .big { font-size: 40px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+.panel.sum .big small { font-size: 16px; color: var(--muted); font-weight: 500; margin-left: 4px; }
+.panel.sum p { margin: 0; font-size: 13px; color: var(--ink-2); line-height: 1.45; }
 .pill4 { display: inline-block; font: 600 0.66em/1 var(--mono); background: var(--fg); color: #fff; border-radius: 999px; padding: 0.32em 0.62em; margin-left: 0.45em; vertical-align: 0.14em; }
 .mk { height: 1.15em; width: auto; vertical-align: -0.22em; margin-right: 6px; }
 .titles h1 .mk { height: 0.95em; vertical-align: -0.1em; margin-right: 14px; }
@@ -410,31 +414,42 @@ function heldout() {
 
 /* ---------- Trutina against the open 4B decision models, benchmark by benchmark ---------- */
 function compare() {
-  const C = D.compete, W = 290, rowH = 34, top = 6;
+  const C = D.compete, W = 360, rowH = 21, top = 3;
+  let lead = 0, behind = 0, tie = 0;
   const panels = C.panels.map(pn => {
-    const vals = C.systems.map(s => pn.vals[s.id]);
-    const known = vals.filter(v => v != null);
-    const hi = pn.lower ? Math.max(...known) * 1.0 : (pn.max || 100);
+    const known = C.systems.map(s => pn.vals[s.id]).filter(v => v != null && !(pn.refused || []).includes(C.systems.find(x => pn.vals[x.id] === v)?.id));
     const best = pn.lower ? Math.min(...known) : Math.max(...known);
-    const lx = 122, rx = W - 46, x = linScale(0, hi, lx, rx);
+    const hi = pn.lower ? Math.max(...known) : (pn.max || 100);
+    const us = pn.vals.trutina;
+    if (us != null && known.length > 1) { const d = pn.lower ? best / us - 1 : (us - best) / 100; if (us === best) lead++; else if (Math.abs(us - best) <= (pn.lower ? 0 : 1)) tie++; else behind++; }
+    const lx = 100, rx = W - 58, x = linScale(0, hi, lx, rx);
     let g = "";
     C.systems.forEach((s, i) => {
-      const v = pn.vals[s.id], cy = top + i * rowH + rowH / 2, us = s.id === "trutina";
-      g += `<text ${us ? 'class="lbl-us"' : ""} x="${lx - 10}" y="${cy + 5}" text-anchor="end" style="font-size:13.5px; fill:${us ? "var(--fg)" : "var(--ink-2)"}; font-weight:${us ? 700 : 400}">${esc(s.short)}</text>`;
-      if (v == null) {
-        g += `<text x="${lx}" y="${cy + 5}" style="font-size:12.5px; fill:var(--faint)">${zh ? "未测" : "n/a"}</text>`;
-        return;
-      }
-      g += bar(lx, cy - 8, Math.max(x(v) - lx, 16), 16, us ? "var(--fg)" : "var(--pale)");
-      const t = pn.unit === "ms" ? (v < 100 ? fmt1(v) : Math.round(v)) : fmt1(v);
-      g += `<text x="${Math.max(x(v), lx + 16) + 8}" y="${cy + 5}" style="font-size:13.5px; font-weight:${v === best ? 700 : 500}; fill:${v === best ? "var(--fg)" : "var(--muted)"}">${t}</text>`;
+      const v = pn.vals[s.id], cy = top + i * rowH + rowH / 2, me = s.id === "trutina";
+      g += `<text ${me ? 'class="lbl-us"' : ""} x="${lx - 10}" y="${cy + 4}" text-anchor="end" style="font-size:12px; fill:${me ? "var(--fg)" : "var(--ink-2)"}; font-weight:${me ? 700 : 400}">${esc(s.short)}</text>`;
+      if ((pn.refused || []).includes(s.id)) { g += `<text x="${lx}" y="${cy + 4}" style="font-size:11px; fill:var(--faint)">${zh ? "请求被拒绝" : "requests refused"}</text>`; return; }
+      if (v == null) { g += `<text x="${lx}" y="${cy + 4}" style="font-size:11px; fill:var(--faint)">${zh ? "无数据" : "not reported"}</text>`; return; }
+      g += bar(lx, cy - 6, Math.max(x(v) - lx, 12), 12, me ? "var(--fg)" : "var(--pale)");
+      const t = (pn.est?.[s.id] ? "≈" : "") + (pn.unit === "ms" ? (v < 100 ? fmt1(v) : Math.round(v)) + " ms" : fmt1(v));
+      g += `<text x="${Math.max(x(v), lx + 12) + 6}" y="${cy + 4}" style="font-size:12px; font-weight:${v === best ? 700 : 500}; fill:${v === best ? "var(--fg)" : "var(--muted)"}">${t}</text>`;
     });
     const H = top * 2 + C.systems.length * rowH;
     return `<div class="panel"><h3>${zh ? pn.zh : pn.en}</h3><div class="m">${zh ? pn.m_zh : pn.m_en}</div>
-      <div style="flex:1; display:flex; align-items:center; min-height:0">${svgTag(W, H)}${g}</svg></div></div>`;
+      <div style="flex:1; min-height:0; position:relative"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMinYMid meet" style="position:absolute; inset:0; width:100%; height:100%">${g}</svg></div></div>`;
   });
-  const body = `<div class="grid5">${panels.join("")}</div>`;
-  return frame(zh ? { title: C.title_zh, sub: C.sub_zh, body, src: C.src_zh } : { title: C.title_en, sub: C.sub_en, body, src: C.src_en });
+  const sum = `<div class="panel sum"><div class="big">${lead}<small>${zh ? `项领先 · ${tie} 项持平 · ${behind} 项落后` : `lead · ${tie} level · ${behind} behind`}</small></div>
+    <p>${zh ? "同一批请求，各系统经其作者提供的服务端（固定 revision）在同型号 GPU（RTX PRO 6000）上串行运行，按同一规则计分；被服务端拒绝的请求计为错误。粗体为该项最优。" :
+      "The same requests, each system through the server its authors ship (pinned revision), one at a time on the same GPU type (RTX PRO 6000), scored by one set of rules; a refused request counts as wrong. Bold marks the best."}</p></div>`;
+  const body = `<div class="grid5">${panels.join("")}${sum}</div>`;
+  return frame(zh ? {
+    title: "与开放 4B 决策模型的同口径对比",
+    sub: "Trutina 在 LocalLLaMA、this-that 与 DecisionBench medium 上领先；JevK5 与 Plumb 在 JevBench 和高难度决策上领先，decider 与 Sieve 在宽选项分类上领先，三家使用 CUDA graph 的服务端延迟更低。",
+    body, src: "全部为自行测得，Decision Index 除外（Trutina 为约 1.2 万条请求的分层抽样估计，Sieve-4B 为其模型卡自报值，其余系统未报告）。Intelligence 与延迟取自同一轮 JevBench 复跑；Intelligence 按 v1.5 规则计分，各系统输出不做任何变换（Trutina 启用是非题决断映射时为 69.0）。Plumb 使用 jevk5 运行时，未启用其 JevBench 专用的是非题处理。spark 拒绝 59 个选项的请求。",
+  } : {
+    title: "Head to head with the open 4B decision models",
+    sub: "Trutina leads on LocalLLaMA, this-that and DecisionBench medium. JevK5 and Plumb lead on JevBench and the hard decisions, decider and Sieve on wide-option classification, and the three servers with CUDA graphs answer faster.",
+    body, src: "All measured by us except the Decision Index (Trutina: estimate from a ~12k-request stratified sample; Sieve-4B: its model card; the others report none). Intelligence and latency come from one JevBench re-run; Intelligence uses the v1.5 rules on each system's outputs as served (69.0 for Trutina with its decisive yes/no map). Plumb runs on the jevk5 runtime, without its JevBench-specific yes/no handling. spark refuses requests with 59 options.",
+  });
 }
 
 /* ---------- Overview ---------- */

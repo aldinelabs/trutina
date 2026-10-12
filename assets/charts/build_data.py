@@ -38,48 +38,52 @@ def short(name: str) -> str:
 
 
 COMPETE = HERE.parents[1] / "runs" / "release" / "compete"
-SYSTEMS = [  # fixed order: trutina first, then the others by JevBench open-set Intelligence
-    ("trutina", "Trutina"), ("spark", "spark-s1-4b-v6"), ("decider", "decider-4b"), ("jevk5", "JevK5 v0.3"),
-    ("plumb", "Plumb-4B"), ("sieve", "Sieve-4B")]
-JB_NAME = {"spark": "spark-s1-4b-v6", "decider": "decider-4b v2", "jevk5": "JevK5 v0.3 (4B)", "plumb": "Plumb-4B"}
+SYSTEMS = [  # fixed order: Trutina first, then the others by JevBench Intelligence on the same tasks
+    ("trutina", "Trutina"), ("jevk5", "JevK5 v0.3"), ("plumb", "Plumb-4B"), ("spark", "spark-s1"),
+    ("decider", "decider-4b"), ("sieve", "Sieve-4B")]
 
 
 def compete() -> dict:
-    """trutina-4b and the open 4B decision models, every benchmark we ran through each system's own server
-    (lab/modal/compete_modal.py), plus the Decision Index where only reported numbers exist."""
-    res = {s: json.loads((COMPETE / f"{s}.json").read_text()) for s, _ in SYSTEMS if (COMPETE / f"{s}.json").exists()}
+    """Trutina and the open 4B decision models through their own servers (lab/modal/compete_modal.py):
+    the full run for accuracy, the JevBench re-run (-jb) for latency and v1.5 Intelligence (same run for all)."""
+    def load(tag):
+        return {s: json.loads((COMPETE / f"{s}{tag}.json").read_text()) for s, _ in SYSTEMS if (COMPETE / f"{s}{tag}.json").exists()}
 
-    def val(s, key, field="acc", scale=100):
-        r = res.get(s, {}).get("sets", {}).get(key)
-        return None if r is None else round(r[field] * scale, 1)
+    full, jb = load(""), load("-jb")
+    intel = json.loads((COMPETE / "intelligence-jb.json").read_text()) if (COMPETE / "intelligence-jb.json").exists() else {}
 
-    def panel(pid, en, zh, m_en, m_zh, key, field="acc", **kw):
-        return {"id": pid, "en": en, "zh": zh, "m_en": m_en, "m_zh": m_zh,
-                "vals": {s: val(s, key, field) for s, _ in SYSTEMS}, **kw}
+    def vals(key, field="acc"):
+        return {s: (round(full[s]["sets"][key][field] * 100, 1) if s in full and key in full[s]["sets"] else None) for s, _ in SYSTEMS}
+
+    refused = {s: {k: n for k, n in (full.get(s, {}).get("error_counts") or {}).items()} for s, _ in SYSTEMS}
+
+    def panel(pid, en, zh, m_en, m_zh, v, **kw):
+        return {"id": pid, "en": en, "zh": zh, "m_en": m_en, "m_zh": m_zh, "vals": v, **kw}
 
     panels = [
-        panel("jevbench", "JevBench public", "JevBench 公开集", "231 tasks · accuracy", "231 题 · 准确率", "jevbench"),
-        panel("localllama", "LocalLLaMA", "LocalLLaMA", "typed-decisions test · accuracy", "typed-decisions 测试集 · 准确率", "localllama"),
-        panel("dbm", "DecisionBench medium", "DecisionBench medium", "state-macro accuracy", "按 state 宏平均的准确率",
-              "decisionbench/medium", "state_macro_acc"),
-        panel("dbh", "DecisionBench hard", "DecisionBench hard", "state-macro accuracy", "按 state 宏平均的准确率",
-              "decisionbench/hard", "state_macro_acc"),
-        panel("thisthat", "this-that", "this-that", "complex decisions · accuracy", "复杂决策 · 准确率", "this_that"),
-        panel("fast", "fast-decisions", "fast-decisions", "17 single-label domains · accuracy", "17 个单标签领域 · 准确率", "fast_decisions"),
-        panel("judge", "JudgeBench", "JudgeBench", "pair accuracy, both orders", "两种选项顺序均正确方计为正确", "judgebench", "pair_acc"),
-        panel("massive", "MASSIVE intents", "MASSIVE 意图分类", "59 options per question · accuracy", "每题 59 个选项 · 准确率", "massive"),
+        panel("intel", "JevBench Intelligence", "JevBench Intelligence", "v1.5 scoring · 231 public tasks", "v1.5 计分 · 231 道公开题",
+              {s: intel.get(s, {}).get("I_open") for s, _ in SYSTEMS}),
+        panel("jevbench", "JevBench public", "JevBench 公开集", "231 tasks · accuracy", "231 题 · 准确率", vals("jevbench")),
+        panel("localllama", "LocalLLaMA", "LocalLLaMA", "typed-decisions test · accuracy", "typed-decisions 测试集 · 准确率", vals("localllama")),
+        panel("dbm", "DecisionBench medium", "DecisionBench medium", "state-macro accuracy", "按 state 宏平均", vals("decisionbench/medium", "state_macro_acc")),
+        panel("dbh", "DecisionBench hard", "DecisionBench hard", "state-macro accuracy", "按 state 宏平均", vals("decisionbench/hard", "state_macro_acc")),
+        panel("thisthat", "this-that", "this-that", "complex decisions · accuracy", "复杂决策 · 准确率", vals("this_that")),
+        panel("fast", "fast-decisions", "fast-decisions", "17 single-label domains", "17 个单标签领域 · 准确率", vals("fast_decisions")),
+        panel("judge", "JudgeBench", "JudgeBench", "pair accuracy, both orders", "两种顺序均正确", vals("judgebench", "pair_acc")),
+        panel("massive", "MASSIVE intents", "MASSIVE 意图分类", "59 options per question", "每题 59 个选项 · 准确率", vals("massive"),
+              refused=[s for s, _ in SYSTEMS if refused.get(s, {}).get("massive", 0) >= 0.5 * 2974]),
+        panel("di", "Decision Index 0.3", "Decision Index 0.3", "public suite · reported, not re-run", "公开套件 · 报告值，未统一复跑",
+              {"trutina": 44.2, "sieve": 50.1}, est={"trutina": True}),
+        panel("latency", "Latency", "延迟", "p50 per request · lower is better", "单请求 p50 · 越低越好",
+              {s: (round(jb[s]["latency_jevbench_ms"]["p50"], 1) if s in jb else None) for s, _ in SYSTEMS}, unit="ms", lower=True),
     ]
-    # Decision Index 0.3, public suite: no system here has been run by us on the full suite.
-    panels.append({"id": "di", "en": "Decision Index 0.3", "zh": "Decision Index 0.3",
-                   "m_en": "public suite · trutina estimated, Sieve self-reported", "m_zh": "公开套件 · trutina 为抽样估计，Sieve 为自报",
-                   "vals": {"trutina": 44.2, "sieve": 50.1, "spark": None, "decider": None, "jevk5": None, "plumb": None}})
-    panels.append({"id": "latency", "en": "Latency", "zh": "延迟", "unit": "ms", "lower": True,
-                   "m_en": "p50 per request, same GPU · lower is better", "m_zh": "单请求 p50，同一 GPU · 越低越好",
-                   "vals": {s: (round(res[s]["latency_jevbench_ms"]["p50"], 1) if s in res and res[s].get("latency_jevbench_ms") else None)
-                            for s, _ in SYSTEMS}})
-    gpu = next((r["gpu"] for r in res.values()), "")
+    for pn in panels:
+        pn.setdefault("refused", [])
+        if pn["id"] != "massive":
+            pn["refused"] = []
+    gpu = next((r.get("gpu") for r in full.values()), "")
     return {"systems": [{"id": s, "short": n} for s, n in SYSTEMS], "panels": panels, "gpu": gpu,
-            "errors": {s: r.get("error_counts", {}) for s, r in res.items()}}
+            "errors": {s: r.get("error_counts", {}) for s, r in full.items()}}
 
 
 def main():

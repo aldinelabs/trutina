@@ -1508,14 +1508,6 @@
     "short": "Trutina"
    },
    {
-    "id": "spark",
-    "short": "spark-s1-4b-v6"
-   },
-   {
-    "id": "decider",
-    "short": "decider-4b"
-   },
-   {
     "id": "jevk5",
     "short": "JevK5 v0.3"
    },
@@ -1524,11 +1516,35 @@
     "short": "Plumb-4B"
    },
    {
+    "id": "spark",
+    "short": "spark-s1"
+   },
+   {
+    "id": "decider",
+    "short": "decider-4b"
+   },
+   {
     "id": "sieve",
     "short": "Sieve-4B"
    }
   ],
   "panels": [
+   {
+    "id": "intel",
+    "en": "JevBench Intelligence",
+    "zh": "JevBench Intelligence",
+    "m_en": "v1.5 scoring \u00b7 231 public tasks",
+    "m_zh": "v1.5 \u8ba1\u5206 \u00b7 231 \u9053\u516c\u5f00\u9898",
+    "vals": {
+     "trutina": 65.8,
+     "jevk5": 70.7,
+     "plumb": 67.4,
+     "spark": 59.8,
+     "decider": 59.3,
+     "sieve": 48.0
+    },
+    "refused": []
+   },
    {
     "id": "jevbench",
     "en": "JevBench public",
@@ -1536,13 +1552,14 @@
     "m_en": "231 tasks \u00b7 accuracy",
     "m_zh": "231 \u9898 \u00b7 \u51c6\u786e\u7387",
     "vals": {
-     "trutina": null,
-     "spark": null,
-     "decider": null,
-     "jevk5": null,
-     "plumb": null,
-     "sieve": null
-    }
+     "trutina": 87.0,
+     "jevk5": 89.2,
+     "plumb": 90.0,
+     "spark": 81.0,
+     "decider": 83.1,
+     "sieve": 78.4
+    },
+    "refused": []
    },
    {
     "id": "localllama",
@@ -1551,43 +1568,46 @@
     "m_en": "typed-decisions test \u00b7 accuracy",
     "m_zh": "typed-decisions \u6d4b\u8bd5\u96c6 \u00b7 \u51c6\u786e\u7387",
     "vals": {
-     "trutina": null,
-     "spark": null,
-     "decider": null,
-     "jevk5": null,
-     "plumb": null,
-     "sieve": null
-    }
+     "trutina": 74.7,
+     "jevk5": 62.5,
+     "plumb": 60.8,
+     "spark": 66.9,
+     "decider": 67.7,
+     "sieve": 74.1
+    },
+    "refused": []
    },
    {
     "id": "dbm",
     "en": "DecisionBench medium",
     "zh": "DecisionBench medium",
     "m_en": "state-macro accuracy",
-    "m_zh": "\u6309 state \u5b8f\u5e73\u5747\u7684\u51c6\u786e\u7387",
+    "m_zh": "\u6309 state \u5b8f\u5e73\u5747",
     "vals": {
-     "trutina": null,
-     "spark": null,
-     "decider": null,
-     "jevk5": null,
-     "plumb": null,
-     "sieve": null
-    }
+     "trutina": 82.5,
+     "jevk5": 80.4,
+     "plumb": 82.0,
+     "spark": 38.6,
+     "decider": 74.4,
+     "sieve": 72.8
+    },
+    "refused": []
    },
    {
     "id": "dbh",
     "en": "DecisionBench hard",
     "zh": "DecisionBench hard",
     "m_en": "state-macro accuracy",
-    "m_zh": "\u6309 state \u5b8f\u5e73\u5747\u7684\u51c6\u786e\u7387",
+    "m_zh": "\u6309 state \u5b8f\u5e73\u5747",
     "vals": {
-     "trutina": null,
-     "spark": null,
-     "decider": null,
-     "jevk5": null,
-     "plumb": null,
-     "sieve": null
-    }
+     "trutina": 49.7,
+     "jevk5": 58.4,
+     "plumb": 65.0,
+     "spark": 30.9,
+     "decider": 45.3,
+     "sieve": 46.6
+    },
+    "refused": []
    },
    {
     "id": "thisthat",
@@ -1596,93 +1616,111 @@
     "m_en": "complex decisions \u00b7 accuracy",
     "m_zh": "\u590d\u6742\u51b3\u7b56 \u00b7 \u51c6\u786e\u7387",
     "vals": {
-     "trutina": null,
-     "spark": null,
-     "decider": null,
-     "jevk5": null,
-     "plumb": null,
-     "sieve": null
-    }
+     "trutina": 51.3,
+     "jevk5": 47.8,
+     "plumb": 48.4,
+     "spark": 43.6,
+     "decider": 47.8,
+     "sieve": 45.8
+    },
+    "refused": []
    },
    {
     "id": "fast",
     "en": "fast-decisions",
     "zh": "fast-decisions",
-    "m_en": "17 single-label domains \u00b7 accuracy",
+    "m_en": "17 single-label domains",
     "m_zh": "17 \u4e2a\u5355\u6807\u7b7e\u9886\u57df \u00b7 \u51c6\u786e\u7387",
     "vals": {
-     "trutina": null,
-     "spark": null,
-     "decider": null,
-     "jevk5": null,
-     "plumb": null,
-     "sieve": null
-    }
+     "trutina": 61.6,
+     "jevk5": 62.4,
+     "plumb": 61.8,
+     "spark": 57.4,
+     "decider": 61.9,
+     "sieve": 62.9
+    },
+    "refused": []
    },
    {
     "id": "judge",
     "en": "JudgeBench",
     "zh": "JudgeBench",
     "m_en": "pair accuracy, both orders",
-    "m_zh": "\u4e24\u79cd\u9009\u9879\u987a\u5e8f\u5747\u6b63\u786e\u65b9\u8ba1\u4e3a\u6b63\u786e",
+    "m_zh": "\u4e24\u79cd\u987a\u5e8f\u5747\u6b63\u786e",
     "vals": {
-     "trutina": null,
-     "spark": null,
-     "decider": null,
-     "jevk5": null,
-     "plumb": null,
-     "sieve": null
-    }
+     "trutina": 51.3,
+     "jevk5": 52.1,
+     "plumb": 50.3,
+     "spark": 50.6,
+     "decider": 54.0,
+     "sieve": 53.1
+    },
+    "refused": []
    },
    {
     "id": "massive",
     "en": "MASSIVE intents",
     "zh": "MASSIVE \u610f\u56fe\u5206\u7c7b",
-    "m_en": "59 options per question \u00b7 accuracy",
+    "m_en": "59 options per question",
     "m_zh": "\u6bcf\u9898 59 \u4e2a\u9009\u9879 \u00b7 \u51c6\u786e\u7387",
     "vals": {
-     "trutina": null,
-     "spark": null,
-     "decider": null,
-     "jevk5": null,
-     "plumb": null,
-     "sieve": null
-    }
+     "trutina": 79.8,
+     "jevk5": 76.9,
+     "plumb": 74.1,
+     "spark": 0.0,
+     "decider": 88.8,
+     "sieve": 84.9
+    },
+    "refused": [
+     "spark"
+    ]
    },
    {
     "id": "di",
     "en": "Decision Index 0.3",
     "zh": "Decision Index 0.3",
-    "m_en": "public suite \u00b7 trutina estimated, Sieve self-reported",
-    "m_zh": "\u516c\u5f00\u5957\u4ef6 \u00b7 trutina \u4e3a\u62bd\u6837\u4f30\u8ba1\uff0cSieve \u4e3a\u81ea\u62a5",
+    "m_en": "public suite \u00b7 reported, not re-run",
+    "m_zh": "\u516c\u5f00\u5957\u4ef6 \u00b7 \u62a5\u544a\u503c\uff0c\u672a\u7edf\u4e00\u590d\u8dd1",
     "vals": {
      "trutina": 44.2,
-     "sieve": 50.1,
-     "spark": null,
-     "decider": null,
-     "jevk5": null,
-     "plumb": null
-    }
+     "sieve": 50.1
+    },
+    "est": {
+     "trutina": true
+    },
+    "refused": []
    },
    {
     "id": "latency",
     "en": "Latency",
     "zh": "\u5ef6\u8fdf",
+    "m_en": "p50 per request \u00b7 lower is better",
+    "m_zh": "\u5355\u8bf7\u6c42 p50 \u00b7 \u8d8a\u4f4e\u8d8a\u597d",
+    "vals": {
+     "trutina": 29.1,
+     "jevk5": 20.0,
+     "plumb": 18.6,
+     "spark": 109.5,
+     "decider": 17.8,
+     "sieve": 63.1
+    },
     "unit": "ms",
     "lower": true,
-    "m_en": "p50 per request, same GPU \u00b7 lower is better",
-    "m_zh": "\u5355\u8bf7\u6c42 p50\uff0c\u540c\u4e00 GPU \u00b7 \u8d8a\u4f4e\u8d8a\u597d",
-    "vals": {
-     "trutina": null,
-     "spark": null,
-     "decider": null,
-     "jevk5": null,
-     "plumb": null,
-     "sieve": null
-    }
+    "refused": []
    }
   ],
-  "gpu": "",
-  "errors": {}
+  "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+  "errors": {
+   "trutina": {},
+   "jevk5": {},
+   "plumb": {},
+   "spark": {
+    "decisionbench": 39,
+    "fast_decisions": 101,
+    "massive": 2974
+   },
+   "decider": {},
+   "sieve": {}
+  }
  }
 }
