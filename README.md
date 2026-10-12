@@ -128,15 +128,15 @@ intermediate layers (a "logit lens") gives chance-level answers up to about laye
 ## Architecture
 
 ```
-                      ┌────────────── Qwen3.5-4B (24 Gated DeltaNet + 8 attention layers), LoRA merged ──────────────┐
- prompt ─► embed ─► … layer 12 ─┬─ … layer 16 ─┬─ … layer 20 ─┬─ … layer 24 ─┬─ … layer 32 ─► final norm ─┐
-                                │              │              │              │                          │
-                             lens 12        lens 16        lens 20        lens 24                       │
-                                └──────────────┴──────┬───────┴──────────────┘                          │
-                                                      ▼                                                 ▼
-                                        logits = LM-head rows of the option letters (A)…(Z) at "Best answer: ("
-                                                      ▼
-                                       ÷ per-exit temperature → softmax over the options
+ prompt ─► embed
+             │
+         layers 1–12  ──► lens 12 ──┐
+         layers 13–16 ──► lens 16 ──┤
+         layers 17–20 ──► lens 20 ──┤   LM-head rows of the option letters (A)…(Z)
+         layers 21–24 ──► lens 24 ──┼─► at "Best answer: (" ─► ÷ exit temperature ─► softmax
+         layers 25–32 ──► norm ─────┘
+
+ backbone: Qwen3.5-4B (24 Gated DeltaNet + 8 attention layers), LoRA merged
 ```
 
 - **Letter readout at one position.** Each question is rendered once: the chat template with
