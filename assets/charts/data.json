@@ -1710,6 +1710,78 @@
    }
   ],
   "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+  "runs": [
+   {
+    "id": "trutina",
+    "name": "Trutina",
+    "mode": "full",
+    "us": true,
+    "p50": 29.1,
+    "p95": 111.1,
+    "mean": 44.7,
+    "i_open": 65.8
+   },
+   {
+    "id": "trutina",
+    "name": "Trutina",
+    "mode": "adaptive",
+    "us": true,
+    "p50": 20.7,
+    "p95": 109.3,
+    "mean": 35.3,
+    "i_open": 64.7
+   },
+   {
+    "id": "jevk5",
+    "name": "JevK5 v0.3",
+    "mode": null,
+    "us": false,
+    "p50": 20.0,
+    "p95": 141.4,
+    "mean": 44.4,
+    "i_open": 70.7
+   },
+   {
+    "id": "plumb",
+    "name": "Plumb-4B",
+    "mode": null,
+    "us": false,
+    "p50": 18.6,
+    "p95": 145.7,
+    "mean": 44.6,
+    "i_open": 67.4
+   },
+   {
+    "id": "spark",
+    "name": "spark-s1",
+    "mode": null,
+    "us": false,
+    "p50": 109.5,
+    "p95": 228.3,
+    "mean": 129.8,
+    "i_open": 59.8
+   },
+   {
+    "id": "decider",
+    "name": "decider-4b",
+    "mode": null,
+    "us": false,
+    "p50": 17.8,
+    "p95": 136.6,
+    "mean": 41.9,
+    "i_open": 59.3
+   },
+   {
+    "id": "sieve",
+    "name": "Sieve-4B",
+    "mode": null,
+    "us": false,
+    "p50": 63.1,
+    "p95": 135.5,
+    "mean": 73.3,
+    "i_open": 48.0
+   }
+  ],
   "errors": {
    "trutina": {},
    "jevk5": {},

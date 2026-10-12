@@ -82,7 +82,19 @@ def compete() -> dict:
         if pn["id"] != "massive":
             pn["refused"] = []
     gpu = next((r.get("gpu") for r in full.values()), "")
-    return {"systems": [{"id": s, "short": n} for s, n in SYSTEMS], "panels": panels, "gpu": gpu,
+    # one JevBench re-run for every system: latency and v1.5 Intelligence on the same 231 tasks
+    runs = []
+    for s, n in SYSTEMS:
+        if s not in jb:
+            continue
+        for mode, lat_key, ikey in (("full", "latency_jevbench_ms", s), ("adaptive", "latency_adaptive_ms", s + "-adaptive")):
+            lat = jb[s].get(lat_key)
+            if not lat:
+                continue
+            runs.append({"id": s, "name": n, "mode": mode if s == "trutina" else None, "us": s == "trutina",
+                         "p50": round(lat["p50"], 1), "p95": round(lat["p95"], 1), "mean": round(lat["mean"], 1),
+                         "i_open": intel.get(ikey, {}).get("I_open")})
+    return {"systems": [{"id": s, "short": n} for s, n in SYSTEMS], "panels": panels, "gpu": gpu, "runs": runs,
             "errors": {s: r.get("error_counts", {}) for s, r in full.items()}}
 
 

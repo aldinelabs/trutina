@@ -130,102 +130,90 @@ const chip = (x, y, text, dark) => `<rect x="${x}" y="${y - 12}" width="50" heig
 const pick = n => D.jevbench.rows.find(r => r.name === n);
 const pretty = n => n.replace(" (RTX PRO 6000)", "").replace(" v3", "");
 
-/* ---------- Pareto: Intelligence vs latency ---------- */
+/* ---------- Same-run helpers: the six 4B systems on one JevBench re-run (lab/modal/compete_modal.py) ---------- */
+const RUNS = () => D.compete.runs.map(r => ({ ...r, label: r.us ? (r.mode === "adaptive" ? (zh ? "Trutina · 自适应深度" : "Trutina · adaptive") : (zh ? "Trutina · 完整深度" : "Trutina · full depth")) : r.name }));
+const SAME_RUN_ZH = "6 个开放 4B 决策模型各经其作者提供的服务端（固定 revision），在同型号 GPU（RTX PRO 6000）上串行处理同一批 231 道 JevBench 公开题，预热 10 条，计 HTTP 往返。";
+const SAME_RUN_EN = "Six open 4B decision models, each through the server its authors ship (pinned revision), one request at a time on the same GPU type (RTX PRO 6000), the same 231 public JevBench tasks after 10 warm-up requests, HTTP round trip included.";
+
+/* ---------- Pareto: Intelligence vs mean latency, same run ---------- */
 function pareto() {
   const W = 1470, H = 520, m = { l: 70, r: 30, t: 20, b: 56 };
-  const rows = D.jevbench.rows.filter(r => r.kind !== "cpu" && r.i_open >= 45 && r.p50_ms >= 10);
-  const us = { i_open: T.i_open, p50_ms: T.latency_rtxpro6000.full.p50 };
-  const x = logScale(10, 10000, m.l, W - m.r), y = linScale(45, 100, H - m.b, m.t);
+  const rows = RUNS();
+  const x = logScale(25, 160, m.l, W - m.r), y = linScale(45, 75, H - m.b, m.t);
   const front = []; let best = -1;
-  for (const r of [...rows, us].sort((a, b) => a.p50_ms - b.p50_ms)) if (r.i_open > best) { front.push(r); best = r.i_open; }
+  for (const r of [...rows].sort((a, b) => a.mean - b.mean)) if (r.i_open > best) { front.push(r); best = r.i_open; }
   let g = "";
-  for (const t of [50, 60, 70, 80, 90, 100]) g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/><text class="axis" x="${m.l - 14}" y="${y(t) + 5}" text-anchor="end">${t}</text>`;
-  for (const t of [10, 30, 100, 300, 1000, 3000, 10000]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${m.t}" y2="${H - m.b}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - m.b + 26}" text-anchor="middle">${t >= 1000 ? t / 1000 + " s" : t + " ms"}</text>`;
-  g += `<text class="axis-title" x="${(m.l + W - m.r) / 2}" y="${H - 4}" text-anchor="middle">${zh ? "单次判断的 p50 延迟（对数坐标，越靠左越快）" : "p50 latency per decision (log scale), faster to the left"}</text>`;
-  g += `<text class="axis-title" transform="translate(16 ${(m.t + H - m.b) / 2}) rotate(-90)" text-anchor="middle">${zh ? "JevBench 公开集 Intelligence" : "JevBench open-set Intelligence"}</text>`;
-  g += `<rect x="${x(us.p50_ms)}" y="${y(us.i_open)}" width="${W - m.r - x(us.p50_ms)}" height="${H - m.b - y(us.i_open)}" rx="${18}" fill="var(--fg)" opacity=".035"/>`;
-  g += `<text class="lbl-sub" x="${W - m.r - 16}" y="${H - m.b - 16}" text-anchor="end">${zh ? "延迟更高且准确率更低" : "slower and less accurate than Trutina"}</text>`;
-  g += `<path d="M${front.map(r => `${x(r.p50_ms).toFixed(1)},${y(r.i_open).toFixed(1)}`).join(" L")}" fill="none" stroke="var(--fg)" stroke-width="1.6" stroke-dasharray="5 5" opacity=".55"/>`;
+  for (const t of [45, 50, 55, 60, 65, 70, 75]) g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/><text class="axis" x="${m.l - 14}" y="${y(t) + 5}" text-anchor="end">${t}</text>`;
+  for (const t of [30, 40, 50, 70, 100, 150]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${m.t}" y2="${H - m.b}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - m.b + 26}" text-anchor="middle">${t} ms</text>`;
+  g += `<text class="axis-title" x="${(m.l + W - m.r) / 2}" y="${H - 4}" text-anchor="middle">${zh ? "单请求平均延迟（对数坐标，越靠左越快）" : "mean latency per request (log scale), faster to the left"}</text>`;
+  g += `<text class="axis-title" transform="translate(16 ${(m.t + H - m.b) / 2}) rotate(-90)" text-anchor="middle">${zh ? "JevBench Intelligence（231 道公开题）" : "JevBench Intelligence (231 public tasks)"}</text>`;
+  g += `<path d="M${front.map(r => `${x(r.mean).toFixed(1)},${y(r.i_open).toFixed(1)}`).join(" L")}" fill="none" stroke="var(--fg)" stroke-width="1.6" stroke-dasharray="5 5" opacity=".55"/>`;
+  const lab = { jevk5: [12, -12, "start"], plumb: [14, -8, "start"], decider: [-12, 22, "end"], sieve: [12, 20, "start"], spark: [-12, -14, "end"] };
   for (const r of rows) {
-    const cx = x(r.p50_ms), cy = y(r.i_open);
-    g += r.kind === "api"
-      ? `<rect x="${cx - 5.5}" y="${cy - 5.5}" width="11" height="11" rx="3" fill="var(--card)" stroke="var(--faint)" stroke-width="2"/>`
-      : `<circle cx="${cx}" cy="${cy}" r="6" fill="${r.params_b === 4 ? "var(--muted)" : "var(--pale)"}" stroke="${r.params_b === 4 ? "var(--card)" : "var(--faint)"}" stroke-width="1.5"/>`;
+    const cx = x(r.mean), cy = y(r.i_open);
+    if (r.us) {
+      g += r.mode === "adaptive" ? usDot(cx, cy, 10) : `<circle cx="${cx}" cy="${cy}" r="8" fill="var(--card)" stroke="var(--fg)" stroke-width="2.5"/>`;
+      const [dx, dy, an] = r.mode === "adaptive" ? [-20, -14, "end"] : [44, 34, "start"];
+      g += `<text class="lbl-us" x="${cx + dx}" y="${cy + dy}" text-anchor="${an}" style="font-size:16px">${esc(r.label)}</text>`;
+      g += `<text class="lbl-sub" x="${cx + dx}" y="${cy + dy + 18}" text-anchor="${an}">${fmt1(r.i_open)} · ${fmt1(r.mean)} ms</text>`;
+    } else {
+      g += `<circle cx="${cx}" cy="${cy}" r="7" fill="var(--muted)" stroke="var(--card)" stroke-width="1.5"/>`;
+      const L = lab[r.id] || [12, 18, "start"];
+      g += `<text class="lbl" x="${cx + L[0]}" y="${cy + L[1]}" text-anchor="${L[2]}">${esc(r.label)} <tspan class="lbl-sub">${fmt1(r.i_open)} · ${fmt1(r.mean)} ms</tspan></text>`;
+    }
   }
-  g += usDot(x(us.p50_ms), y(us.i_open), 10);
-  const lab = {
-    "JevK5 v0.3": [-10, -12, "end"], "Plumb-4B": [0, 26, "middle"], "decider-4b v2": [12, 20, "start"],
-    "Cygnet": [0, -16, "middle"], "djev": [10, 20, "start"], "Eikos-27B": [10, -12, "start"],
-    "AutoJev-27B (RTX PRO 6000)": [12, 22, "start"], "Surogate Rune 26B-A4B v3 (RTX PRO 6000)": [12, 20, "start"],
-    "Jev 1.13.0": [12, 18, "start"], "GPT-6 Luna (medium effort)": [-12, -12, "end"], "OpenJev (thinking)": [-12, -12, "end"],
-    "Gemini 3.1 Flash-Lite": [12, 18, "start"], "DeepSeek V4.1 Flash (thinking)": [12, 18, "start"], "Open Jev JSON Canvas": [0, -14, "middle"],
-  };
-  for (const r of rows) {
-    const L = lab[r.name]; if (!L) continue;
-    const size = r.params_b ? ` · ${r.params_b}B` : r.kind === "api" ? " · API" : "";
-    g += `<text class="lbl" x="${x(r.p50_ms) + L[0]}" y="${y(r.i_open) + L[1]}" text-anchor="${L[2]}">${esc(pretty(r.name))}<tspan class="lbl-sub">${size}</tspan></text>`;
-  }
-  g += `<text class="lbl-us" x="${x(us.p50_ms) - 18}" y="${y(us.i_open) - 18}" text-anchor="end">Trutina</text>`;
-  g += `<text class="lbl-sub" x="${x(us.p50_ms) - 18}" y="${y(us.i_open) + 2}" text-anchor="end">69.0 · 28 ms</text>`;
-  const L = zh ? ["Trutina", "其他 4B 模型", "其他本地部署模型", "托管 API", "帕累托前沿"] : ["Trutina", "other 4B models", "other self-hosted models", "hosted APIs", "Pareto frontier"];
   const legend = `<div class="legend">
-    <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="var(--fg)"/></svg></i>${MK}${L[0]}${PILL}</span>
-    <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="var(--muted)"/></svg></i>${L[1]}</span>
-    <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="var(--pale)" stroke="var(--faint)" stroke-width="1.5"/></svg></i>${L[2]}</span>
-    <span><i><svg width="16" height="16"><rect x="2" y="2" width="12" height="12" rx="3" fill="#fff" stroke="var(--faint)" stroke-width="2"/></svg></i>${L[3]}</span>
-    <span><i><svg width="26" height="10"><line x1="0" x2="26" y1="5" y2="5" stroke="var(--fg)" stroke-width="1.6" stroke-dasharray="5 4" opacity=".6"/></svg></i>${L[4]}</span></div>`;
+    <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="var(--fg)"/></svg></i>${MK}Trutina${PILL}${zh ? " · 自适应深度" : " · adaptive"}</span>
+    <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="#fff" stroke="var(--fg)" stroke-width="2"/></svg></i>${MK}Trutina${PILL}${zh ? " · 完整深度" : " · full depth"}</span>
+    <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="var(--muted)"/></svg></i>${zh ? "其他开放 4B 决策模型" : "other open 4B decision models"}</span>
+    <span><i><svg width="26" height="10"><line x1="0" x2="26" y1="5" y2="5" stroke="var(--fg)" stroke-width="1.6" stroke-dasharray="5 4" opacity=".6"/></svg></i>${zh ? "帕累托前沿（平均延迟）" : "Pareto frontier (mean latency)"}</span></div>`;
   return frame(zh ? {
-    title: "Trutina 位于准确率–延迟帕累托前沿",
-    sub: "在 JevBench v1.5.4 榜单中，不存在延迟与准确率同时优于 Trutina 的系统：准确率更高的系统延迟均更高，延迟更低的系统准确率均更低。",
+    title: "按平均延迟，Trutina 自适应深度位于帕累托前沿",
+    sub: "同一批请求、同型号 GPU。以平均延迟计，Trutina 自适应深度最快（35.3 ms），JevK5 的 Intelligence 最高（70.7）；两者之外的系统均被其中之一支配。",
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
-    src: `其他系统数据取自 JevBench v1.5.4 官方结果：公开集 Intelligence 与原始 p50 延迟，由榜单维护方在其自有 GPU（H100、RTX 5090、RTX PRO 6000、A6000）上测得；托管 API 为端到端延迟。Trutina 的 Intelligence 按 v1.5 公式在公开题上自行计算，延迟在单张 RTX PRO 6000 上经 HTTP 服务自行测得。图中共 ${rows.length} 个系统（Intelligence ≥ 45）。`,
+    src: `${SAME_RUN_ZH}Intelligence 按 v1.5 规则对各系统的原始输出计分（Trutina 启用是非题决断映射时为 69.0 / 67.9）。若改用 p50 延迟，decider、Plumb 与 JevK5（17.8–20.0 ms）快于 Trutina 自适应深度（20.7 ms），JevK5 同时支配 Trutina。`,
   } : {
-    title: "On the accuracy–latency frontier",
-    sub: "No system on the JevBench v1.5.4 board is both faster and more accurate than Trutina. Everything more accurate is slower, and everything faster is less accurate.",
+    title: "By mean latency, Trutina with adaptive depth is on the frontier",
+    sub: "The same requests on the same GPU type. By mean latency Trutina with adaptive depth is the fastest (35.3 ms) and JevK5 has the highest Intelligence (70.7); every other system is dominated by one of the two.",
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
-    src: `Other systems: JevBench v1.5.4 official results, open-set Intelligence and raw p50 latency measured by the maintainers on their own GPUs (H100, RTX 5090, RTX PRO 6000, A6000); hosted APIs end to end. Trutina: Intelligence computed by us with the v1.5 formula on the public tasks; latency measured by us on one RTX PRO 6000 through its HTTP server. ${rows.length} systems with Intelligence ≥ 45.`,
+    src: `${SAME_RUN_EN} Intelligence: the v1.5 rules on each system's outputs as served (Trutina with its decisive yes/no map: 69.0 / 67.9). By p50 latency instead, decider, Plumb and JevK5 (17.8–20.0 ms) are faster than Trutina with adaptive depth (20.7 ms), and JevK5 dominates Trutina.`,
   });
 }
 
-/* ---------- Efficiency Index: Intelligence per ms ---------- */
+/* ---------- Efficiency Index: Intelligence per ms of mean latency, same run ---------- */
 function efficiency() {
-  const FLOOR = 65;
-  const others = D.jevbench.rows.filter(r => r.i_open >= FLOOR && r.kind !== "cpu").map(r => ({ ...r, ei: r.i_open / r.p50_ms }));
-  const rows = [
-    { name: zh ? "Trutina · 自适应深度" : "Trutina · adaptive", i_open: T.i_open, p50_ms: T.latency_rtxpro6000.adaptive.p50, us: true, hw: "RTX PRO 6000", params_b: 4 },
-    { name: zh ? "Trutina · 完整深度" : "Trutina · full depth", i_open: T.i_open, p50_ms: T.latency_rtxpro6000.full.p50, us: true, hw: "RTX PRO 6000", params_b: 4 },
-    ...others,
-  ].map(r => ({ ...r, ei: r.i_open / r.p50_ms })).sort((a, b) => b.ei - a.ei).slice(0, 12);
-  const W = 1470, rowH = 44, top = 8, H = rows.length * rowH + top + 34, lx = 470;
-  const x = linScale(0, 3.5, lx, W - 230);
+  const rows = RUNS().map(r => ({ ...r, ei: r.i_open / r.mean, ei50: r.i_open / r.p50 })).sort((a, b) => b.ei - a.ei);
+  const W = 1470, rowH = 58, top = 8, H = rows.length * rowH + top + 34, lx = 400;
+  const x = linScale(0, 2, lx, W - 260);
   let g = "";
-  for (const t of [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 30}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - 6}" text-anchor="middle">${t}</text>`;
+  for (const t of [0, 0.5, 1, 1.5, 2]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 30}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - 6}" text-anchor="middle">${t}</text>`;
   rows.forEach((r, i) => {
     const cy = top + i * rowH + rowH / 2;
-    g += `<text class="${r.us ? "lbl-us" : "lbl"}" ${r.us ? "data-nopill" : ""} x="${lx - 76}" y="${cy + 5}" text-anchor="end" ${r.us ? 'style="font-size:16px"' : ""}>${esc(r.us ? r.name : pretty(r.name))}<tspan class="lbl-sub"> · ${esc(r.hw)}</tspan></text>`;
-    g += chip(lx - 64, cy, r.params_b ? `${r.params_b}B` : r.kind === "api" ? "API" : "—", r.params_b === 4);
+    g += `<text class="${r.us ? "lbl-us" : "lbl"}" ${r.us ? "data-nopill" : ""} x="${lx - 76}" y="${cy + 5}" text-anchor="end" ${r.us ? 'style="font-size:16px"' : ""}>${esc(r.label)}</text>`;
+    g += chip(lx - 64, cy, "4B", true);
     g += bar(lx, cy - 12, x(r.ei) - lx, 24, r.us ? "var(--fg)" : "var(--pale)");
-    g += `<text class="${r.us ? "val" : "val-muted"}" x="${x(r.ei) + 12}" y="${cy + 5}">${r.ei.toFixed(2)} <tspan class="lbl-sub">${fmt1(r.i_open)} / ${fmt1(r.p50_ms)} ms</tspan></text>`;
+    g += `<text class="${r.us ? "val" : "val-muted"}" x="${x(r.ei) + 12}" y="${cy + 5}">${r.ei.toFixed(2)} <tspan class="lbl-sub">${fmt1(r.i_open)} / ${fmt1(r.mean)} ms</tspan></text>`;
   });
-  const next = rows.find(r => !r.us);
+  const next = rows.find(r => !r.us), by50 = [...rows].sort((a, b) => b.ei50 - a.ei50), rank50 = by50.findIndex(r => r.us && r.mode === "adaptive") + 1;
   return frame(zh ? {
-    title: "Efficiency Index：单位延迟的准确率",
-    sub: `Efficiency Index 定义为 JevBench 公开集 Intelligence 与 p50 延迟（ms）之比，比较范围为 Intelligence ≥ ${FLOOR} 的系统。Trutina 的指数为 ${rows[0].ei.toFixed(2)}，为次优系统 ${pretty(next.name)}（${next.ei.toFixed(2)}）的 ${(rows[0].ei / next.ei).toFixed(1)} 倍。`,
+    title: "Efficiency Index：单位平均延迟的 Intelligence",
+    sub: `Efficiency Index 定义为 JevBench Intelligence 与单请求平均延迟（ms）之比。Trutina 自适应深度为 ${rows[0].ei.toFixed(2)}，次优为 ${next.label}（${next.ei.toFixed(2)}）。`,
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
-    src: `设置 Intelligence ≥ ${FLOOR} 的门槛，是为避免延迟极低而准确率明显偏低的模型主导该比值；若不设门槛，若干 Intelligence 为 56–62、在 H100 上延迟约 16 ms 的 4B 模型指数更高。数据来源同帕累托图。Trutina 的延迟在 RTX PRO 6000 上自行测得，其他系统由 JevBench 在各自的 GPU 上测得，硬件条件不完全一致。`,
+    src: `${SAME_RUN_ZH}平均延迟反映单位请求的计算开销；若改用 p50 延迟，${by50[0].label} 最高（${by50[0].ei50.toFixed(2)}），Trutina 自适应深度排第 ${rank50}（${rows.find(r => r.us && r.mode === "adaptive").ei50.toFixed(2)}）。`,
   } : {
-    title: "Efficiency Index: accuracy per millisecond",
-    sub: `Efficiency Index = JevBench open-set Intelligence ÷ p50 latency in ms, among systems with Intelligence ≥ ${FLOOR}. Trutina scores ${rows[0].ei.toFixed(2)}, ${(rows[0].ei / next.ei).toFixed(1)}× the next system, ${pretty(next.name)} (${next.ei.toFixed(2)}).`,
+    title: "Efficiency Index: Intelligence per millisecond of mean latency",
+    sub: `Efficiency Index = JevBench Intelligence ÷ mean latency per request in ms. Trutina with adaptive depth scores ${rows[0].ei.toFixed(2)}; next is ${next.label} (${next.ei.toFixed(2)}).`,
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
-    src: `Only systems with Intelligence ≥ ${FLOOR} are compared, so that much faster but much less accurate models do not dominate the ratio; without the floor, several 4B models with Intelligence 56–62 at about 16 ms on an H100 score higher. Sources as in the frontier chart. Trutina latency measured by us on an RTX PRO 6000; the others by JevBench on their own GPUs, so the hardware is not identical.`,
+    src: `${SAME_RUN_EN} Mean latency tracks the compute spent per request. With p50 latency instead, ${by50[0].label} leads (${by50[0].ei50.toFixed(2)}) and Trutina with adaptive depth ranks ${rank50} (${rows.find(r => r.us && r.mode === "adaptive").ei50.toFixed(2)}).`,
   });
 }
 
-/* ---------- Size: 4B against 12–35B ---------- */
+/* ---------- Size: JevBench official Intelligence, 4B and 12–35B ---------- */
 function size() {
   const big = ["Eikos-27B", "Cygnet", "AutoJev-27B (RTX PRO 6000)", "Jev-Omni", "Surogate Rune 26B-A4B v3 (RTX PRO 6000)", "NInfer Qwen3.8-27B NVFP4", "decider-35b-a3b", "reflex-27b"].map(pick).filter(Boolean);
   const small = ["spark-s1-4b-v6", "decider-4b v2", "JevK5 v0.3", "Plumb-4B", "Malkuth-4B", "Decision 4B v1.2"].map(pick).filter(Boolean);
-  const rows = [{ name: "Trutina", i_open: T.i_open, params_b: 4, us: true }, ...big, ...small].sort((a, b) => b.i_open - a.i_open);
+  const rows = [...big, ...small].sort((a, b) => b.i_open - a.i_open);
+  rows.push({ name: "Trutina", params_b: 4, us: true, i_open: null });
   const W = 1470, rowH = 38, top = 8, H = rows.length * rowH + top + 30, lx = 330;
   const x = linScale(40, 80, lx, W - 120);
   let g = "";
@@ -234,19 +222,20 @@ function size() {
     const cy = top + i * rowH + rowH / 2, four = r.params_b === 4;
     g += `<text class="${r.us ? "lbl-us" : "lbl"}" ${r.us ? "data-nopill" : ""} x="${lx - 76}" y="${cy + 5}" text-anchor="end" ${r.us ? 'style="font-size:16px"' : ""}>${esc(pretty(r.name))}</text>`;
     g += chip(lx - 64, cy, `${r.params_b}B`, four);
-    g += bar(lx, cy - 11, x(r.i_open) - lx, 22, r.us ? "var(--fg)" : four ? "var(--muted)" : "var(--pale)");
-    g += `<text class="${r.us ? "val" : "val-muted"}" x="${x(r.i_open) + 10}" y="${cy + 5}">${fmt1(r.i_open)}</text>`;
+    if (r.i_open == null) { g += `<text class="lbl-sub" x="${lx}" y="${cy + 5}" style="font-size:14px">${zh ? "尚未经 JevBench 官方评测" : "not yet run by JevBench"}</text>`; return; }
+    g += bar(lx, cy - 11, x(r.i_open) - lx, 22, four ? "var(--muted)" : "var(--pale)");
+    g += `<text class="val-muted" x="${x(r.i_open) + 10}" y="${cy + 5}">${fmt1(r.i_open)}</text>`;
   });
   return frame(zh ? {
-    title: "4B 参数规模达到 12–27B 模型的水平",
-    sub: "指标为 JevBench 公开集 Intelligence。Trutina 高出其余 4B 模型 6.5 分，与多数 26–35B 系统相当或更高；且仅需单次前向传播，不生成推理 token。",
+    title: "JevBench 官方 Intelligence：4B 与 12–35B 系统",
+    sub: "官方开放集共 904 题，其中 303 题未公开，只能由 JevBench 运行。Trutina 尚未提交官方评测，因此不在此列出分数；同口径的 4B 对比见对比图。",
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
-    src: "数据取自 JevBench v1.5.4 官方结果（公开集 Intelligence，0–100）。参数量以各系统名称所标为准。Trutina 的 Intelligence 按 v1.5 公式在公开题上自行计算，封闭集成绩尚未测量。",
+    src: "数据取自 JevBench v1.5.4 官方结果（开放集 Intelligence，0–100），由榜单维护方在其自有 GPU 上测得。参数量以各系统名称所标为准。",
   } : {
-    title: "A 4B model in the 12–27B tier",
-    sub: "JevBench open-set Intelligence. Trutina is 6.5 points ahead of every other 4B model and level with or ahead of most 26–35B systems, in one forward pass with no reasoning tokens.",
+    title: "JevBench official Intelligence: 4B and 12–35B systems",
+    sub: "The official open set has 904 tasks, 303 of them unpublished, so only JevBench can run it. Trutina has not been submitted yet and has no score here; the same-protocol 4B comparison is in the head-to-head chart.",
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
-    src: "JevBench v1.5.4 official results (open-set Intelligence, 0–100). Parameter counts as named by each system. Trutina: Intelligence computed by us with the v1.5 formula on the public tasks; its sealed-set score is not measured yet.",
+    src: "JevBench v1.5.4 official results (open-set Intelligence, 0–100), measured by the maintainers on their own GPUs. Parameter counts as named by each system.",
   });
 }
 
@@ -332,37 +321,34 @@ function adaptive() {
 
 /* ---------- Latency on RTX PRO 6000 ---------- */
 function latency() {
-  const rows = [
-    { name: zh ? "Trutina · 自适应深度" : "Trutina · adaptive", p50: T.latency_rtxpro6000.adaptive.p50, p95: T.latency_rtxpro6000.adaptive.p95, hw: "RTX PRO 6000", us: true, by: zh ? "本文" : "us" },
-    { name: zh ? "Trutina · 完整深度" : "Trutina · full depth", p50: T.latency_rtxpro6000.full.p50, p95: T.latency_rtxpro6000.full.p95, hw: "RTX PRO 6000", us: true, by: zh ? "本文" : "us" },
-    ...[["Cygnet", "Cygnet · 12B"], ["AutoJev-27B (RTX PRO 6000)", "AutoJev · 27B"], ["Surogate Rune 26B-A4B v3 (RTX PRO 6000)", "Surogate Rune · 26B-A4B"], ["swanOne", "swanOne"], ["Jev 1.13.0", zh ? "Jev 1.13.0 · 托管 API" : "Jev 1.13.0 · hosted API"]]
-      .map(([n, label]) => { const r = pick(n); return { name: label, p50: r.p50_ms, p95: r.p95_ms, hw: r.hw === "api" ? (zh ? "端到端" : "end to end") : r.hw, by: "JevBench" }; }),
-  ];
-  const W = 1470, rowH = 64, top = 10, H = rows.length * rowH + top + 40, lx = 330;
-  const x = logScale(10, 1000, lx, W - 150);
+  const rows = RUNS();
+  const W = 1470, rowH = 60, top = 10, H = rows.length * rowH + top + 40, lx = 330;
+  const x = logScale(10, 300, lx, W - 230);
   let g = "";
-  for (const t of [10, 20, 50, 100, 200, 500, 1000]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 34}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - 10}" text-anchor="middle">${t} ms</text>`;
+  for (const t of [10, 20, 50, 100, 200, 300]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 34}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - 10}" text-anchor="middle">${t} ms</text>`;
+  const minOf = k => Math.min(...rows.map(r => r[k]));
   rows.forEach((r, i) => {
     const cy = top + i * rowH + rowH / 2;
-    g += `<text class="${r.us ? "lbl-us" : "lbl"}" x="${lx - 18}" y="${cy + 1}" text-anchor="end" ${r.us ? 'style="font-size:16px"' : ""}>${esc(r.name)}</text>`;
-    g += `<text class="lbl-sub" x="${lx - 18}" y="${cy + 19}" text-anchor="end">${esc(r.hw)} · ${zh ? "测量方：" : "measured by "}${r.by}</text>`;
+    g += `<text class="${r.us ? "lbl-us" : "lbl"}" x="${lx - 18}" y="${cy + 6}" text-anchor="end" ${r.us ? 'style="font-size:16px"' : 'style="font-size:15px"'}>${esc(r.label)}</text>`;
     g += `<line x1="${x(r.p50)}" x2="${x(r.p95)}" y1="${cy}" y2="${cy}" stroke="${r.us ? "var(--fg)" : "var(--faint)"}" stroke-width="2" stroke-dasharray="${r.us ? "" : "3 3"}"/>`;
     g += bar(lx, cy - 12, x(r.p50) - lx, 24, r.us ? "var(--fg)" : "var(--pale)");
     g += `<circle cx="${x(r.p95)}" cy="${cy}" r="5" fill="var(--card)" stroke="${r.us ? "var(--fg)" : "var(--faint)"}" stroke-width="2"/>`;
-    g += `<text class="${r.us ? "val" : "val-muted"}" x="${x(r.p95) + 14}" y="${cy + 5}">${fmt1(r.p50)} <tspan class="lbl-sub">/ ${fmt1(r.p95)}</tspan></text>`;
+    const b = (k, v) => v === minOf(k) ? `font-weight:700; fill:var(--fg)` : "";
+    g += `<text class="${r.us ? "val" : "val-muted"}" x="${x(r.p95) + 14}" y="${cy + 5}"><tspan style="${b("p50", r.p50)}">${fmt1(r.p50)}</tspan> <tspan class="lbl-sub">/</tspan> <tspan style="${b("p95", r.p95)}">${fmt1(r.p95)}</tspan> <tspan class="lbl-sub">· ${zh ? "平均" : "mean"}</tspan> <tspan style="${b("mean", r.mean)}">${fmt1(r.mean)}</tspan></text>`;
   });
   const legend = `<div class="legend"><span><i><svg width="26" height="14"><rect width="26" height="14" rx="7" fill="var(--fg)"/></svg></i>p50</span>
-    <span><i><svg width="26" height="14"><line x1="0" x2="20" y1="7" y2="7" stroke="var(--fg)" stroke-width="2"/><circle cx="20" cy="7" r="4.5" fill="#fff" stroke="var(--fg)" stroke-width="2"/></svg></i>p95</span></div>`;
+    <span><i><svg width="26" height="14"><line x1="0" x2="20" y1="7" y2="7" stroke="var(--fg)" stroke-width="2"/><circle cx="20" cy="7" r="4.5" fill="#fff" stroke="var(--fg)" stroke-width="2"/></svg></i>p95</span>
+    <span>${zh ? "数值：p50 / p95 · 平均（ms），粗体为该列最低" : "values: p50 / p95 · mean (ms), bold = lowest"}</span></div>`;
   return frame(zh ? {
-    title: "同一 GPU 上，速度接近最高准确率模型的两倍",
-    sub: "RTX PRO 6000 上单次判断的延迟，串行发送请求。启用自适应深度时，Trutina 的中位延迟为 21 ms，约为该 GPU 上准确率最高的系统 Cygnet（39.8 ms）的一半。",
+    title: "同一 GPU 上，Trutina 的尾延迟与平均延迟最低",
+    sub: "启用自适应深度时，Trutina 的 p95 为 109 ms、平均为 35 ms，均为 6 个开放 4B 决策模型中最低；p50 为 20.7 ms，略高于使用 CUDA graph 的 decider（17.8 ms）、Plumb（18.6 ms）与 JevK5（20.0 ms）。",
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
-    src: "其他系统为 JevBench v1.5.4 在其 RTX PRO 6000 节点上测得的原始延迟（450 道公开 standard 与 judge 题）；Jev 为托管 API 的端到端延迟。Trutina 在单张 RTX PRO 6000 上经自带 HTTP 服务自行测得，预热后运行 231 道 JevBench 公开题。两组测量的请求集不同，差异仅宜作数量级比较。",
+    src: `${SAME_RUN_ZH}`,
   } : {
-    title: "Nearly twice as fast as the best model on the same GPU",
-    sub: "Per-decision latency on an RTX PRO 6000, one request at a time. With adaptive depth Trutina answers in 21 ms at the median, about half the 39.8 ms of Cygnet, the most accurate system measured on that GPU.",
+    title: "Lowest tail and mean latency on the same GPU",
+    sub: "With adaptive depth Trutina's p95 is 109 ms and its mean 35 ms, the lowest of the six open 4B decision models; its p50 of 20.7 ms is slightly above decider (17.8 ms), Plumb (18.6 ms) and JevK5 (20.0 ms), whose servers use CUDA graphs.",
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
-    src: "Other systems: raw latency measured by JevBench v1.5.4 on its RTX PRO 6000 pod (450 open standard and judge items); Jev end to end through its hosted API. Trutina: measured by us on one RTX PRO 6000 through its own HTTP server, 231 public JevBench tasks after a warm-up. The request sets differ, so read the gap as an order of magnitude.",
+    src: SAME_RUN_EN,
   });
 }
 
@@ -456,19 +442,19 @@ function compare() {
 function overview() {
   const kp = (k, v, f) => `<div class="kpi"><span class="k">${k}</span><span class="v">${v}</span><span class="f">${f}</span></div>`;
   const A = zh ? [
-    ["JevBench 公开集", `87.0<small>%</small>`, "公开集并列第五；排名更高的四个系统均先生成推理文本"],
-    ["JevBench Intelligence", `69.0`, "4B 模型中最高（次优为 62.5），与 26–27B 系统相当"],
-    ["LocalLLaMA 零样本", `74.85<small>%</small>`, "开放权重模型第一，总榜第二；KL 0.149"],
-    ["延迟，RTX PRO 6000", `21<small>ms</small>`, "自适应深度的 p50；完整深度为 28 ms"],
-    ["自适应深度", `22<small>/ 32 层</small>`, "平均层数；准确率下降 0.9 个百分点"],
-    ["最多 255 个选项", `79.3<small>%</small>`, "MASSIVE，59 类；分组淘汰（双字母标签方案为 59.4%）"],
+    ["LocalLLaMA 零样本", `74.7<small>%</small>`, "6 个开放 4B 决策模型中最高（次优 Sieve-4B 74.1）"],
+    ["this-that", `51.3<small>%</small>`, "6 个开放 4B 决策模型中最高（次优 48.4）"],
+    ["DecisionBench medium", `82.5<small>%</small>`, "6 个开放 4B 决策模型中最高（次优 82.0）"],
+    ["p95 延迟", `109<small>ms</small>`, "自适应深度；同 GPU 上 6 个 4B 系统中最低（次优 136 ms）"],
+    ["自适应深度", `22<small>/ 32 层</small>`, "平均层数；平均延迟 35 ms，6 个 4B 系统中最低"],
+    ["图像输入", `91.9<small>%</small>`, "Mind2Web（验证集）；冻结的视觉编码器，读出方式不变"],
     ["许可证", `Apache<small>2.0</small>`, "权重与代码；提供 MLX、CUDA 引擎及 HTTP 服务"]] : [
-    ["JevBench public set", `87.0<small>%</small>`, "Ties 5th on the board's public set; the four above generate reasoning first"],
-    ["JevBench Intelligence", `69.0`, "Highest of any 4B model (next: 62.5); level with 26–27B systems"],
-    ["LocalLLaMA zero-shot", `74.85<small>%</small>`, "First among open weights, second overall; KL 0.149"],
-    ["Latency, RTX PRO 6000", `21<small>ms</small>`, "p50 with adaptive depth; 28 ms at full depth"],
-    ["Adaptive depth", `22<small>/ 32 layers</small>`, "on average, for 0.9 points of accuracy"],
-    ["Up to 255 options", `79.3<small>%</small>`, "MASSIVE, 59 intents; tournament readout (two-letter labels: 59.4%)"],
+    ["LocalLLaMA zero-shot", `74.7<small>%</small>`, "Highest of six open 4B decision models (next: Sieve-4B 74.1)"],
+    ["this-that", `51.3<small>%</small>`, "Highest of six open 4B decision models (next: 48.4)"],
+    ["DecisionBench medium", `82.5<small>%</small>`, "Highest of six open 4B decision models (next: 82.0)"],
+    ["p95 latency", `109<small>ms</small>`, "adaptive depth; lowest of six 4B systems on the same GPU (next: 136 ms)"],
+    ["Adaptive depth", `22<small>/ 32 layers</small>`, "on average; mean latency 35 ms, lowest of the six"],
+    ["Image input", `91.9<small>%</small>`, "Mind2Web (validation split); frozen vision encoder, same readout"],
     ["Licence", `Apache<small>2.0</small>`, "weights and code; MLX and CUDA engines, HTTP server"]];
   const body = `<div style="flex:1; display:flex; flex-direction:column; gap:20px; justify-content:center">
       <div class="kpis">${A.slice(0, 4).map(a => kp(...a)).join("")}</div>
@@ -476,11 +462,11 @@ function overview() {
   return frame(zh ? {
     title: `Trutina${PILL}：单次前向传播的校准决策模型`,
     sub: "具备自适应深度的 4B 类型化决策模型。支持基于文本与图像的选择题、等级评分题与是非题，为每个选项输出概率，不生成文本。",
-    body, src: "Trutina 的 JevBench Intelligence 按 v1.5 公式在公开题上自行计算；其他系统数据取自官方 v1.5.4 结果。评测方法与全部说明详见模型卡片。",
+    body, src: "前四项与平均延迟为同口径实测：6 个开放 4B 决策模型各经其作者提供的服务端，在同型号 GPU（RTX PRO 6000）上处理同一批请求。JevBench 与高难度决策上 JevK5、Plumb 领先，见对比图。",
   } : {
     title: `Trutina${PILL}: calibrated decisions in one forward pass`,
     sub: "A 4B typed decision model with adaptive depth. Choice, score and yes/no questions over text and images, with a probability for every option and no generated text.",
-    body, src: "JevBench Intelligence for Trutina computed by us with the v1.5 formula on the public tasks; other systems from the official v1.5.4 results. Methods and every caveat are in the model card.",
+    body, src: "The first four and the mean latency are same-protocol measurements: six open 4B decision models, each through its authors' server, the same requests on the same GPU type (RTX PRO 6000). JevK5 and Plumb lead on JevBench and the hard decisions; see the head-to-head chart.",
   });
 }
 
