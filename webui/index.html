@@ -1,0 +1,937 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>trutina runs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: fixed run list on the left, one scrolling run view on the right; monochrome
+   surfaces, color only for state and chart series. */
+:root {
+  --bg: #ffffff;
+  --panel: #fafafa;
+  --fg: #0a0a0a;
+  --muted: #737373;
+  --faint: #a3a3a3;
+  --border: #ebebeb;
+  --hover: #f4f4f4;
+  --primary: #0a0a0a;
+  --primary-fg: #ffffff;
+  /* categorical series, fixed order (dataviz reference palette, validated on --bg) */
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --s3: #1baf7a;
+  --s4: #eda100;
+  --s5: #e87ba4;
+  --s6: #008300;
+  --s7: #4a3aa7;
+  --s8: #e34948;
+  --ok: #16a34a;
+  --warn: #d97706;
+  --bad: #dc2626;
+  --ring: rgba(37, 99, 235, .35);
+  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "PingFang SC", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 8px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a0a0a; --panel: #111111; --fg: #ededed; --muted: #8f8f8f; --faint: #5c5c5c;
+    --border: #232323; --hover: #1a1a1a; --primary: #ededed; --primary-fg: #0a0a0a;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --ok: #22c55e; --warn: #f59e0b; --bad: #f87171;
+    --ring: rgba(96, 165, 250, .4); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0a0a0a; --panel: #111111; --fg: #ededed; --muted: #8f8f8f; --faint: #5c5c5c;
+  --border: #232323; --hover: #1a1a1a; --primary: #ededed; --primary-fg: #0a0a0a;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --ok: #22c55e; --warn: #f59e0b; --bad: #f87171;
+  --ring: rgba(96, 165, 250, .4); color-scheme: dark;
+}
+
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 var(--sans);
+       -webkit-font-smoothing: antialiased; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+
+.app { display: grid; grid-template-columns: 272px minmax(0, 1fr); height: 100%; }
+aside { border-right: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; }
+.brand { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+         padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.brand b { font-weight: 600; letter-spacing: -.01em; }
+.brand .mark { display: inline-flex; align-items: center; gap: 8px; }
+.brand svg { color: var(--fg); }
+.runlist { overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 2px; }
+.run { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px;
+       width: 100%; text-align: left; border: 0; background: none; padding: 8px 10px;
+       border-radius: 6px; cursor: pointer; }
+.run:hover { background: var(--hover); }
+.run[aria-current="true"] { background: var(--hover); }
+.run .name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.run .sub { font-size: 12px; color: var(--muted); }
+.run .pct { font-size: 12px; color: var(--muted); }
+.sidefoot { margin-top: auto; padding: 12px 16px; border-top: 1px solid var(--border);
+            font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+
+.tabs { display: flex; gap: 2px; padding: 8px 8px 0; }
+.tabs button { flex: 1; border: 0; background: none; padding: 6px 8px; border-radius: 6px; cursor: pointer; color: var(--muted); font-weight: 500; font-size: 13px; }
+.tabs button[aria-selected="true"] { background: var(--hover); color: var(--fg); }
+.brow { display: grid; grid-template-columns: minmax(150px, 1.1fr) minmax(120px, 2fr) 64px 64px; align-items: center; gap: 4px 16px;
+        padding: 9px 16px; border-bottom: 1px solid var(--border); }
+.brow:last-child { border-bottom: 0; }
+.brow.parent { cursor: pointer; }
+.brow.parent:hover { background: var(--hover); }
+.brow.child { padding-left: 40px; background: var(--panel); }
+.brow .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.brow.child .nm { font-weight: 400; }
+.brow .nm .caret { display: inline-block; width: 14px; color: var(--faint); transition: transform .12s; }
+.brow.open .nm .caret { transform: rotate(90deg); }
+.brow .meta2 { grid-column: 1 / -1; font-size: 12px; color: var(--muted); margin-top: -2px; }
+.track { position: relative; height: 8px; background: var(--hover); border-radius: 4px; }
+.track i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--s1); border-radius: 4px; }
+.track b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--fg); opacity: .55; border-radius: 1px; }
+.track u { position: absolute; top: -3px; bottom: -3px; width: 0; border-left: 1px dashed var(--faint); }
+.brow .val { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.brow .dl { text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.brow .dl.pos { color: var(--ok); } .brow .dl.neg { color: var(--bad); }
+.bhead { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted); padding: 10px 16px; border-bottom: 1px solid var(--border); }
+.bhead span { display: inline-flex; align-items: center; gap: 6px; }
+.bhead i { width: 14px; height: 6px; border-radius: 3px; background: var(--s1); display: inline-block; }
+.bhead b { width: 2px; height: 12px; background: var(--fg); opacity: .55; display: inline-block; }
+.bsec { padding: 8px 16px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); background: var(--panel); border-bottom: 1px solid var(--border); }
+@media (max-width: 560px) { .brow { grid-template-columns: minmax(0, 1fr) 56px 56px; } .brow .track { grid-column: 1 / -1; order: 5; } }
+
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); flex: none; }
+.dot.running, .dot.loading, .dot.starting { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 20%, transparent); }
+.dot.stopped, .dot.interrupted, .dot.stale { background: var(--warn); }
+.dot.failed { background: var(--bad); }
+.dot.done { background: var(--fg); }
+@media (prefers-reduced-motion: no-preference) {
+  .dot.running { animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--ok) 8%, transparent); } }
+}
+
+main { overflow-y: auto; min-width: 0; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 28px 32px 48px; display: flex; flex-direction: column; gap: 24px; }
+header.run-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px; }
+h1 { font-size: 24px; font-weight: 600; letter-spacing: -.02em; margin: 0; text-wrap: balance; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; font-size: 13px; color: var(--muted); }
+.meta span { display: inline-flex; align-items: center; gap: 6px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.badge { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 999px;
+         border: 1px solid var(--border); font-size: 12px; font-weight: 500; text-transform: capitalize; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 6px;
+       border: 1px solid var(--border); background: var(--bg); cursor: pointer; font-weight: 500; font-size: 13px;
+       white-space: nowrap; transition: background .12s, border-color .12s; }
+.btn:hover { background: var(--hover); }
+.btn.primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+.btn.primary:hover { opacity: .88; }
+.btn.danger { color: var(--bad); }
+.btn.danger.armed { background: var(--bad); color: #fff; border-color: var(--bad); }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn.icon { width: 32px; padding: 0; justify-content: center; }
+
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+        border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.kpi { padding: 14px 16px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+       margin: 0 -1px -1px 0; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.kpi .label { font-size: 12px; color: var(--muted); }
+.kpi .value { font-size: 22px; font-weight: 500; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.kpi .value small { font-size: 13px; color: var(--muted); font-weight: 400; letter-spacing: 0; }
+.kpi .foot { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bar { height: 4px; background: var(--hover); border-radius: 999px; overflow: hidden; margin-top: 4px; }
+.bar i { display: block; height: 100%; background: var(--fg); border-radius: inherit; transition: width .4s; }
+
+.card { border: 1px solid var(--border); border-radius: var(--radius); min-width: 0; }
+.card-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+          padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.card-h h2 { font-size: 13px; font-weight: 500; margin: 0; }
+.card-b { padding: 12px 16px 16px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.kpis + .kpis { margin-top: -1px; }
+.kpi .value.sm { font-size: 18px; }
+.sub { font-size: 12px; color: var(--muted); font-weight: 400; }
+.heat td.cell { text-align: right; font-variant-numeric: tabular-nums; }
+.heat td.cell span { display: inline-block; min-width: 56px; padding: 2px 6px; border-radius: 4px; }
+.chart .marker { stroke: var(--ok); stroke-dasharray: 2 3; stroke-width: 1; }
+.chart .marker-label { fill: var(--ok); font: 10px var(--mono); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 2px; border-radius: 2px; display: inline-block; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; padding: 2px; gap: 2px; }
+.seg button { border: 0; background: none; padding: 2px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--hover); color: var(--fg); }
+
+.chart { position: relative; height: 220px; }
+.chart.tall { height: 260px; }
+.chart svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.chart .axis { fill: var(--faint); font: 11px var(--mono); }
+.chart .grid { stroke: var(--border); stroke-width: 1; }
+.chart .cross { stroke: var(--faint); stroke-dasharray: 3 3; }
+.tip { position: absolute; pointer-events: none; background: var(--bg); border: 1px solid var(--border);
+       border-radius: 6px; padding: 6px 8px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.08);
+       white-space: nowrap; z-index: 2; }
+.tip .row { display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+.tip .row i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.empty-chart { height: 100%; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
+
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: right; padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap;
+         font-variant-numeric: tabular-nums; }
+th:first-child, td:first-child { text-align: left; }
+th { font-weight: 500; color: var(--muted); font-size: 12px; }
+th.group { text-align: center; border-bottom: 0; padding-bottom: 0; }
+tr:last-child td { border-bottom: 0; }
+td.best { font-weight: 600; }
+
+dl.cfg { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px 24px; margin: 0; }
+dl.cfg div { min-width: 0; }
+dl.cfg dt { font-size: 12px; color: var(--muted); }
+dl.cfg dd { margin: 0; font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
+pre.log { margin: 0; flex: 1 1 0; min-height: 240px; overflow: auto; padding: 12px 16px; font: 12px/1.6 var(--mono);
+          color: var(--muted); background: var(--panel); border-radius: 0 0 var(--radius) var(--radius); white-space: pre-wrap; }
+
+.empty { margin: 12vh auto 0; max-width: 460px; text-align: center; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.empty h1 { font-size: 20px; }
+.empty code { font-family: var(--mono); font-size: 12px; background: var(--panel); border: 1px solid var(--border);
+              padding: 8px 12px; border-radius: 6px; text-align: left; overflow-x: auto; max-width: 100%; }
+
+dialog { border: 1px solid var(--border); border-radius: 12px; padding: 0; width: min(560px, calc(100vw - 32px));
+         background: var(--bg); color: var(--fg); box-shadow: 0 24px 64px rgba(0,0,0,.18); }
+dialog::backdrop { background: rgba(0,0,0,.4); }
+dialog form { display: flex; flex-direction: column; }
+.dlg-h { padding: 20px 20px 4px; }
+.dlg-h h2 { margin: 0; font-size: 16px; font-weight: 600; }
+.dlg-h p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.fields { padding: 16px 20px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field.wide { grid-column: 1 / -1; }
+.field label { font-size: 13px; font-weight: 500; }
+.field .hint { font-size: 12px; color: var(--muted); }
+.field input, .field select { height: 34px; border: 1px solid var(--border); border-radius: 6px; padding: 0 10px;
+                              background: var(--bg); min-width: 0; }
+.field input:focus, .field select:focus { outline: none; border-color: var(--faint); box-shadow: 0 0 0 3px var(--ring); }
+.dlg-f { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 20px;
+         border-top: 1px solid var(--border); background: var(--panel); border-radius: 0 0 12px 12px; }
+.err { color: var(--bad); font-size: 13px; min-height: 1em; }
+.toast { position: fixed; bottom: 20px; right: 20px; background: var(--primary); color: var(--primary-fg);
+         padding: 10px 14px; border-radius: 8px; font-size: 13px; z-index: 10; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+
+@media (min-width: 1360px) { .kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 860px) {
+  .app { grid-template-columns: 1fr; height: auto; }
+  aside { border-right: 0; border-bottom: 1px solid var(--border); }
+  .runlist { max-height: 220px; }
+  .grid2 { grid-template-columns: 1fr; }
+  .wrap { padding: 20px 16px 40px; }
+  .fields { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand">
+      <span class="mark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v18M5 7h14M5 7l-3 7a3 3 0 0 0 6 0L5 7zm14 0-3 7a3 3 0 0 0 6 0l-3-7zM8 21h8"/></svg>
+        <b>trutina</b>
+      </span>
+      <button class="btn primary" id="new-run" type="button" hidden>New run</button>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Section"><button type="button" role="tab" id="tab-runs" aria-selected="true">Training</button><button type="button" role="tab" id="tab-bench" aria-selected="false">Benchmarks</button></div>
+    <nav class="runlist" id="runlist" aria-label="Runs"></nav>
+    <div class="sidefoot"><span id="poll">Connecting…</span><button class="btn icon" id="theme" type="button" aria-label="Toggle theme" title="Toggle theme">◐</button></div>
+  </aside>
+  <main><div class="wrap" id="view"></div></main>
+</div>
+
+<dialog id="dlg">
+  <form id="form" method="dialog">
+    <div class="dlg-h">
+      <h2>New training run</h2>
+      <p>Trains locally with MLX. Runs resume from their last checkpoint if stopped.</p>
+    </div>
+    <div class="fields">
+      <div class="field wide"><label for="f-name">Run name</label><input id="f-name" name="name" required pattern="[A-Za-z0-9][A-Za-z0-9._\-]{0,63}" autocomplete="off"></div>
+      <div class="field wide"><label for="f-data">Training data</label><select id="f-data" name="data" required></select></div>
+      <div class="field wide"><label for="f-val">Validation data</label><select id="f-val" name="val"></select></div>
+      <div class="field"><label for="f-steps">Steps</label><input id="f-steps" name="steps" type="number" min="1" value="4000"><span class="hint" id="epochs-hint"></span></div>
+      <div class="field"><label for="f-lr">Learning rate</label><input id="f-lr" name="lr" type="number" step="any" min="0" value="0.0002"></div>
+      <div class="field"><label for="f-bs">Batch size</label><input id="f-bs" name="batch_size" type="number" min="1" value="8"></div>
+      <div class="field"><label for="f-acc">Gradient accumulation</label><input id="f-acc" name="grad_accum" type="number" min="1" value="2"></div>
+      <div class="field"><label for="f-rank">LoRA rank</label><input id="f-rank" name="rank" type="number" min="1" value="16"></div>
+      <div class="field"><label for="f-exits">Exit layers</label><input id="f-exits" name="exits" value="16 24 32" class="mono"></div>
+      <div class="field"><label for="f-max">Max tokens per question</label><input id="f-max" name="max_tokens" type="number" min="64" value="4096"></div>
+      <div class="field"><label for="f-bt">Tokens per micro-batch</label><input id="f-bt" name="batch_tokens" type="number" min="256" value="8192"><span class="hint">Long questions get smaller micro-batches</span></div>
+      <div class="field"><label for="f-warm">Warmup steps</label><input id="f-warm" name="warmup" type="number" min="0" value="100"></div>
+      <div class="field"><label for="f-eval">Validate every</label><input id="f-eval" name="eval_every" type="number" min="1" value="500"></div>
+      <div class="field"><label for="f-ckpt">Checkpoint every</label><input id="f-ckpt" name="ckpt_every" type="number" min="1" value="200"></div>
+      <div class="field"><label for="f-gc"><input id="f-gc" name="grad_checkpointing" type="checkbox" value="1" checked style="height:auto;margin-right:6px">Recompute activations</label><span class="hint">Needed for 4B on 48 GB</span></div>
+    </div>
+    <div class="dlg-f">
+      <span class="err" id="form-err" role="alert"></span>
+      <span class="actions"><button class="btn" type="button" id="cancel">Cancel</button><button class="btn primary" type="submit" id="submit">Start training</button></span>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmt = {
+  int: n => n == null ? "—" : Math.round(n).toLocaleString("en-US"),
+  f: (n, d = 3) => n == null || !isFinite(n) ? "—" : n.toFixed(d),
+  pct: n => n == null ? "—" : (n * 100).toFixed(1) + "%",
+  si: n => n == null ? "—" : n >= 1e3 ? (n / 1e3).toFixed(n >= 1e4 ? 0 : 1) + "k" : n.toFixed(0),
+  dur(s) {
+    if (s == null || !isFinite(s)) return "—";
+    if (s < 60) return Math.round(s) + "s";
+    const h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60);
+    return h ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}m`;
+  },
+  ago(t) {
+    const s = Date.now() / 1000 - t;
+    if (s < 60) return "just now";
+    if (s < 3600) return Math.floor(s / 60) + "m ago";
+    if (s < 86400) return Math.floor(s / 3600) + "h ago";
+    return Math.floor(s / 86400) + "d ago";
+  },
+};
+const STATE_LABEL = { running: "Running", loading: "Loading model", starting: "Starting", stopped: "Stopped",
+  interrupted: "Interrupted", done: "Completed", failed: "Failed", stale: "No recent updates", unknown: "Unknown" };
+// fixed order, never cycled: a series keeps its slot; past 8 the extras fall back to muted ink
+const SERIES = Array.from({ length: 8 }, (_, i) => `var(--s${i + 1})`);
+const seriesColor = i => SERIES[i] ?? "var(--muted)";
+
+let runs = [], current = null, detail = null, datasets = [], lossScale = "linear", control = false;
+
+async function api(path, body) {
+  // relative to the page, so the dashboard also works under a path prefix (e.g. /trutina/)
+  const r = await fetch(path.replace(/^\//, ""), body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || `Request failed (${r.status})`);
+  return data;
+}
+
+function toast(msg) {
+  const t = document.createElement("div");
+  t.className = "toast"; t.textContent = msg; t.setAttribute("role", "status");
+  document.body.append(t); setTimeout(() => t.remove(), 2600);
+}
+
+/* ---------- derived numbers ---------- */
+function derive(d) {
+  const train = d.metrics.filter(r => r.type === "train");
+  const evals = d.metrics.filter(r => r.type === "eval");
+  const st = d.status || {};
+  const steps = st.steps || d.config?.train?.steps || 0;
+  const step = Math.max(st.step || 0, train.at(-1)?.step || 0);
+  // rate from the latest contiguous stretch of records (ignores pauses between sessions)
+  let rate = null;
+  const recent = train.slice(-12);
+  for (let i = recent.length - 1; i > 0; i--) {
+    if (recent[i].time - recent[i - 1].time > 900) { recent.splice(0, i); break; }
+  }
+  if (recent.length > 1) {
+    const ds = recent.at(-1).step - recent[0].step, dt = recent.at(-1).time - recent[0].time;
+    if (ds > 0 && dt > 0) rate = ds / dt;
+  }
+  const tcfg = d.config?.train || {};
+  let exits = (tcfg.exits || []).map(e => "exit" + e);
+  if (!exits.length) {  // not stored in the config (e.g. readout runs): read them off the evaluations
+    const seen = new Set(evals.flatMap(r => Object.keys(r.exits || {})));
+    exits = [...seen].sort((a, b) => +a.replace("exit", "") - +b.replace("exit", ""));
+  }
+  let best = null;
+  for (const e of evals) for (const [k, v] of Object.entries(e.exits || {}))
+    if (!best || v.acc > best.acc) best = { ...v, exit: k, step: e.step };
+  const last = train.at(-1);
+  const ema = []; let m = null;
+  for (const r of train) { m = m == null ? r.loss : 0.8 * m + 0.2 * r.loss; ema.push([r.step, m]); }
+  // wall time and tokens over contiguous stretches (gaps over 15 min = paused / restarted)
+  let elapsed = 0, tokens = 0;
+  for (let i = 1; i < train.length; i++) {
+    const dt = train[i].time - train[i - 1].time;
+    if (dt > 0 && dt < 900 && train[i].step > train[i - 1].step) { elapsed += dt; tokens += (train[i].tok_s || 0) * dt; }
+  }
+  const lastEval = evals.at(-1);
+  const finalOnly = Array.isArray(tcfg.lens_exits);  // readout runs keep weights by the final exit's loss
+  const meanLoss = r => {
+    if (finalOnly) return r.exits?.[exits.at(-1)]?.loss ?? null;
+    const v = Object.values(r.exits || {}).map(e => e.loss).filter(n => n != null); return v.length ? v.reduce((a, b) => a + b) / v.length : null; };
+  const monitors = [...new Set(evals.flatMap(r => Object.keys(r.monitor || {})))];
+  const PARTS = ["decision", "lens", "anchor", "consistency"];
+  const parts = PARTS.filter(k => train.some(r => r[k] != null));
+  let bestVal = null;
+  for (const r of evals) { const l = meanLoss(r); if (l != null && (!bestVal || l < bestVal.loss)) bestVal = { loss: l, step: r.step }; }
+  return { train, evals, steps, step, rate, exits, best, last, ema, elapsed, tokens, lastEval, bestVal, finalOnly, monitors, parts,
+           eta: rate && steps > step ? (steps - step) / rate : null };
+}
+
+/* ---------- charts ---------- */
+function niceTicks(lo, hi, n = 5) {
+  if (!(hi > lo)) { const p = Math.abs(lo) || 1; lo -= p * .1; hi += p * .1; }
+  const span = hi - lo, step0 = span / n, mag = 10 ** Math.floor(Math.log10(step0));
+  const step = [1, 2, 2.5, 5, 10].map(f => f * mag).find(s => span / s <= n) || 10 * mag;
+  const a = Math.floor(lo / step) * step, b = Math.ceil(hi / step) * step;
+  const ticks = []; for (let v = a; v <= b + step / 2; v += step) ticks.push(+v.toFixed(10));
+  return { lo: a, hi: b, ticks, step };
+}
+function tickLabel(v, step) {
+  const d = Math.max(0, -Math.floor(Math.log10(step)));
+  return v >= 1000 && step >= 1 ? (v / 1000).toFixed(v % 1000 ? 1 : 0) + "k" : v.toFixed(Math.min(d, 4));
+}
+
+// Series with `right: true` use a second, linear y axis on the right (from 0), formatted by
+// their own `fmt`; `dash` draws a dashed line.
+function lineChart(el, { series, xMax, yFmt = v => fmt.f(v), yLog = false, yMin, marker }) {
+  const pts = series.flatMap(s => s.points);
+  if (!pts.length) { el.innerHTML = `<div class="empty-chart">${esc(el.dataset.empty || "No data yet")}</div>`; return; }
+  const rightPts = series.filter(s => s.right).flatMap(s => s.points);
+  const W = Math.max(el.clientWidth, 280), H = el.clientHeight, pad = { l: 44, r: rightPts.length ? 52 : 12, t: 8, b: 22 };
+  const tf = yLog ? v => Math.log10(Math.max(v, 1e-6)) : v => v;
+  const ys = series.filter(s => !s.right).flatMap(s => s.points).map(p => tf(p[1]));
+  let yl = Math.min(...ys), yh = Math.max(...ys);
+  if (yMin != null) yl = Math.min(yl, tf(yMin));
+  const yt = niceTicks(yl, yh, 4), xt = niceTicks(0, Math.max(xMax || 0, ...pts.map(p => p[0])), 5);
+  const X = v => pad.l + (v - xt.lo) / (xt.hi - xt.lo) * (W - pad.l - pad.r);
+  const Y = v => pad.t + (1 - (tf(v) - yt.lo) / (yt.hi - yt.lo)) * (H - pad.t - pad.b);
+  const Yt = t => pad.t + (1 - (t - yt.lo) / (yt.hi - yt.lo)) * (H - pad.t - pad.b);
+  const rt = rightPts.length ? niceTicks(0, Math.max(...rightPts.map(p => p[1])) || 1, 4) : null;
+  const Yr = v => pad.t + (1 - (v - rt.lo) / (rt.hi - rt.lo)) * (H - pad.t - pad.b);
+  const rightFmt = series.find(s => s.right)?.fmt || (v => fmt.f(v));
+  let g = "";
+  if (rt) for (const t of rt.ticks) g += `<text class="axis" x="${W - pad.r + 8}" y="${Yr(t) + 4}" text-anchor="start">${t ? rightFmt(t) : "0"}</text>`;
+  for (const t of yt.ticks) {
+    g += `<line class="grid" x1="${pad.l}" x2="${W - pad.r}" y1="${Yt(t)}" y2="${Yt(t)}"/>`;
+    const lab = yLog ? tickLabel(10 ** t, 10 ** t / 10) : tickLabel(t, yt.step);
+    g += `<text class="axis" x="${pad.l - 8}" y="${Yt(t) + 4}" text-anchor="end">${lab}</text>`;
+  }
+  for (const t of xt.ticks) g += `<text class="axis" x="${X(t)}" y="${H - 4}" text-anchor="middle">${tickLabel(t, xt.step)}</text>`;
+  let body = "";
+  if (marker?.x != null) body += `<line class="marker" x1="${X(marker.x)}" x2="${X(marker.x)}" y1="${pad.t}" y2="${H - pad.b}"/>`
+    + `<text class="marker-label" x="${X(marker.x) + 4}" y="${pad.t + 10}">${esc(marker.label || "")}</text>`;
+  for (const s of series) {
+    if (!s.points.length) continue;
+    const Ys = s.right ? Yr : Y;
+    const d = s.points.map((p, i) => `${i ? "L" : "M"}${X(p[0]).toFixed(1)},${Ys(p[1]).toFixed(1)}`).join("");
+    if (s.area) body += `<path d="${d}L${X(s.points.at(-1)[0])},${H - pad.b}L${X(s.points[0][0])},${H - pad.b}Z" fill="${s.color}" opacity=".07"/>`;
+    body += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.width || 1.6}" opacity="${s.opacity ?? 1}" stroke-linejoin="round" stroke-linecap="round"${s.dash ? ` stroke-dasharray="${s.dash}"` : ""}/>`;
+    if (s.dots) for (const p of s.points) body += `<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="2.6" fill="var(--bg)" stroke="${s.color}" stroke-width="1.6"/>`;
+    const e = s.points.at(-1);
+    if (s.end) body += `<circle cx="${X(e[0])}" cy="${Y(e[1])}" r="3.2" fill="${s.color}"/>`;
+  }
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(el.dataset.label || "chart")}">${g}${body}<line class="cross" y1="${pad.t}" y2="${H - pad.b}" x1="${pad.l}" x2="${pad.l}" visibility="hidden"/></svg>`;
+  const svg = $("svg", el), cross = $(".cross", svg);
+  const tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true; el.append(tip);
+  const xs = [...new Set(pts.map(p => p[0]))].sort((a, b) => a - b);
+  svg.addEventListener("pointermove", ev => {
+    const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) * W / r.width;
+    let best = xs[0]; for (const x of xs) if (Math.abs(X(x) - px) < Math.abs(X(best) - px)) best = x;
+    cross.setAttribute("x1", X(best)); cross.setAttribute("x2", X(best)); cross.setAttribute("visibility", "visible");
+    const rows = series.filter(s => s.tip !== false).map(s => {
+      let p = null; for (const q of s.points) if (q[0] <= best) p = q;
+      return p ? `<div class="row"><i style="background:${s.color}"></i>${esc(s.name)} <b style="margin-left:auto;padding-left:12px">${(s.fmt || yFmt)(p[1])}</b></div>` : "";
+    }).join("");
+    tip.innerHTML = `<div class="muted" style="margin-bottom:2px">step ${fmt.int(best)}</div>${rows}`;
+    tip.hidden = false;
+    const left = X(best) / W * r.width;
+    tip.style.left = Math.min(left + 12, r.width - tip.offsetWidth) + "px"; tip.style.top = "8px";
+  });
+  svg.addEventListener("pointerleave", () => { tip.hidden = true; cross.setAttribute("visibility", "hidden"); });
+}
+
+/* ---------- views ---------- */
+function renderList() {
+  const nav = $("#runlist");
+  if (!runs.length) { nav.innerHTML = `<p class="muted" style="padding:8px 10px;margin:0;font-size:13px">No runs yet.</p>`; return; }
+  nav.innerHTML = runs.map(r => {
+    const st = r.status || {}, pct = st.steps ? Math.min(100, (st.step || 0) / st.steps * 100) : 0;
+    return `<button class="run" type="button" data-name="${esc(r.name)}" aria-current="${r.name === current}">
+      <span class="dot ${esc(st.state)}" title="${esc(STATE_LABEL[st.state] || st.state)}"></span>
+      <span style="min-width:0"><div class="name">${esc(r.name)}</div>
+      <div class="sub">${esc(STATE_LABEL[st.state] || st.state)} · ${fmt.ago(r.modified)}</div></span>
+      <span class="pct num">${st.steps ? Math.floor(pct) + "%" : ""}</span></button>`;
+  }).join("");
+}
+
+function emptyView() {
+  $("#view").innerHTML = `<div class="empty">
+    <h1>No training runs yet</h1>
+    <p class="muted" style="margin:0">Start one here, or from a terminal; runs written to <span class="mono">runs/</span> show up automatically.</p>
+    ${control ? `<button class="btn primary" type="button" data-act="new">New run</button>` : ""}
+    <code>uv run python scripts/train.py --data train.jsonl --val val.jsonl --out runs/exp1</code></div>`;
+}
+
+function renderDetail() {
+  const d = detail; if (!d) return;
+  const x = derive(d), st = d.status || {}, cfg = d.config || {}, tc = cfg.train || {};
+  const torch = String(cfg.framework || "").startsWith("torch");  // torch, torch-prr, ...
+  const local = !torch;
+  const canStop = control && local && ["running", "loading", "starting"].includes(st.state);
+  const canResume = control && local && ["stopped", "interrupted", "failed"].includes(st.state) && cfg.framework === "mlx";
+  const pct = x.steps ? x.step / x.steps : 0;
+  const lossDelta = x.train.length > 6 ? x.last.loss - x.train[x.train.length - 6].loss : null;
+  const effBatch = (tc.batch_size || 0) * (tc.grad_accum || 1);
+
+  $("#view").innerHTML = `
+  <header class="run-head">
+    <div style="min-width:0">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <h1>${esc(d.name)}</h1>
+        <span class="badge"><span class="dot ${esc(st.state)}"></span>${esc(STATE_LABEL[st.state] || st.state)}</span>
+      </div>
+      <div class="meta">
+        <span>${torch ? "PyTorch · " + esc(cfg.gpu || cfg.device || "cuda") : "MLX · Apple silicon"}</span>
+        <span class="mono">${esc((cfg.model || "").split("/").pop())}</span>
+        <span class="mono">${esc(cfg.data || "")}</span>
+        ${d.best ? `<span>Best checkpoint: step ${fmt.int(d.best.step)}</span>` : ""}
+        ${d.exported ? `<span style="color:var(--ok)">● Exported weights</span>` : ""}
+      </div>
+    </div>
+    <div class="actions">
+      ${canStop ? `<button class="btn danger" type="button" data-act="stop">Stop and checkpoint</button>` : ""}
+      ${canResume ? `<button class="btn primary" type="button" data-act="resume">Resume from step ${fmt.int(st.step)}</button>` : ""}
+    </div>
+  </header>
+
+  <section class="kpis" aria-label="Summary">
+    <div class="kpi"><span class="label">Progress</span>
+      <span class="value">${fmt.int(x.step)}<small> / ${fmt.int(x.steps)}</small></span>
+      <div class="bar"><i style="width:${(pct * 100).toFixed(1)}%"></i></div>
+      <span class="foot">${(pct * 100).toFixed(1)}%${effBatch && st.examples ? ` · epoch ${fmt.f(x.step * effBatch / st.examples, 2)} of ${fmt.f(x.steps * effBatch / st.examples, 1)}` : ""}</span></div>
+    <div class="kpi"><span class="label">Train loss</span>
+      <span class="value">${fmt.f(x.last?.loss, 4)}</span>
+      <span class="foot">${lossDelta == null ? "last 10 steps" : (lossDelta <= 0 ? "▼ " : "▲ ") + fmt.f(Math.abs(lossDelta), 4) + " over 50 steps"}</span></div>
+    <div class="kpi"><span class="label">Throughput</span>
+      <span class="value">${fmt.si(x.last?.tok_s)}<small> tok/s</small></span>
+      <span class="foot">${x.rate ? fmt.f(1 / x.rate, 2) + " s/step" : "—"}</span></div>
+    <div class="kpi"><span class="label">Time remaining</span>
+      <span class="value">${st.state === "done" ? "Done" : fmt.dur(x.eta)}</span>
+      <span class="foot">${x.eta && st.state === "running" ? "finishes " + new Date(Date.now() + x.eta * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "at current speed"}</span></div>
+    <div class="kpi"><span class="label">Peak validation accuracy</span>
+      <span class="value">${x.best ? fmt.pct(x.best.acc) : "—"}</span>
+      <span class="foot">${x.best ? `${x.best.exit.replace("exit", "layer ")} · step ${fmt.int(x.best.step)}${x.bestVal && x.bestVal.step !== x.best.step ? ` · kept: step ${fmt.int(x.bestVal.step)}` : ""}` : "after the first validation"}</span></div>
+    <div class="kpi"><span class="label">Peak memory</span>
+      <span class="value">${x.last ? fmt.f(x.last.mem_gb, 1) : "—"}<small> GiB</small></span>
+      <span class="foot">${effBatch ? "batch " + tc.batch_size + (tc.grad_accum > 1 ? " × " + tc.grad_accum + " accum" : "") : ""}</span></div>
+  </section>
+  ${kpiRow2(d, x)}
+
+  <section class="card">
+    <div class="card-h"><h2>Training loss</h2>
+      <span style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <span class="legend"><span><i style="background:var(--faint)"></i>per 10 steps</span><span><i style="background:var(--s1)"></i>smoothed</span><span><i style="background:var(--s3)"></i>learning rate</span></span>
+        <span class="seg" role="group" aria-label="Loss scale"><button type="button" data-scale="linear" aria-pressed="${lossScale === "linear"}">Linear</button><button type="button" data-scale="log" aria-pressed="${lossScale === "log"}">Log</button></span>
+      </span></div>
+    <div class="card-b"><div class="chart tall" id="c-loss" data-label="Training loss" data-empty="Waiting for the first 10 steps"></div></div>
+  </section>
+
+  <div class="grid2">
+    <section class="card"><div class="card-h"><h2>Validation accuracy</h2><span class="legend">${legend(x.exits)}</span></div>
+      <div class="card-b"><div class="chart" id="c-acc" data-label="Validation accuracy" data-empty="Runs every ${fmt.int(tc.eval_every)} steps"></div></div></section>
+    <section class="card"><div class="card-h"><h2>Calibration error (ECE)</h2><span class="legend">${legend(x.exits)}</span></div>
+      <div class="card-b"><div class="chart" id="c-ece" data-label="Expected calibration error" data-empty="Runs every ${fmt.int(tc.eval_every)} steps"></div></div></section>
+  </div>
+
+  <div class="grid2">
+    ${chartCard("c-vloss", "Validation loss", legend(x.exits), x.finalOnly ? "lowest final-exit loss = checkpoint kept" : "lowest mean over exits = checkpoint kept", tc)}
+    ${chartCard("c-conf", "Overconfidence", legend(x.exits), "mean confidence − accuracy", tc)}
+  </div>
+  <div class="grid2">
+    ${chartCard("c-long", "Long inputs", legend(x.exits), "accuracy over 1,024 tokens", tc)}
+    ${chartCard("c-depth", "Depth gain", legend(x.exits.slice(1), 1), "accuracy vs the shallowest exit", tc)}
+  </div>
+  ${x.monitors.length || x.parts.length ? `<div class="grid2">
+    ${x.monitors.length ? chartCard("c-mon", "Held-out benchmarks", legendNames(x.monitors), "final exit · watched for drift, never used to pick weights", tc) : ""}
+    ${x.parts.length ? `<section class="card"><div class="card-h"><h2>Loss components <span class="sub">· per question, smoothed</span></h2><span class="legend">${legendNames(x.parts)}</span></div>
+      <div class="card-b"><div class="chart" id="c-parts" data-label="Loss components" data-empty="Waiting for the first 10 steps"></div></div></section>` : ""}
+  </div>` : ""}
+  <div class="grid2">
+    <section class="card"><div class="card-h"><h2>Throughput <span class="sub">· tok/s, memory on the right</span></h2>
+      <span class="legend"><span><i style="background:var(--s1)"></i>tok/s</span><span><i style="background:var(--s3)"></i>GiB</span></span></div>
+      <div class="card-b"><div class="chart" id="c-tput" data-label="Throughput" data-empty="Waiting for the first 10 steps"></div></div></section>
+    ${x.train.some(r => r.grad_norm != null)
+      ? `<section class="card"><div class="card-h"><h2>Gradient norm <span class="sub">· before clipping at 1.0</span></h2></div>
+         <div class="card-b"><div class="chart" id="c-gnorm" data-label="Gradient norm"></div></div></section>`
+      : chartCard("c-kl", "Soft-label KL", legend(x.exits), "KL(teacher ‖ model), lower is better", tc,
+                  x.evals.length && !x.evals.some(r => Object.values(r.exits || {}).some(v => v.kl != null))
+                    ? "Not logged by this run (added after it started)" : null)}
+  </div>
+  ${datasetTable(x)}
+
+  ${x.evals.length ? `<section class="card"><div class="card-h"><h2>Validations</h2><span class="muted" style="font-size:12px">per exit layer · long = over 1,024 tokens</span></div>
+    <div class="tablewrap">${evalTable(x)}</div></section>` : ""}
+
+  <div class="grid2">
+    <section class="card"><div class="card-h"><h2>Configuration</h2><span class="muted mono" style="font-size:12px">${esc(d.path)}</span></div>
+      <div class="card-b"><dl class="cfg">${cfgItems(cfg)}</dl></div></section>
+    <section class="card" style="display:flex;flex-direction:column"><div class="card-h"><h2>Log</h2><span class="muted" style="font-size:12px">train.log</span></div>
+      <pre class="log" id="log">${esc(d.log.split("\n").slice(-200).join("\n")) || "Nothing logged yet."}</pre></section>
+  </div>`;
+
+  const log = $("#log"); log.scrollTop = log.scrollHeight;
+  drawCharts(x);
+}
+
+function legendNames(names) {
+  return names.map((n, i) => `<span><i style="background:${seriesColor(i)}"></i>${esc(n)}</span>`).join("");
+}
+
+function legend(exits, offset = 0) {
+  return exits.map((e, i) => `<span><i style="background:${seriesColor(i + offset)}"></i>layer ${e.replace("exit", "")}</span>`).join("");
+}
+
+function chartCard(id, title, legendHtml, sub, tc, empty) {
+  return `<section class="card"><div class="card-h"><h2>${esc(title)} <span class="sub">· ${esc(sub)}</span></h2><span class="legend">${legendHtml}</span></div>
+    <div class="card-b"><div class="chart" id="${id}" data-label="${esc(title)}" data-empty="${esc(empty || `Runs every ${fmt.int(tc.eval_every)} steps`)}"></div></div></section>`;
+}
+
+const GPU_PRICE = { B200: 6.25, B300: 7.10, H200: 4.54, H100: 3.95, "A100-SXM4-80GB": 2.50, "A100 80GB": 2.50,
+                    "A100-SXM4-40GB": 2.10, "RTX PRO 6000": 3.03, L40S: 1.95, A10: 1.10, L4: 0.80, T4: 0.59 };
+function gpuPrice(name) {
+  if (!name) return null;
+  const k = Object.keys(GPU_PRICE).sort((a, b) => b.length - a.length).find(k => name.includes(k));
+  return k ? GPU_PRICE[k] : null;
+}
+
+function kpiRow2(d, x) {
+  const cfg = d.config || {}, last = x.lastEval?.exits || {}, deep = x.exits.at(-1), shallow = x.exits[0];
+  const price = gpuPrice(cfg.gpu);
+  const gain = last[deep] && last[shallow] ? last[deep].acc - last[shallow].acc : null;
+  const gn = x.train.filter(r => r.grad_norm != null).at(-1)?.grad_norm;
+  const kl = last[deep]?.kl;
+  return `<section class="kpis" aria-label="More">
+    <div class="kpi"><span class="label">Elapsed</span><span class="value sm">${fmt.dur(x.elapsed)}</span>
+      <span class="foot">${x.train.length ? "started " + new Date(x.train[0].time * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + " · excl. pauses" : "—"}</span></div>
+    <div class="kpi"><span class="label">Tokens processed</span><span class="value sm">${x.tokens ? fmt.f(x.tokens / 1e6, 1) : "—"}<small> M</small></span>
+      <span class="foot">padded, this run</span></div>
+    <div class="kpi"><span class="label">${esc(cfg.gpu ? cfg.gpu.replace("NVIDIA ", "") : "Device")}</span>
+      <span class="value sm">${price && x.elapsed ? "$" + fmt.f(price * x.elapsed / 3600, 2) : "—"}</span>
+      <span class="foot">${price ? "$" + fmt.f(price, 2) + "/h" + (x.eta ? " · ≈ $" + fmt.f(price * (x.elapsed + x.eta) / 3600, 2) + " total" : "") : "GPU cost when known"}</span></div>
+    <div class="kpi"><span class="label">Best validation loss</span><span class="value sm">${x.bestVal ? fmt.f(x.bestVal.loss, 4) : "—"}</span>
+      <span class="foot">${x.bestVal ? (x.finalOnly ? "final exit · step " : "mean over exits · step ") + fmt.int(x.bestVal.step) : "after the first validation"}</span></div>
+    <div class="kpi"><span class="label">Depth gain</span><span class="value sm">${gain == null ? "—" : (gain >= 0 ? "+" : "") + fmt.f(gain * 100, 1) + "<small> pts</small>"}</span>
+      <span class="foot">${gain == null ? "deepest vs shallowest exit" : `layer ${deep.replace("exit", "")} vs ${shallow.replace("exit", "")}, latest`}</span></div>
+    <div class="kpi"><span class="label">${gn != null ? "Gradient norm" : "Calibration (ECE)"}</span>
+      <span class="value sm">${gn != null ? fmt.f(gn, 3) : fmt.f(last[deep]?.ece, 4)}</span>
+      <span class="foot">${gn != null ? "last 10 steps" : kl != null ? "KL " + fmt.f(kl, 3) + " · deepest exit" : "deepest exit, latest"}</span></div>
+  </section>`;
+}
+
+function datasetTable(x) {
+  const r = [...x.evals].reverse().find(r => Object.values(r.exits || {}).some(v => v.by_dataset));
+  if (!r) return "";
+  const ex = x.exits.filter(e => r.exits[e]?.by_dataset);
+  const names = [...new Set(ex.flatMap(e => Object.keys(r.exits[e].by_dataset)))].sort();
+  const cell = v => v == null ? "<td>—</td>" : `<td class="cell"><span style="background:color-mix(in srgb, var(--s1) ${Math.round(Math.max(0, v - .4) / .6 * 55)}%, transparent)">${fmt.pct(v)}</span></td>`;
+  const rows = names.map(n => `<tr><td>${esc(n)}</td><td class="muted">${fmt.int(r.exits[ex[0]].by_dataset[n]?.n)}</td>${ex.map(e => cell(r.exits[e].by_dataset[n]?.acc)).join("")}</tr>`).join("");
+  return `<section class="card"><div class="card-h"><h2>Validation by dataset <span class="sub">· step ${fmt.int(r.step)}</span></h2></div>
+    <div class="tablewrap"><table class="heat"><thead><tr><th>Dataset</th><th>Questions</th>${ex.map(e => `<th>Layer ${e.replace("exit", "")}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div></section>`;
+}
+
+function evalTable(x) {
+  const metrics = [["acc", "Acc", fmt.pct], ["loss", "Loss", v => fmt.f(v)], ["brier", "Brier", v => fmt.f(v)], ["ece", "ECE", v => fmt.f(v)]];
+  const ex = x.exits;
+  if (x.evals.some(r => Object.values(r.exits || {}).some(v => v.long_acc != null))) metrics.push(["long_acc", "Long acc", fmt.pct]);
+  const bestAcc = {}; for (const e of ex) bestAcc[e] = Math.max(...x.evals.map(r => r.exits?.[e]?.acc ?? -1));
+  let h = `<table><thead><tr><th></th>${ex.map(e => `<th class="group" colspan="${metrics.length}">Layer ${e.replace("exit", "")}</th>`).join("")}</tr>
+    <tr><th>Step</th>${ex.map(() => metrics.map(m => `<th>${m[1]}</th>`).join("")).join("")}</tr></thead><tbody>`;
+  for (const r of [...x.evals].reverse()) {
+    h += `<tr><td>${fmt.int(r.step)}</td>${ex.map(e => metrics.map(([k, , f]) => {
+      const v = r.exits?.[e]?.[k];
+      return `<td class="${k === "acc" && v === bestAcc[e] ? "best" : ""}">${v == null ? "—" : f(v)}</td>`;
+    }).join("")).join("")}</tr>`;
+  }
+  return h + "</tbody></table>";
+}
+
+function cfgItems(cfg) {
+  const t = cfg.train || {}, rows = [
+    ["Steps", t.steps], ["Learning rate", t.lr], ["Warmup", t.warmup], ["Batch", `${t.batch_size} × ${t.grad_accum} accum`],
+    ["LoRA", `rank ${t.rank}, scale ${t.lora_scale}`],
+    ["Exit layers", Array.isArray(t.lens_exits) ? `${t.lens_exits.join(", ")}${t.lens_exits.length ? " (tuned lens) · " : ""}32` : (t.exits || []).join(", ")],
+    ["Exit weights", t.exit_weights ? t.exit_weights.join(", ") : "equal"], ["Head width", t.head_dim],
+    ["Max tokens", t.max_tokens ?? "no limit"], ["Tokens per micro-batch", t.batch_tokens ?? "fixed batch"], ["Validate / checkpoint", `every ${t.eval_every} / ${t.ckpt_every}`],
+    ["Validation data", cfg.val || "none"], ["Seed", t.seed],
+  ];
+  const on = [t.read_state && "state read-back", t.ordinal_score && "ordinal scores",
+              t.source_tokens && `label sources (${t.source_tokens}, ${Math.round((t.source_dropout ?? 0) * 100)}% hidden)`].filter(Boolean);
+  if (on.length) rows.push(["Head", on.join(", ")]);
+  const aug = [t.permute_choices && "shuffle choices", t.drop_descriptions && `drop descriptions ${Math.round(t.drop_descriptions * 100)}%`,
+               t.group_alpha != null && t.group_alpha !== 1 && `sub-domain α ${t.group_alpha}`].filter(Boolean);
+  if (aug.length) rows.push(["Data", aug.join(", ")]);
+  const loss = [t.smooth_soft === false && t.label_smoothing ? `smoothing ${t.label_smoothing} (hard labels)` : t.label_smoothing ? `smoothing ${t.label_smoothing}` : null,
+                t.self_distill && `exit self-distillation ${t.self_distill}`].filter(Boolean);
+  if (loss.length) rows.push(["Loss", loss.join(", ")]);
+  if (t.mode) rows.push(["Readout", { letter: "LM-head option letters", prr: "letter prior + residual head", head: "joint head only" }[t.mode] || t.mode]);
+  const reg = [t.anchor && `anchor KL ${t.anchor} (${t.anchor_positions} positions)`,
+               t.consistency && `permutation consistency ${t.consistency} (${Math.round((t.consistency_share ?? 0) * 100)}%)`,
+               Array.isArray(t.lens_exits) && t.lens_exits.length && `lens distillation ${t.lens_weight ?? 1}`].filter(Boolean);
+  if (reg.length) rows.push(["Regularisers", reg.join(", ")]);
+  if (t.train_limit) rows.push(["Training subset", `${fmt.int(t.train_limit)} questions`]);
+  return rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v ?? "—")}</dd></div>`).join("");
+}
+
+function drawCharts(x) {
+  lineChart($("#c-loss"), {
+    xMax: x.steps, yLog: lossScale === "log",
+    series: [
+      { name: "loss", color: "var(--faint)", width: 1.2, opacity: .7, points: x.train.map(r => [r.step, r.loss]) },
+      { name: "smoothed", color: "var(--s1)", width: 2, area: true, end: true, points: x.ema },
+      { name: "learning rate", color: "var(--s3)", width: 1.4, dash: "4 3", opacity: .85, right: true,
+        fmt: v => v.toExponential(1).replace("e-", "e−"), points: x.train.filter(r => r.lr != null).map(r => [r.step, r.lr]) },
+    ],
+    yFmt: v => fmt.f(v, 4),
+  });
+  const per = k => x.exits.map((e, i) => ({ name: "layer " + e.replace("exit", ""), color: seriesColor(i), dots: true, width: 1.8,
+    points: x.evals.filter(r => r.exits?.[e]).map(r => [r.step, r.exits[e][k]]) }));
+  const mk = x.bestVal ? { x: x.bestVal.step, label: "kept · lowest val loss" } : null;
+  lineChart($("#c-acc"), { xMax: x.steps, series: per("acc"), yFmt: fmt.pct, marker: mk });
+  lineChart($("#c-ece"), { xMax: x.steps, series: per("ece"), yFmt: v => fmt.f(v, 4), yMin: 0, marker: mk });
+  lineChart($("#c-vloss"), { xMax: x.steps, series: per("loss"), yFmt: v => fmt.f(v, 4), marker: mk });
+  const derived = (f, from = 0) => x.exits.slice(from).map((e, i) => ({ name: "layer " + e.replace("exit", ""),
+    color: seriesColor(i + from), dots: true, width: 1.8,
+    points: x.evals.filter(r => r.exits?.[e]).map(r => [r.step, f(r.exits[e], r)]).filter(p => p[1] != null) }));
+  lineChart($("#c-conf"), { xMax: x.steps, series: derived(v => v.mean_conf != null ? v.mean_conf - v.acc : null),
+    yFmt: v => (v >= 0 ? "+" : "") + fmt.f(v * 100, 1) + " pts" });
+  lineChart($("#c-long"), { xMax: x.steps, series: per("long_acc").map(s => ({ ...s, points: s.points.filter(p => p[1] != null) })), yFmt: fmt.pct });
+  const first = x.exits[0];
+  lineChart($("#c-depth"), { xMax: x.steps, series: derived((v, r) => r.exits[first] ? v.acc - r.exits[first].acc : null, 1),
+    yFmt: v => (v >= 0 ? "+" : "") + fmt.f(v * 100, 1) + " pts", yMin: 0 });
+  if ($("#c-kl")) lineChart($("#c-kl"), { xMax: x.steps, series: per("kl").map(s => ({ ...s, points: s.points.filter(p => p[1] != null) })), yFmt: v => fmt.f(v, 3) });
+  lineChart($("#c-tput"), { xMax: x.steps, yFmt: v => fmt.si(v), series: [
+    { name: "tok/s", color: "var(--s1)", width: 1.4, area: true, points: x.train.filter(r => r.tok_s).map(r => [r.step, r.tok_s]) },
+    { name: "memory", color: "var(--s3)", width: 1.4, dash: "4 3", right: true, fmt: v => fmt.f(v, 1) + " GiB",
+      points: x.train.filter(r => r.mem_gb).map(r => [r.step, r.mem_gb]) }] });
+  if ($("#c-mon")) lineChart($("#c-mon"), { xMax: x.steps, yFmt: fmt.pct, marker: mk, series: x.monitors.map((n, i) => ({
+    name: n, color: seriesColor(i), dots: true, width: 1.8,
+    points: x.evals.filter(r => r.monitor?.[n] != null).map(r => [r.step, r.monitor[n]]) })) });
+  if ($("#c-parts")) {
+    const smooth = k => { let m = null; return x.train.filter(r => r[k] != null).map(r => { m = m == null ? r[k] : 0.8 * m + 0.2 * r[k]; return [r.step, m]; }); };
+    lineChart($("#c-parts"), { xMax: x.steps, yFmt: v => fmt.f(v, 3), series: x.parts.map((k, i) => ({
+      name: k, color: seriesColor(i), width: 1.6, points: smooth(k) })) });
+  }
+  if ($("#c-gnorm")) lineChart($("#c-gnorm"), { xMax: x.steps, yFmt: v => fmt.f(v, 3), series: [
+    { name: "grad norm", color: "var(--s2)", width: 1.4, points: x.train.filter(r => r.grad_norm != null).map(r => [r.step, r.grad_norm]) }] });
+}
+
+/* ---------- data flow ---------- */
+let emptyStreak = 0;
+async function refresh() {
+  try {
+    const listed = await api("/api/runs");
+    // a synced volume can list empty for a moment while it reloads: keep what we had until
+    // the run list (or the selected run) has been missing three polls in a row
+    const missing = !listed.length || (current && !listed.some(r => r.name === current));
+    if (missing && runs.length && ++emptyStreak < 3) return;
+    emptyStreak = 0;
+    runs = listed;
+    if (!current || !runs.some(r => r.name === current)) current = runs[0]?.name || null;
+    renderList();
+    if (!current) { detail = null; emptyView(); }
+    else {
+      const next = await api("/api/runs/" + encodeURIComponent(current));
+      const changed = !detail || detail.name !== next.name || JSON.stringify([next.status, next.metrics.length, next.log.length]) !==
+        JSON.stringify([detail.status, detail.metrics.length, detail.log.length]);
+      detail = next;
+      if (changed && !document.querySelector(".tip:not([hidden])")) renderDetail();
+    }
+    $("#poll").textContent = ($("#poll").dataset.ro ? "View only · " : "Updated ") + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  } catch (e) {
+    $("#poll").textContent = "Server unreachable";
+  }
+}
+
+function select(name) {
+  current = name; detail = null;
+  history.replaceState(null, "", "#" + encodeURIComponent(name));
+  renderList(); refresh();
+}
+
+document.addEventListener("click", async ev => {
+  const run = ev.target.closest(".run"); if (run) return run.dataset.bench ? undefined : select(run.dataset.name);
+  const sc = ev.target.closest("[data-scale]");
+  if (sc) { lossScale = sc.dataset.scale; renderDetail(); return; }
+  const act = ev.target.closest("[data-act]")?.dataset.act; if (!act) return;
+  const btn = ev.target.closest("button");
+  if (act === "new") return openDialog();
+  if (act === "stop") {
+    if (!btn.classList.contains("armed")) {
+      btn.classList.add("armed"); btn.textContent = "Click again to stop";
+      setTimeout(() => { if (btn.isConnected) { btn.classList.remove("armed"); btn.textContent = "Stop and checkpoint"; } }, 3000);
+      return;
+    }
+  }
+  btn.disabled = true;
+  try {
+    await api(`/api/runs/${encodeURIComponent(current)}/${act}`, {});
+    toast(act === "stop" ? "Stopping: saving a checkpoint first" : "Resumed");
+    setTimeout(refresh, 800);
+  } catch (e) { toast(e.message); btn.disabled = false; }
+});
+
+/* ---------- new run dialog ---------- */
+const dlg = $("#dlg"), form = $("#form");
+async function openDialog() {
+  $("#form-err").textContent = "";
+  try { datasets = await api("/api/datasets"); } catch { datasets = []; }
+  const opt = (v, sel) => `<option value="${esc(v)}"${sel ? " selected" : ""}>${esc(v)}</option>`;
+  const tr = datasets.find(p => /train\.jsonl$/.test(p)), va = datasets.find(p => /val\.jsonl$/.test(p));
+  $("#f-data").innerHTML = datasets.map(p => opt(p, p === tr)).join("") || `<option value="">No .jsonl files found</option>`;
+  $("#f-val").innerHTML = `<option value="">None</option>` + datasets.map(p => opt(p, p === va)).join("");
+  const d = new Date(), pad = n => String(n).padStart(2, "0");
+  $("#f-name").value = `exp-${d.getMonth() + 1}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+  dlg.showModal(); $("#f-name").select();
+}
+$("#new-run").addEventListener("click", openDialog);
+$("#cancel").addEventListener("click", () => dlg.close());
+form.addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const body = Object.fromEntries(new FormData(form));
+  $("#submit").disabled = true; $("#form-err").textContent = "";
+  try {
+    const { name } = await api("/api/runs", body);
+    dlg.close(); toast(`Started ${name}`); setTimeout(() => select(name), 600);
+  } catch (e) { $("#form-err").textContent = e.message; }
+  $("#submit").disabled = false;
+});
+
+
+/* ---------- benchmarks ---------- */
+let mode = "runs", benches = [], bench = null, benchName = null;
+const BFMT = { pct: v => fmt.pct(v), f3: v => fmt.f(v, 3), int: v => fmt.int(v), ms: v => v == null ? "—" : Math.round(v).toLocaleString("en-US"),
+  idx: v => v == null ? "—" : fmt.f(v, 2), pts: v => v == null ? "—" : (v >= 0 ? "+" : "") + (v * 100).toFixed(1) };
+
+function renderBenchList() {
+  const nav = $("#runlist");
+  if (!benches.length) { nav.innerHTML = `<p class="muted" style="padding:8px 10px;margin:0;font-size:13px">No benchmark reports yet.</p>`; return; }
+  nav.innerHTML = benches.map(b => `<button class="run" type="button" data-bench="${esc(b.name)}" aria-current="${b.name === benchName}">
+      <span class="dot done"></span>
+      <span style="min-width:0"><div class="name">${esc(b.title)}</div><div class="sub">${esc(b.model || "")} · ${fmt.ago(b.modified)}</div></span>
+      <span class="pct num">${b.headline?.value != null ? BFMT[b.headline.fmt || "pct"](b.headline.value) : ""}</span></button>`).join("");
+}
+
+const openGroups = new Set();
+function renderBench() {
+  const b = bench; if (!b) { $("#view").innerHTML = `<div class="empty"><h1>No benchmark reports yet</h1><code>python lab/eval/bench_report.py heldout results.json --out runs/bench/name.json</code></div>`; return; }
+  const rows = b.rows, hasBase = rows.some(r => r.baseline != null);
+  const kids = {}, tops = [];
+  for (const r of rows) {  // "set/sub" rows hang under "set" when it exists
+    const parent = r.name.includes("/") ? r.name.split("/")[0] : null;
+    if (parent && rows.some(x => x.name === parent)) (kids[parent] ||= []).push(r); else tops.push(r);
+  }
+  const sections = [...new Set(tops.map(r => r.group || ""))];
+  const sorted = list => b.kind === "di" ? [...list].sort((x, y) => (y.score ?? -1) - (x.score ?? -1)) : list;
+  const meta = r => [r.n != null && fmt.int(r.n) + " q", r.ece != null && "ECE " + fmt.f(r.ece, 3),
+    r.median_ms != null && BFMT.ms(r.median_ms) + " ms" + (r.median_ms > 1000 ? " ⚠" : ""),
+    r.unsupported && r.unsupported + " unsupported", r.errors && r.errors + " errors"].filter(Boolean).join(" · ");
+  const row = (r, cls, label, caret) => {
+    const sc = r.score, d = r.delta;
+    return `<div class="brow ${cls}" ${caret ? `data-group="${esc(r.name)}"` : ""}>
+      <div class="nm" title="${esc(r.name)}">${caret ? `<span class="caret">▸</span>` : ""}${esc(label)}</div>
+      <div class="track" role="img" aria-label="${esc(label)} ${sc == null ? "n/a" : fmt.pct(sc)}">${sc == null ? "" : `<i style="width:${(sc * 100).toFixed(1)}%"></i>`}${r.baseline != null ? `<b style="left:calc(${(r.baseline * 100).toFixed(1)}% - 1px)" title="zero-shot ${fmt.pct(r.baseline)}"></b>` : ""}${r.chance != null ? `<u style="left:${(r.chance * 100).toFixed(1)}%"></u>` : ""}</div>
+      <div class="val">${sc == null ? "—" : fmt.pct(sc)}</div>
+      <div class="dl ${d > 0.0005 ? "pos" : d < -0.0005 ? "neg" : ""}">${d == null ? "" : BFMT.pts(d)}</div>
+      <div class="meta2">${esc(meta(r))}</div></div>`;
+  };
+  const body = sections.map(g => {
+    const list = sorted(tops.filter(r => (r.group || "") === g));
+    return (g && sections.length > 1 && list.some(r => r.name !== g) ? `<div class="bsec">${esc(g)}</div>` : "") + list.map(r => {
+      const ch = kids[r.name] || [], open = openGroups.has(r.name);
+      return row(r, `${ch.length ? "parent" : ""}${open ? " open" : ""}`, r.name, ch.length) +
+        (open ? ch.map(c => row(c, "child", c.name.slice(r.name.length + 1), false)).join("") : "");
+    }).join("");
+  }).join("");
+  const deltas = rows.filter(r => r.delta != null && !r.name.includes("/"));
+  const kpis = [];
+  if (b.headline) kpis.push(["" + b.headline.label, BFMT[b.headline.fmt || "pct"](b.headline.value), ""]);
+  if (deltas.length) {
+    const up = deltas.filter(r => r.delta > 0.0005).length, dn = deltas.filter(r => r.delta < -0.0005).length;
+    kpis.push(["Better than zero-shot", `${up}<small> of ${deltas.length}</small>`, dn ? `${dn} worse` : "none worse"]);
+    const w = [...deltas].sort((x, y) => x.delta - y.delta)[0];
+    kpis.push(["Weakest", BFMT.pts(w.delta) + "<small> pts</small>", w.name]);
+  }
+  kpis.push(["Benchmarks", String(tops.length), `${rows.length} rows`]);
+  $("#view").innerHTML = `
+  <header class="run-head"><div><h1>${esc(b.title)}</h1>
+    <div class="meta"><span class="mono">${esc(b.model || "")}</span><span>${new Date((b.created || 0) * 1000).toLocaleString()}</span></div></div></header>
+  <section class="kpis" style="grid-template-columns:repeat(${kpis.length},minmax(0,1fr))">${kpis.map(([l, v, f]) => `<div class="kpi"><span class="label">${esc(l)}</span><span class="value">${v}</span><span class="foot">${esc(f)}</span></div>`).join("")}</section>
+  <section class="card"><div class="bhead"><span><i></i>score</span>${hasBase ? `<span><b></b>zero-shot</span><span>Δ in points</span>` : ""}<span style="margin-left:auto">click a row with ▸ to expand</span></div>${body}</section>
+  ${(b.notes || []).length ? `<section class="card"><div class="card-h"><h2>Notes</h2></div><div class="card-b">${b.notes.map(n => `<p class="muted" style="margin:0 0 6px;font-size:13px">${esc(n)}</p>`).join("")}</div></section>` : ""}`;
+}
+
+async function refreshBench() {
+  try {
+    benches = await api("/api/bench");
+    if (!benchName || !benches.some(b => b.name === benchName)) benchName = benches[0]?.name || null;
+    renderBenchList();
+    bench = benchName ? await api("/api/bench/" + encodeURIComponent(benchName)) : null;
+    renderBench();
+    $("#poll").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  } catch (e) { $("#poll").textContent = "Server unreachable"; }
+}
+
+function setMode(m) {
+  mode = m;
+  $("#tab-runs").setAttribute("aria-selected", m === "runs"); $("#tab-bench").setAttribute("aria-selected", m === "bench");
+  $("#new-run").hidden = m !== "runs" || !control;
+  if (m === "bench") refreshBench(); else { detail = null; renderList(); refresh(); }
+}
+$("#tab-runs").addEventListener("click", () => setMode("runs"));
+$("#tab-bench").addEventListener("click", () => setMode("bench"));
+document.addEventListener("click", ev => {
+  const g = ev.target.closest("[data-group]");
+  if (g) { openGroups.has(g.dataset.group) ? openGroups.delete(g.dataset.group) : openGroups.add(g.dataset.group); renderBench(); return; }
+  const b = ev.target.closest("[data-bench]"); if (b) { benchName = b.dataset.bench; refreshBench(); }
+});
+
+/* ---------- theme, resize, boot ---------- */
+$("#theme").addEventListener("click", () => {
+  const root = document.documentElement, dark = root.dataset.theme
+    ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+  try { localStorage.setItem("trutina-theme", root.dataset.theme); } catch {}
+});
+try { const t = localStorage.getItem("trutina-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => mode === "runs" && detail && drawCharts(derive(detail)), 120); });
+current = decodeURIComponent(location.hash.slice(1)) || null;
+api("/api/access").then(a => { control = a.control; }).catch(() => {}).finally(() => {
+  $("#new-run").hidden = !control || mode !== "runs";
+  if (location.hash === "#bench") setMode("bench");
+  if (!control) $("#poll").dataset.ro = "1";
+  schedule(0);
+});
+
+// poll every 10 s while something trains (metrics land every ~10 steps), 30 s otherwise;
+// paused while the tab is hidden
+let pollTimer = null;
+function schedule(delay) {
+  clearTimeout(pollTimer);
+  pollTimer = setTimeout(async () => {
+    if (mode === "bench") { if (!document.hidden) await refreshBench(); schedule(30000); return; }
+    if (!document.hidden || !detail) await refresh();  // always load once, even in a background tab
+    const busy = runs.some(r => r.status?.state === "running" || r.status?.state === "loading");
+    schedule(busy ? 10000 : 30000);
+  }, delay);
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) schedule(0); });
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+[project]
+name = "trutina"
+version = "0.1.0"
+description = "trutina-4b: a typed decision model with calibrated per-option probabilities in one forward pass"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "mlx>=0.29; sys_platform == 'darwin'",
+    "mlx-lm>=0.28; sys_platform == 'darwin'",
+    "numpy>=1.26",
+    "pillow>=10",
+    "huggingface_hub>=0.25",
+]
+license = "Apache-2.0"
+
+[project.optional-dependencies]
+data = ["datasets>=3.0"]
+# CUDA training (e.g. Colab); inference and latency stay on MLX
+torch = ["torch>=2.6", "transformers>=5.2", "safetensors>=0.4"]
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/trutina"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,46 @@
+# macOS
+.DS_Store
+._*
+
+# editors / IDEs
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*~
+
+# secrets & local config
+.env
+.env.*
+*.local
+
+# logs & temp
+*.log
+tmp/
+.cache/
+
+# Node
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Rust / Go
+target/
+*.exe
+
+# build artifacts (generic)
+*.zip
+runs/
+
+# private lab repo (internal notes, data recipes, unreleased work)
+lab/
