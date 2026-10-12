@@ -18,7 +18,7 @@ Weights: [aldinelabs/trutina-4b](https://huggingface.co/aldinelabs/trutina-4b) �
 
 - JevBench public: ties for 5th on the board's public set; the four systems above it generate reasoning text before answering.
 - LocalLLaMA: 2nd in the zero-shot table and 1st among open-weight models.
-- Latency is per question on an M5 Pro with MLX. Inputs: text and images; choice (up to 255 options), score (2–10 levels), yes/no.
+- Latency above is per question on an M5 Pro with MLX. On one RTX PRO 6000 (CUDA, HTTP included): p50 28.3 ms full depth, 21.1 ms adaptive ([details](#evaluation)). Inputs: text and images; choice (up to 255 options), score (2–10 levels), yes/no.
 - These are our own measurements on public sets; neither set was used for training or for picking weights (see [Evaluation](#evaluation)).
 
 ## Quickstart
@@ -228,6 +228,28 @@ untrained backbone.
 **Decision Index 0.3 (public suite), estimate.** About 44 (±3). This was scored with the official
 scorer on a stratified sample of about 12,000 of the suite's requests (at least 48 per benchmark),
 not on a full run.
+
+**Latency on one RTX PRO 6000** (serial run: one request at a time through
+`scripts/serve.py --engine torch`, HTTP round trip included, after a warm-up; the 231 JevBench public
+tasks). For comparison, the raw latencies that JevBench v1.5.4 measured on its own GPU pods (serial,
+one decision per request, its 450 open standard and judge items):
+
+| System | GPU | p50 ms | p95 ms | Measured by |
+|---|---|---|---|---|
+| **trutina-4b, adaptive** | RTX PRO 6000 | **21.1** | 107.4 | us |
+| **trutina-4b, full depth** | RTX PRO 6000 | **28.3** | 112.1 | us |
+| Cygnet (Gemma-4-12B) | RTX PRO 6000 | 39.8 | 99.1 | JevBench |
+| AutoJev-27B | RTX PRO 6000 | 88.1 | 225.9 | JevBench |
+| Surogate Rune 26B-A4B v3 | RTX PRO 6000 | 100.5 | 285.6 | JevBench |
+| JevK5 v0.3 (4B) | H100 | 15.8 | 46.5 | JevBench |
+| Plumb-4B | H100 | 17.3 | 47.4 | JevBench |
+| decider-4b v2 | RTX 5090 | 26.4 | 127.5 | JevBench |
+| Jev 1.13.0 | hosted API | 616.5 | 674.0 | JevBench |
+
+The request sets differ (ours includes the public set's long-policy tasks, which set our p95), so read
+this as an order of magnitude, not a ranking. The adaptive mean is 33.7 ms (22.1 layers on average);
+the full-depth mean is 99 ms because one request paid a one-off kernel compilation (6.7 s), with
+p80 at 46.9 ms. Accuracy on the same run: 87.0% full depth, 86.1% adaptive, identical to MLX.
 
 **Images** (our validation split, in-distribution): Mind2Web 91.9, A-OKVQA 89.6, ScienceQA 96.2,
 rendered workflow screenshots 84.9.

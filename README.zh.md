@@ -14,7 +14,7 @@
 
 - JevBench 公开集：在榜单公开集上并列第五；排在前面的四个系统都要先生成推理文本再作答。
 - LocalLLaMA：零样本榜第二，开放权重模型中第一。
-- 延迟是 M5 Pro 上用 MLX 单题测得。支持的输入：文字和图片；choice（最多 255 个选项）、score（2–10 级）、是否题。
+- 上表延迟是 M5 Pro 上用 MLX 单题测得。在单张 RTX PRO 6000（CUDA，含 HTTP）上：满深度 p50 28.3 ms，adaptive 21.1 ms（[详见评测](#评测)）。支持的输入：文字和图片；choice（最多 255 个选项）、score（2–10 级）、是否题。
 - 以上都是我们在公开集上自测的；这两个集都没有用于训练，也没有用于挑选权重（见[评测](#评测)）。
 
 ## 快速上手
@@ -178,6 +178,22 @@ adaptive 在验证集上的作答位置：7% 的题在第 12 层，28% 在第 16
 训练分布之外的提升幅度中等，DecisionBench hard 还不如未训练的骨干。
 
 **Decision Index 0.3（公开套件），估计值。** 约 44（±3）。这是用官方打分器在约 1.2 万条请求的分层抽样上算的（每个基准至少 48 条），不是全量运行。
+
+**单张 RTX PRO 6000 上的延迟**（串行，一次一个请求，经过 `scripts/serve.py --engine torch`，含 HTTP 往返，预热后测；使用 JevBench 公开集 231 题）。作为对照，下面也列出 JevBench v1.5.4 在其自有 GPU 节点上测得的原始延迟（串行，每个请求一个判断，使用其 450 道公开 standard 和 judge 题）：
+
+| 系统 | GPU | p50 ms | p95 ms | 测量方 |
+|---|---|---|---|---|
+| **trutina-4b，adaptive** | RTX PRO 6000 | **21.1** | 107.4 | 我们 |
+| **trutina-4b，满深度** | RTX PRO 6000 | **28.3** | 112.1 | 我们 |
+| Cygnet（Gemma-4-12B） | RTX PRO 6000 | 39.8 | 99.1 | JevBench |
+| AutoJev-27B | RTX PRO 6000 | 88.1 | 225.9 | JevBench |
+| Surogate Rune 26B-A4B v3 | RTX PRO 6000 | 100.5 | 285.6 | JevBench |
+| JevK5 v0.3（4B） | H100 | 15.8 | 46.5 | JevBench |
+| Plumb-4B | H100 | 17.3 | 47.4 | JevBench |
+| decider-4b v2 | RTX 5090 | 26.4 | 127.5 | JevBench |
+| Jev 1.13.0 | 托管 API | 616.5 | 674.0 | JevBench |
+
+两边的请求集不同（我们的包含公开集里的长政策文档题，p95 主要由它们决定），所以这张表只看量级，不作排名。adaptive 的平均延迟 33.7 ms（平均 22.1 层）；满深度的平均值是 99 ms，因为有一个请求遇到了一次性的 kernel 编译（6.7 s），它的 p80 是 46.9 ms。同一次运行的准确率：满深度 87.0%，adaptive 86.1%，与 MLX 完全一致。
 
 **图片**（我们的验证集，属于训练分布内）：Mind2Web 91.9、A-OKVQA 89.6、ScienceQA 96.2、渲染的工作流截图 84.9。
 
