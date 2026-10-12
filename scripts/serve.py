@@ -3,7 +3,8 @@
   uv run python scripts/serve.py --port 8000
   curl -s localhost:8000/v1/systemone -d '{"state": "...", "questions": {"q": {"type": "noul", "instructions": "..."}}}'
 
-One request at a time (MLX runs on one GPU stream); requests queue on a lock.
+One request at a time (one GPU stream); requests queue on a lock. `--engine torch` serves on CUDA
+(text only, full depth) instead of MLX.
 """
 
 from __future__ import annotations
@@ -17,12 +18,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from trutina.api import RequestError, handle
 from trutina.decisions_api import handle_decisions
-from trutina.engine import Trutina
 
 ROUTES = {"/v1/systemone": handle, "/v1/decisions": handle_decisions}
 
 
-def make_handler(engine: Trutina, max_body: int):
+def make_handler(engine, max_body: int):
     lock = threading.Lock()
 
     class H(BaseHTTPRequestHandler):
@@ -60,7 +60,7 @@ def make_handler(engine: Trutina, max_body: int):
                     t0 = time.perf_counter()
                     out = route(body, engine)
                     ms = (time.perf_counter() - t0) * 1000
-                    layer = engine.last_exit
+                    layer = getattr(engine, "last_exit", None) or 32
             except RequestError as e:
                 return self.send(e.status, {"error": {"status": e.status, "message": str(e)}})
             except ValueError as e:  # e.g. an image that cannot be decoded
@@ -76,8 +76,17 @@ def main():
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8000)
     ap.add_argument("--max-body", type=int, default=64 << 20)
+    ap.add_argument("--engine", choices=["mlx", "torch"], default="mlx")
+    ap.add_argument("--device", default="cuda", help="torch engine only")
     a = ap.parse_args()
-    engine = Trutina.load(a.model)
+    if a.engine == "torch":
+        from trutina.torch_engine import TorchTrutina
+
+        engine = TorchTrutina.load(a.model, device=a.device)
+    else:
+        from trutina.engine import Trutina
+
+        engine = Trutina.load(a.model)
     server = ThreadingHTTPServer((a.host, a.port), make_handler(engine, a.max_body))
     print(f"trutina-4b on http://{a.host}:{a.port}  (POST /v1/systemone, /v1/decisions)", flush=True)
     server.serve_forever()
