@@ -39,7 +39,7 @@ def short(name: str) -> str:
 
 COMPETE = HERE.parents[1] / "runs" / "release" / "compete"
 SYSTEMS = [  # fixed order: trutina first, then the others by JevBench open-set Intelligence
-    ("trutina", "Trutina"), ("spark", "spark-s1-4b-v6"), ("decider", "decider-4b"), ("jevk5", "JevK5 v0.3"),
+    ("trutina", "Trutina 4B"), ("spark", "spark-s1-4b-v6"), ("decider", "decider-4b"), ("jevk5", "JevK5 v0.3"),
     ("plumb", "Plumb-4B"), ("sieve", "Sieve-4B")]
 JB_NAME = {"spark": "spark-s1-4b-v6", "decider": "decider-4b v2", "jevk5": "JevK5 v0.3 (4B)", "plumb": "Plumb-4B"}
 
@@ -126,7 +126,7 @@ def main():
         },
         "localllama": {"source": "LocalLLaMA/typed-decisions dataset card, zero-shot table", "rows": [
             {"name": "meraGPT Decider 1", "acc": 76.8, "kl": 0.096, "open": False},
-            {"name": "Trutina", "acc": 74.85, "kl": 0.149, "open": True, "ours": True},
+            {"name": "Trutina 4B", "acc": 74.85, "kl": 0.149, "open": True, "ours": True},
             {"name": "Liquid AI d1", "acc": 74.2, "kl": 0.475, "open": False},
             {"name": "TypeSafe Jev 1.13.0", "acc": 72.7, "kl": 1.442, "open": False},
             {"name": "Featherless Simple Jev", "acc": 71.6, "kl": 0.488, "open": False},
