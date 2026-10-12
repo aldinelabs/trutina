@@ -16,8 +16,8 @@ Weights: [aldinelabs/trutina-4b](https://huggingface.co/aldinelabs/trutina-4b) �
 | **JevBench public set** (231 tasks, accuracy) | **87.0%** · p50 113 ms | 86.1% · 22.1 layers on average · p50 71 ms |
 | **LocalLLaMA typed-decisions** (`test`, zero-shot, 2,000 questions) | **74.85%** · KL 0.149 · p50 201 ms | 74.85% · KL 0.178 · 28.2 layers · p50 177 ms |
 
-- JevBench public: ties for 5th on the board's public set; the four systems above it generate reasoning text before answering.
-- LocalLLaMA: 2nd in the zero-shot table and 1st among open-weight models.
+- In our same-protocol comparison of six open 4B decision systems, Trutina has the highest measured accuracy on LocalLLaMA, this-that and DecisionBench medium.
+- Difficult decisions remain a weakness: DecisionBench hard is 49.7% versus Plumb-4B's 65.0%; the 231-task JevBench measurements do not establish an official leaderboard rank.
 - Latency above is per question on an M5 Pro with MLX. On one RTX PRO 6000 (CUDA, HTTP included): p50 28.3 ms full depth, 21.1 ms adaptive ([details](#evaluation)). Inputs: text and images; choice (up to 255 options), score (2–10 levels), yes/no.
 - These are our own measurements on public sets; neither set was used for training or for picking weights (see [Evaluation](#evaluation)).
 
@@ -192,10 +192,25 @@ training, and weights were selected on our own validation loss only.
 | trutina-4b, adaptive | 86.1 | |
 | Qwen3.5-4B with the same prompt, untrained | 79.7 | |
 
-On the public leaderboard snapshot we checked (2026-10-12), four systems score higher on these
-231 tasks: two API models with reasoning (97.8, 97.4) and two 26B-A4B models that generate
-reasoning before answering (88.7, 87.4). The leaderboard's headline score also includes held-out
-tasks, calibration and speed, which we cannot measure ourselves.
+The downloadable 231-task subset does not establish a leaderboard rank. JevBench's full open-set
+Intelligence and sealed-set results require the official evaluation.
+
+**Same-protocol comparison of open 4B systems** (2026-10-12): each author's server on an RTX PRO
+6000, identical requests and scoring; rejected requests count as errors. Trutina uses full depth
+without option rotations. DecisionBench scores average over states.
+
+| System | LocalLLaMA accuracy | this-that | DecisionBench medium | DecisionBench hard |
+|---|---|---|---|---|
+| **trutina-4b** | **74.7** | **51.3** | **82.5** | 49.7 |
+| JevK5 v0.3 | 62.5 | 47.8 | 80.4 | 58.4 |
+| Plumb-4B | 60.8 | 48.4 | 82.0 | **65.0** |
+| decider-4b | 67.7 | 47.8 | 74.4 | 45.3 |
+| Sieve-4B | 74.1 | 45.8 | 72.8 | 46.6 |
+| spark-s1 | 66.9 | 43.6 | 38.6 | 30.9 |
+
+JevBench v1.5 Intelligence on the same 231 public tasks is 65.8 for Trutina's default server
+output, or 69.0 after the optional decisive yes/no mapping, versus 70.7 for JevK5. The 69.0 value
+is a postprocessed measurement, not the server default or an official full-open-set score.
 
 **LocalLLaMA typed-decisions** (`test`, 400 cases / 2,000 questions; zero-shot table):
 
