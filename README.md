@@ -1,5 +1,7 @@
 # trutina
 
+English | [中文](README.zh.md)
+
 **trutina-4b** is a typed decision model: give it a state (text, optionally with images) and typed
 questions, and it returns a calibrated probability for every option without generating any text.
 It is Qwen3.5-4B with a **multi-exit readout**: the answer can be read at layer 12, 16, 20, 24 or 32,
@@ -62,12 +64,16 @@ python scripts/serve.py --port 8000
 curl -s localhost:8000/v1/systemone -d '{"state": "The invoice total is $1,240.", "questions": {"over": {"type": "noul", "instructions": "Is the total over $1,000?"}}}'
 ```
 
-CUDA (PyTorch + transformers, text only, full depth):
+CUDA (PyTorch + transformers, text only; shallow, adaptive and full depth):
 
 ```python
 from trutina.torch_engine import TorchTrutina
 
 model = TorchTrutina.load("aldinelabs/trutina-4b", device="cuda")
+```
+
+```bash
+python scripts/serve.py --engine torch --port 8000
 ```
 
 Install `flash-linear-attention` and `causal-conv1d` for the fast linear-attention kernels.
@@ -87,8 +93,8 @@ The `/v1/systemone` body is `{"state": ..., "questions": {...}, "depth": ...}`:
 1 − H(p) / log K. All questions in a request share the state and run as one batch.
 
 `depth` picks how much of the network a request may use: `shallow` (answer at layer 12),
-`adaptive` (default, below) or `deep` (all 32 layers, averaged over up to 4 rotations of each
-choice question's options).
+`adaptive` (default, below) or `deep` (all 32 layers; the MLX engine also averages over up to 4
+rotations of each choice question's options).
 
 ## Adaptive depth
 
@@ -258,7 +264,7 @@ when choosing the prompt format), so they are not perfectly blind.
 ```
 src/trutina/
   engine.py        MLX engine: load a release, depth modes, images
-  torch_engine.py  CUDA engine (text, full depth)
+  torch_engine.py  CUDA engine (text; shallow / adaptive / full depth)
   readout.py       the prompt format shared by training and inference
   wide.py          tournament for more than 26 options
   api.py           /v1/systemone parsing and rendering; decisions_api.py: /v1/decisions
