@@ -31,7 +31,7 @@ html, body { margin: 0; background: var(--bg); color: var(--fg); font-family: va
 .frame { width: 1600px; height: 1000px; padding: 56px 64px 44px; display: flex; flex-direction: column; gap: 28px; }
 header img { height: 40px; display: block; }
 .titles h1 { margin: 0; font-size: 46px; line-height: 1.12; font-weight: 600; letter-spacing: -0.025em; max-width: 1350px; }
-.titles p { margin: 12px 0 0; font-size: 20px; line-height: 1.5; color: var(--muted); max-width: 1300px; }
+.titles p { margin: 12px 0 0; font-size: 20px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
 :root[lang="zh"] .titles h1 { letter-spacing: 0; font-size: 44px; }
 :root[lang="zh"] .titles p { font-size: 19px; }
 .card { flex: 1; background: var(--card); border-radius: var(--r-card); padding: 30px 34px;
@@ -50,7 +50,7 @@ svg text { font-family: var(--sans); }
 .val { fill: var(--fg); font-size: 15px; font-weight: 600; }
 .val-muted { fill: var(--muted); font-size: 15px; font-weight: 500; }
 footer { font-size: 13.5px; line-height: 1.55; color: var(--muted); display: flex; justify-content: space-between; align-items: flex-end; gap: 40px; }
-footer .src { max-width: 1250px; }
+footer .src { flex: 1; min-width: 0; text-wrap: pretty; }
 footer .site { font-family: var(--mono); white-space: nowrap; color: var(--ink-2); }
 .legend { display: flex; gap: 22px; flex-wrap: wrap; font-size: 14px; color: var(--ink-2); align-items: center; }
 .legend i { display: inline-block; vertical-align: -2px; margin-right: 8px; }
