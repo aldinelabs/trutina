@@ -459,11 +459,11 @@ function overview() {
       <div class="kpis">${A.slice(0, 4).map(a => kp(...a)).join("")}</div>
       <div class="kpis" style="grid-template-columns: repeat(3, 1fr)">${A.slice(4).map(a => kp(...a)).join("")}</div></div>`;
   return frame(zh ? {
-    title: `${MK}Trutina${PILL}：单次前向传播的校准决策模型`,
+    title: `Trutina${PILL}：单次前向传播的校准决策模型`,
     sub: "具备自适应深度的 4B 类型化决策模型。支持基于文本与图像的选择题、等级评分题与是非题，为每个选项输出概率，不生成文本。",
     body, src: "Trutina 的 JevBench Intelligence 按 v1.5 公式在公开题上自行计算；其他系统数据取自官方 v1.5.4 结果。评测方法与全部说明详见模型卡片。",
   } : {
-    title: `${MK}Trutina${PILL}: calibrated decisions in one forward pass`,
+    title: `Trutina${PILL}: calibrated decisions in one forward pass`,
     sub: "A 4B typed decision model with adaptive depth. Choice, score and yes/no questions over text and images, with a probability for every option and no generated text.",
     body, src: "JevBench Intelligence for Trutina computed by us with the v1.5 formula on the public tasks; other systems from the official v1.5.4 results. Methods and every caveat are in the model card.",
   });
