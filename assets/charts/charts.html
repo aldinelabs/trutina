@@ -331,11 +331,11 @@ function latency() {
 }
 
 /* ---------- Dumbbell helper (fine-tune, vision) ---------- */
-function dumbbell(rows, lo, hi, labels) {
-  const W = 1470, rowH = 80, top = 16, H = rows.length * rowH + top + 40, lx = 360;
-  const x = linScale(lo, hi, lx, W - 140);
+function dumbbell(rows, lo, hi, labels, o = {}) {
+  const W = o.W || 1470, rowH = o.rowH || 80, top = 16, H = rows.length * rowH + top + 40, lx = o.lx || 360, step = o.step || 10;
+  const x = linScale(lo, hi, lx, W - (o.rm || 140));
   let g = "";
-  for (let t = lo; t <= hi; t += 10) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 6}" y2="${H - 34}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - 10}" text-anchor="middle">${t}%</text>`;
+  for (let t = lo; t <= hi; t += step) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 6}" y2="${H - 34}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - 10}" text-anchor="middle">${t}%</text>`;
   rows.forEach((r, i) => {
     const cy = top + i * rowH + rowH / 2, d = r.after - r.before;
     g += `<text class="lbl" x="${lx - 18}" y="${cy + (r.sub ? 1 : 6)}" text-anchor="end" style="font-size:16px; fill:var(--fg); font-weight:500">${esc(r.set)}</text>`;
@@ -347,39 +347,32 @@ function dumbbell(rows, lo, hi, labels) {
   });
   const legend = `<div class="legend"><span><i><svg width="16" height="16"><circle cx="8" cy="8" r="6.5" fill="#fff" stroke="var(--faint)" stroke-width="2.5"/></svg></i>${labels.before}</span>
     <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="var(--fg)"/></svg></i>trutina-4b</span></div>`;
-  return `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`;
+  return `<div class="card">${o.h2 ? `<h2>${o.h2}</h2>` : ""}${legend}<div style="flex:1; display:flex; align-items:center">${svgTag(W, H)}${g}</svg></div></div>`;
 }
 
-function finetune() {
+/* ---------- Held-out text benchmarks and image questions ---------- */
+function heldout() {
   const sub = { accuracy: zh ? "准确率" : "accuracy", "state-macro acc.": zh ? "按 state 宏平均的准确率" : "state-macro accuracy", "pair accuracy": zh ? "两种选项顺序均正确方计为正确" : "pair accuracy, both orders" };
   const name = { "JevBench public": zh ? "JevBench 公开集" : "JevBench public" };
-  const rows = T.heldout.filter(r => r.set !== "DecisionBench hard").map(r => ({ set: name[r.set] || r.set, sub: sub[r.metric] || r.metric, before: r.zero_shot, after: r.trutina }));
-  const body = dumbbell(rows, 40, 90, zh ? { before: "Qwen3.5-4B，相同 prompt，未微调", vs: "未微调" } : { before: "Qwen3.5-4B, same prompt, untrained", vs: "untrained" });
+  const text = T.heldout.filter(r => r.set !== "DecisionBench hard").map(r => ({ set: name[r.set] || r.set, sub: sub[r.metric] || r.metric, before: r.zero_shot, after: r.trutina }));
+  const names = zh ? { "Rendered workflow screenshots": "渲染的工作流截图" } : { "Rendered workflow screenshots": "Rendered workflows" };
+  const subs = { ScienceQA: zh ? "含插图的科学问答" : "science with diagrams", Mind2Web: zh ? "网页智能体：目标元素选择" : "web agents: element to act on",
+    "A-OKVQA": zh ? "依赖世界知识的视觉问答" : "VQA needing world knowledge", "Rendered workflow screenshots": zh ? "以图像形式呈现的工作流状态" : "workflow states as images" };
+  const img = T.vision.map(r => ({ ...r, sub: subs[r.set], set: names[r.set] || r.set }));
+  const o = { W: 740, lx: 235, rm: 185, rowH: 90 };
+  const left = dumbbell(text, 40, 90, zh ? { before: "Qwen3.5-4B，相同 prompt，未微调", vs: "未微调" } : { before: "Qwen3.5-4B, same prompt, untrained", vs: "untrained" },
+    { ...o, h2: zh ? "文本 held-out 基准 <span>· 公开数据集，未用于训练</span>" : "Held-out text benchmarks <span>· public sets, not trained on</span>" });
+  const right = dumbbell(img, 70, 100, zh ? { before: "v2（仅文本微调，未经图像训练）", vs: "v2" } : { before: "v2 (text-only fine-tune)", vs: "v2" },
+    { ...o, h2: zh ? "图像输入 <span>· 验证集，与训练同分布</span>" : "Image questions <span>· validation split, in-distribution</span>" });
+  const body = `<div class="row">${left}${right}</div>`;
   return frame(zh ? {
-    title: "微调在 held-out 基准上的增益",
-    sub: "对照组使用相同骨干与相同 prompt。上述数据集既未用于训练，也未用于权重选择。fast-decisions 上准确率持平，但校准误差降低约一半（ECE 0.251 → 0.122）。",
-    body, src: "全部结果均为自行测得。图中未列出 DecisionBench hard：该基准上 trutina-4b（49.6）低于未微调的骨干模型（53.6）。完整的 held-out 结果见模型卡片。",
+    title: "held-out 基准与图像输入上的增益",
+    sub: "左：与相同骨干、相同 prompt 的未微调模型对比，fast-decisions 上准确率持平，但校准误差降低约一半（ECE 0.251 → 0.122）。右：Qwen3.5 视觉编码器保持冻结，加入约 3.5 万道图像题训练后，网页智能体类判断由 75.0 提升至 91.9。",
+    body, src: "全部结果均为自行测得。左图数据集既未用于训练，也未用于权重选择；未列出 DecisionBench hard，该基准上 trutina-4b（49.6）低于未微调的骨干模型（53.6）。右图为自建验证集（非公开基准），对照组 v2 为同一架构、仅经文本微调的版本；Decision Index 视觉套件尚未评测。",
   } : {
-    title: "What the fine-tune adds on held-out benchmarks",
-    sub: "Same backbone, same prompt. None of these sets was used for training or for choosing weights. fast-decisions accuracy is flat, but its calibration error halves (ECE 0.251 → 0.122).",
-    body, src: "All numbers measured by us. Not shown: DecisionBench hard, where trutina-4b (49.6) is below the untrained backbone (53.6); every held-out result is in the model card.",
-  });
-}
-
-function vision() {
-  const names = zh ? { "Rendered workflow screenshots": "渲染的工作流截图" } : {};
-  const subs = { ScienceQA: zh ? "含插图的科学问答" : "science questions with diagrams", Mind2Web: zh ? "网页智能体：目标元素选择" : "web agents: which element to act on",
-    "A-OKVQA": zh ? "依赖世界知识的视觉问答" : "visual questions needing world knowledge", "Rendered workflow screenshots": zh ? "以图像形式呈现的工作流状态" : "workflow states rendered as images" };
-  const rows = T.vision.map(r => ({ ...r, sub: subs[r.set], set: names[r.set] || r.set }));
-  const body = dumbbell(rows, 70, 100, zh ? { before: "v2（仅文本微调，未经图像训练）", vs: "v2" } : { before: "v2 (text-only fine-tune, no image training)", vs: "v2" });
-  return frame(zh ? {
-    title: "图像输入：沿用同一读出机制",
-    sub: "Qwen3.5 视觉编码器参数保持冻结，图像 token 置于 state 中，读出方式不变。加入约 3.5 万道图像题训练后，网页智能体类判断的准确率由 75.0 提升至 91.9。",
-    body, src: "评测数据为自建验证集（与训练数据同分布，非公开基准）。对照组为同一架构的 v2，仅经文本微调，在图像题上相当于零样本。Decision Index 视觉套件尚未评测。",
-  } : {
-    title: "Images in, decisions out, with the same readout",
-    sub: "The Qwen3.5 vision tower stays frozen; image tokens go into the state and the readout is unchanged. Training on about 35k image questions lifts web-agent decisions from 75.0 to 91.9.",
-    body, src: "Our own validation split (same distribution as training, not a public benchmark). The comparison is v2, the same architecture fine-tuned on text only, which answers image questions zero-shot. The Decision Index vision suite has not been run yet.",
+    title: "Gains on held-out benchmarks and image questions",
+    sub: "Left: against the untrained model with the same backbone and prompt; fast-decisions accuracy is flat but calibration error halves (ECE 0.251 → 0.122). Right: with the Qwen3.5 vision tower frozen, training on about 35k image questions lifts web-agent decisions from 75.0 to 91.9.",
+    body, src: "All numbers measured by us. Left: none of these sets was used for training or for choosing weights; not shown is DecisionBench hard, where trutina-4b (49.6) is below the untrained backbone (53.6). Right: our own validation split, not a public benchmark; v2 is the same architecture fine-tuned on text only. The Decision Index vision suite has not been run yet.",
   });
 }
 
@@ -415,7 +408,7 @@ function overview() {
   });
 }
 
-const CHARTS = { overview, pareto, efficiency, size, localllama, adaptive, latency, finetune, vision };
+const CHARTS = { overview, pareto, efficiency, size, localllama, adaptive, latency, heldout };
 document.getElementById("frame").innerHTML = CHARTS[location.hash.slice(1) || "overview"]();
 document.fonts.ready.then(() => { document.body.dataset.ready = "1"; });
 </script>
