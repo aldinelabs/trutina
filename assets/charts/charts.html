@@ -198,17 +198,18 @@ function pareto() {
   }
   for (const r of rows.filter(r => r.us)) {
     const cx = x(r.p50), cy = y(r.i), ad = r.mode === "adaptive";
-    g += `<line x1="${cx}" x2="${cx}" y1="${y(r.i_lo)}" y2="${y(r.i_hi)}" stroke="var(--fg)" stroke-width="2" opacity=".35" stroke-linecap="round"/>`;
+    // error bar with caps for the estimate's range
+    g += `<path d="M${cx},${y(r.i_lo)} V${y(r.i_hi)} M${cx - 7},${y(r.i_lo)} H${cx + 7} M${cx - 7},${y(r.i_hi)} H${cx + 7}" stroke="var(--fg)" stroke-width="1.8" opacity=".55" fill="none"/>`;
     g += ad ? usDot(cx, cy, 8) : `<circle cx="${cx}" cy="${cy}" r="7" fill="var(--card)" stroke="var(--fg)" stroke-width="2.5"/>`;
     // labels sit in the empty top-left corner, each on a leader straight up from its point
     const ly = y(ad ? 91 : 81), dx = -10, dy = ly - cy, an = "start";
-    g += `<line x1="${cx}" x2="${cx}" y1="${y(r.i_hi) - 4}" y2="${ly + 28}" stroke="var(--fg)" stroke-width="1" opacity=".35"/>`;
+    g += `<line x1="${cx}" x2="${cx}" y1="${y(r.i_hi) - 8}" y2="${ly + 28}" stroke="var(--fg)" stroke-width="1" stroke-dasharray="2 3" opacity=".4"/>`;
     const name = ad ? (zh ? "Trutina · 自适应深度" : "Trutina · adaptive") : (zh ? "Trutina · 完整深度" : "Trutina · full depth");
     g += `<text class="lbl-us" data-vision x="${cx + dx}" y="${cy + dy}" text-anchor="${an}" style="font-size:15px">${name}</text>`;
     g += `<text class="lbl-sub" x="${cx + dx}" y="${cy + dy + 18}" text-anchor="${an}">${zh ? `预估 ${fmt1(r.i)}（${fmt1(r.i_lo)}–${fmt1(r.i_hi)}）` : `est. ${fmt1(r.i)} (${fmt1(r.i_lo)}–${fmt1(r.i_hi)})`} · ${fmt1(r.p50)} ms</text>`;
   }
   const legend = `<div class="legend">
-    <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="var(--fg)"/></svg></i>${MK}Trutina${PILL}${zh ? " · 预估分，竖线为不确定范围" : " · estimated score, bar = uncertainty"}</span>
+    <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="var(--fg)"/></svg></i>${MK}Trutina${PILL}${zh ? " · 预估分，误差棒为换算范围" : " · estimated score, error bar = conversion range"}</span>
     <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="5.5" fill="var(--muted)"/></svg></i>${zh ? "前沿上的系统" : "on the frontier"}</span>
     <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="4.5" fill="var(--pale)"/></svg></i>${zh ? "其他决策系统" : "other decision systems"}</span>
     <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="5.5" fill="var(--llm)"/></svg></i>${zh ? "通用 / 推理语言模型" : "general / reasoning language models"}</span>
