@@ -170,12 +170,12 @@ function pareto() {
     <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="var(--muted)"/></svg></i>${zh ? "其他开放 4B 决策模型" : "other open 4B decision models"}</span>
     <span><i><svg width="26" height="10"><line x1="0" x2="26" y1="5" y2="5" stroke="var(--fg)" stroke-width="1.6" stroke-dasharray="5 4" opacity=".6"/></svg></i>${zh ? "帕累托前沿（平均延迟）" : "Pareto frontier (mean latency)"}</span></div>`;
   return frame(zh ? {
-    title: "Trutina 的两种深度都位于帕累托前沿",
+    title: "两种深度都在准确与速度的帕累托前沿上",
     sub: "同一批请求、同型号 GPU。以平均延迟计，Trutina 自适应深度最快（30.6 ms），完整深度（38.7 ms，70.1）与 JevK5（44.4 ms，70.7）构成前沿的其余部分；其他系统均被支配。",
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
     src: `${SAME_RUN_ZH}Intelligence 按 v1.5 规则计分。${US_ZH}若改用 p50 延迟，Trutina 自适应深度同样最快（14.0 ms，次快为 decider 的 17.8 ms）。`,
   } : {
-    title: "Both Trutina depths are on the Pareto frontier",
+    title: "Both depths sit on the accuracy–speed frontier",
     sub: "The same requests on the same GPU type. By mean latency Trutina with adaptive depth is the fastest (30.6 ms); full depth (38.7 ms, 70.1) and JevK5 (44.4 ms, 70.7) make up the rest of the frontier, and every other system is dominated.",
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
     src: `${SAME_RUN_EN} Intelligence: the v1.5 rules. ${US_EN} By p50 latency, Trutina with adaptive depth is also the fastest (14.0 ms; next is decider at 17.8 ms).`,
@@ -201,12 +201,12 @@ function efficiency() {
   rows.forEach(r => { r.ei95 = r.i_open / r.p95; });
   const n50 = by("ei50").find(r => !r.us), n95 = by("ei95").find(r => !r.us);
   return frame(zh ? {
-    title: "Efficiency Index：单位平均延迟的 Intelligence",
+    title: "同等级下效率最高",
     sub: `Efficiency Index 定义为 JevBench Intelligence 与单请求平均延迟（ms）之比。Trutina 自适应深度为 ${rows[0].ei.toFixed(2)}，次优为 ${next.label}（${next.ei.toFixed(2)}）。`,
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
     src: `${SAME_RUN_ZH}${US_ZH}改用 p50 或 p95 延迟时，Trutina 自适应深度分别排第 ${rank("ei50")} 与第 ${rank("ei95")}（${ad.ei50.toFixed(2)} / ${ad.ei95.toFixed(2)}），其他系统中最高的分别为 ${n50.label}（${n50.ei50.toFixed(2)}）与 ${n95.label}（${n95.ei95.toFixed(2)}）。`,
   } : {
-    title: "Efficiency Index: Intelligence per millisecond of mean latency",
+    title: "The most efficient in its class",
     sub: `Efficiency Index = JevBench Intelligence ÷ mean latency per request in ms. Trutina with adaptive depth scores ${rows[0].ei.toFixed(2)}; next is ${next.label} (${next.ei.toFixed(2)}).`,
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
     src: `${SAME_RUN_EN} ${US_EN} With p50 or p95 latency instead, Trutina with adaptive depth ranks ${rank("ei50")} and ${rank("ei95")} (${ad.ei50.toFixed(2)} / ${ad.ei95.toFixed(2)}); the best other systems are ${n50.label} (${n50.ei50.toFixed(2)}) and ${n95.label} (${n95.ei95.toFixed(2)}).`,
@@ -269,12 +269,12 @@ function localllama() {
   });
   const cards = (a, b) => `<div class="row"><div class="card" style="flex:1.9"><h2>${a}</h2>${svgTag(W, H)}${g}</svg></div><div class="card"><h2>${b}</h2>${svgTag(W2, H)}${k}</svg></div></div>`;
   return frame(zh ? {
-    title: "未见业务流程上的零样本表现",
+    title: "开放权重模型中零样本准确率最高",
     sub: "LocalLLaMA typed-decisions 测试集，涵盖 agent 监控、客户服务、发票处理与安全事件等场景，均未出现在训练数据中。Trutina 在开放权重模型中准确率最高，总榜仅次于一个托管 API；KL 散度略高于 Sieve-4B。",
     body: cards("准确率 <span>· 2,000 题</span>", "与标注分布的 KL 散度 <span>· 越低越好</span>"),
     src: "标注「数据集卡片」的行取自 LocalLLaMA/typed-decisions 数据集卡片的零样本榜单；标注「本文实测」的 6 个开放 4B 决策模型由我们经各自作者提供的服务端、按卡片协议（每个 case 的五道题放在一个请求中）在同型号 GPU 上测得。",
   } : {
-    title: "Zero-shot on business workflows it never saw",
+    title: "The best zero-shot accuracy among open-weight models",
     sub: "LocalLLaMA typed-decisions test: agent monitoring, support, invoices and security incidents, none of them in training. Trutina has the highest accuracy among open-weight models, second overall behind one hosted API; its KL is slightly above Sieve-4B's.",
     body: cards("Accuracy <span>· 2,000 questions</span>", "KL to the gold distribution <span>· lower is better</span>"),
     src: "Rows marked 'dataset card' are from the zero-shot table of the LocalLLaMA/typed-decisions card. The six open 4B decision models marked 'measured by us' ran through their authors' servers with the card's protocol (a case's five questions in one request) on the same GPU type.",
@@ -306,12 +306,12 @@ function panel() {
     <span>${zh ? "数值为 Trutina 的准确率" : "value: Trutina's accuracy"}</span></div>`;
   const o = P.overall, wins = P.tasks.filter(t => t.trutina > t.qwen).length;
   return frame(zh ? {
-    title: "Perplexity 决策面板：4B 的 Trutina 总分高于 Qwen3.8-27B",
+    title: "以 4B 规模胜过 Qwen3.8-27B",
     sub: `10 项公开任务、${P.n.toLocaleString()} 题。按题数加权，Trutina 为 ${o.trutina}，高于 Qwen3.8-27B（${o.qwen}），${wins} 项领先；低于专用的 Jev 1.13.0（${o.jev}）与 Perplexity Decider 27B（${o.pplx}），差距主要在 BBH、TruthfulQA 与 WinoGrande 等推理和常识任务。`,
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
     src: "Jev 1.13.0、Qwen3.8-27B 与 Perplexity Decider 27B 的数值取自 Perplexity 公布的 11 项决策面板（2026 年 9 月测得，经 benchlm.ai 汇总），其抽样题目、提示词与标签映射未公开。Trutina 为已发布权重、完整深度，由我们在同型号公开切分上按相同题数固定种子抽样测得，并已剔除与训练数据近似重复的题目（8-gram 重合 ≥ 30%）；Circa 因出现在训练数据中而未纳入。JudgeBench 为两种顺序的单题准确率，JevBench public hard 为当前版本的 111 题（面板为 101 题）。此为近似对比，并非复现。准确率坐标轴起点为 60%。",
   } : {
-    title: "Perplexity's decision panel: 4B Trutina above Qwen3.8-27B overall",
+    title: "At 4B, ahead of Qwen3.8-27B",
     sub: `10 public tasks, ${P.n.toLocaleString()} rows. Weighted by rows, Trutina scores ${o.trutina}, above Qwen3.8-27B (${o.qwen}) and ahead on ${wins} tasks; it trails the dedicated Jev 1.13.0 (${o.jev}) and Perplexity Decider 27B (${o.pplx}), mostly on reasoning and knowledge tasks such as BBH, TruthfulQA and WinoGrande.`,
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
     src: "Jev 1.13.0, Qwen3.8-27B and Perplexity Decider 27B: Perplexity's published 11-task decision panel (measured September 2026, collected by benchlm.ai); its sampled items, prompts and label mappings are unpublished. Trutina: released weights at full depth, measured by us on the same public splits with the same row counts (fixed seed), near-duplicates of our training data removed (≥ 30% shared 8-grams); Circa is left out because it was in our training data. JudgeBench is per-request accuracy over both orders; JevBench public hard is the current 111 tasks (the panel used 101). An approximate comparison, not a replication. The accuracy axis starts at 60%.",
@@ -352,13 +352,13 @@ function bigger() {
   const rng = a => `${Math.min(...a).toFixed(1)}–${Math.max(...a).toFixed(1)}`;
   const p95s = small.filter(r => !r.us).map(r => r.p95);
   return frame(zh ? {
-    title: `Trutina 的中位延迟 ${fmt1(ad.p50)} ms，12–35B 决策系统要慢 ${Math.round(Math.min(...sl))}–${Math.round(Math.max(...sl))} 倍`,
-    sub: `RTX PRO 6000，串行单请求的 p50。另外 5 个 4B 决策模型为 Trutina 的 ${rng(s4)} 倍；倍数均相对 Trutina 自适应深度。`,
+    title: "具备同等级下最低的决策延迟",
+    sub: `Trutina 自适应深度的 p50 为 ${fmt1(ad.p50)} ms；另外 5 个 4B 决策模型为其 ${rng(s4)} 倍，12–35B 系统为 ${rng(sl)} 倍。RTX PRO 6000，串行单请求。`,
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
     src: `4B 模型由我们在同一 Modal 容器、同一 231 道 JevBench 公开题上测得，各用其作者提供的服务端（HTTP 往返，预热 10 条）；Trutina 经 CUDA graph 服务，完整深度为 ${fmt1(full.p50)} ms。p95：Trutina ${fmt1(ad.p95)} ms，另外 5 个 4B 为 ${fmt1(Math.min(...p95s))}–${fmt1(Math.max(...p95s))} ms。12–35B 系统为 JevBench v1.5.4 官方结果，由维护方在其 RTX PRO 6000 测试机上以 450 个请求串行测得（原始值），取 Intelligence ≥ 50 者；官方榜单上没有在 RTX PRO 6000 上测得的 4B 系统。两组的测试机与请求集不同。`,
   } : {
-    title: `Trutina answers in ${fmt1(ad.p50)} ms; 12–35B decision systems take ${Math.round(Math.min(...sl))}–${Math.round(Math.max(...sl))}× as long`,
-    sub: `RTX PRO 6000, p50 of one request at a time. The five other 4B decision models take ${rng(s4)}× as long; every multiple is relative to Trutina at adaptive depth.`,
+    title: "The lowest decision latency in its class",
+    sub: `Trutina's adaptive-depth p50 is ${fmt1(ad.p50)} ms; the five other 4B decision models take ${rng(s4)}× as long, the 12–35B systems ${rng(sl)}×. RTX PRO 6000, one request at a time.`,
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
     src: `4B models: measured by us in one Modal container on the same 231 public JevBench tasks, each through its authors' server (HTTP round trip, 10 warm-up requests); Trutina is served with CUDA graphs and takes ${fmt1(full.p50)} ms at full depth. p95: Trutina ${fmt1(ad.p95)} ms, the other 4B models ${fmt1(Math.min(...p95s))}–${fmt1(Math.max(...p95s))} ms. 12–35B systems: JevBench v1.5.4 official results, measured by the maintainers on their RTX PRO 6000 pods over 450 serial requests (raw), those with Intelligence ≥ 50; the official board has no 4B system measured on an RTX PRO 6000. The two groups differ in machines and requests.`,
   });
@@ -385,12 +385,12 @@ function typed() {
     <span><i><svg width="26" height="14"><rect width="26" height="14" rx="4" fill="var(--fg)" opacity=".45"/></svg></i>${zh ? "校准分 × ½（相对均匀猜测的 Brier 改善）" : "calibration × ½ (Brier improvement over a uniform guess)"}</span></div>`;
   const us = rows.find(r => r.ours), d27 = rows.find(r => r.size === "27B");
   return frame(zh ? {
-    title: "Typed Decisions Index：4B 的 Trutina 远高于 27B 决策模型",
+    title: "以 4B 规模胜过 27B 决策模型",
     sub: `typed-decisions 测试集 2,000 题（400 个案例 × 5 题）。指数为准确率与校准分各占一半。Trutina 为 ${us.index.toFixed(1)}，仅次于闭源的 Celeris-1，高于 Decider v1.1 27B（${d27.index.toFixed(1)}）、Jev 1.13.0 与 GPT-6 Luna。`,
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
     src: `指数 = ½ × 准确率 + ½ × 校准分，校准分 = 100 ×（1 − Brier ÷ 均匀猜测的 Brier），均匀猜测在该测试集上的 Brier 为 ${D.typed.brier_uniform}；Mercury Decide 的 Brier 高于均匀猜测，校准分记为 0。除 Trutina 外，准确率与 Brier 取自 Celeris-1 Decision 发布时公布的对比表（评测框架 0cfd276，由 Celeris 自行测得，经 benchlm.ai 汇总），未能返回分布的请求按均匀分布计分。Trutina 为已发布权重、完整深度，由我们在同一测试集上测得；Brier 按每题各选项与软标签之差的平方和计算，Celeris 未公布其切分与 Brier 的归一化方式。`,
   } : {
-    title: "Typed Decisions Index: 4B Trutina far above a 27B decision model",
+    title: "At 4B, ahead of a 27B decision model",
     sub: `typed-decisions test, 2,000 questions (400 cases × 5). The index weighs accuracy and calibration equally. Trutina scores ${us.index.toFixed(1)}, second only to the closed Celeris-1 and above Decider v1.1 27B (${d27.index.toFixed(1)}), Jev 1.13.0 and GPT-6 Luna.`,
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
     src: `Index = ½ × accuracy + ½ × calibration, calibration = 100 × (1 − Brier ÷ the Brier of a uniform guess), which is ${D.typed.brier_uniform} on this test; Mercury Decide's Brier is above the uniform guess's, so its calibration counts as 0. Other systems' accuracy and Brier: the table Celeris published with Celeris-1 Decision (harness 0cfd276, measured by Celeris, collected by benchlm.ai), requests without a distribution scored as uniform. Trutina: released weights at full depth, measured by us on the same test; Brier is the per-question sum over options of the squared difference to the soft label. Celeris did not publish its split or Brier normalisation.`,
@@ -430,7 +430,7 @@ function adaptive() {
         <div class="card" style="flex:none"><h2>${zh ? "自适应深度的终止层分布 <span>· 验证集</span>" : "Where adaptive answers <span>· our validation split</span>"}</h2><svg width="${SW}" height="96">${s}</svg></div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px">${K.map(a => kp(...a)).join("")}</div></div></div>`;
   return frame(zh ? {
-    title: "自适应深度：置信度达到阈值即终止计算",
+    title: "答案一确定就停止计算",
     sub: "第 12、16、20、24 层各设一个 tuned-lens 出口，与最后一层读取相同的选项字母。请求在首个置信度达到阈值的出口处终止；否则沿用该层隐状态继续计算，无需重复计算前序各层。",
     body, src: "各出口准确率在合并 LoRA 之前的训练检查点上测得（与发布权重相差不超过 0.1）。延迟测量条件：单张 RTX PRO 6000，经 scripts/serve.py 串行发送请求，JevBench 公开题。",
   } : {
@@ -476,7 +476,7 @@ function heldout() {
     { ...o, h2: zh ? "图像输入 <span>· 验证集，与训练同分布</span>" : "Image questions <span>· validation split, in-distribution</span>" });
   const body = `<div class="row">${left}${right}</div>`;
   return frame(zh ? {
-    title: "held-out 基准与图像输入上的增益",
+    title: "在未见过的基准与图像上依然有效",
     sub: "左：与相同骨干、相同 prompt 的未微调模型对比，fast-decisions 上准确率持平，但校准误差降低约一半（ECE 0.251 → 0.122）。右：Qwen3.5 视觉编码器保持冻结，加入约 3.5 万道图像题训练后，网页智能体类判断由 75.0 提升至 91.9。",
     body, src: "全部结果均为自行测得。左图数据集既未用于训练，也未用于权重选择；未列出 DecisionBench hard，该基准上 Trutina（49.6）低于未微调的骨干模型（53.6）。右图为自建验证集（非公开基准），对照组 v2 为同一架构、仅经文本微调的版本；Decision Index 视觉套件尚未评测。",
   } : {
