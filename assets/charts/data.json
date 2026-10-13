@@ -2363,5 +2363,469 @@
    "by": "official",
    "i_open": 70.5
   }
- ]
+ ],
+ "board": {
+  "rows": [
+   {
+    "name": "Cygnet",
+    "p50": 39.8,
+    "i": 72.5,
+    "gpu": "RTXPRO6000",
+    "llm": false
+   },
+   {
+    "name": "Winnow-12B Q8",
+    "p50": 95.1,
+    "i": 72.5,
+    "gpu": "RTX6000",
+    "llm": false
+   },
+   {
+    "name": "Jev 1.13.0",
+    "p50": 616.5,
+    "i": 71.5,
+    "gpu": null,
+    "llm": false
+   },
+   {
+    "name": "Jev-Omni",
+    "p50": 112.7,
+    "i": 70.5,
+    "gpu": "RTX6000",
+    "llm": false
+   },
+   {
+    "name": "decider-4b v2",
+    "p50": 26.4,
+    "i": 61.7,
+    "gpu": "RTX5090",
+    "llm": false
+   },
+   {
+    "name": "SemIf, formerly OpenJev",
+    "p50": 39.3,
+    "i": 54.0,
+    "gpu": "RTX5090",
+    "llm": false
+   },
+   {
+    "name": "spark-s1-4b-v6",
+    "p50": 128.0,
+    "i": 62.5,
+    "gpu": "RTX6000",
+    "llm": false
+   },
+   {
+    "name": "metask-jev-4b",
+    "p50": 67.7,
+    "i": 56.7,
+    "gpu": "RTX5090",
+    "llm": false
+   },
+   {
+    "name": "Hopper",
+    "p50": 122.5,
+    "i": 48.7,
+    "gpu": "A6000",
+    "llm": false
+   },
+   {
+    "name": "Malkuth-4B",
+    "p50": 146.0,
+    "i": 58.4,
+    "gpu": "RTX5090",
+    "llm": false
+   },
+   {
+    "name": "reflex 4B",
+    "p50": 1357.7,
+    "i": 55.2,
+    "gpu": "H100",
+    "llm": false
+   },
+   {
+    "name": "jev-local",
+    "p50": 397.1,
+    "i": 58.2,
+    "gpu": "H100",
+    "llm": false
+   },
+   {
+    "name": "djev",
+    "p50": 50.3,
+    "i": 72.7,
+    "gpu": "H100",
+    "llm": false
+   },
+   {
+    "name": "Raw Qwen3 4B Instruct 2507 direct logits",
+    "p50": 55.9,
+    "i": 57.4,
+    "gpu": "A6000",
+    "llm": false
+   },
+   {
+    "name": "jqv",
+    "p50": 78.5,
+    "i": 51.3,
+    "gpu": "H100",
+    "llm": false
+   },
+   {
+    "name": "JevK5 v0.2.0",
+    "p50": 33.2,
+    "i": 50.0,
+    "gpu": "RTX5090",
+    "llm": false
+   },
+   {
+    "name": "Qwen3.5-9B Jev-like data-mix v2",
+    "p50": 215.4,
+    "i": 62.6,
+    "gpu": "A6000",
+    "llm": false
+   },
+   {
+    "name": "Standard One 8B",
+    "p50": 26.7,
+    "i": 60.0,
+    "gpu": "RTX5090",
+    "llm": false
+   },
+   {
+    "name": "NInfer Qwen3.8-Flash-Next mixed",
+    "p50": 79.8,
+    "i": 70.3,
+    "gpu": "RTXPRO6000",
+    "llm": false
+   },
+   {
+    "name": "swanOne",
+    "p50": 208.8,
+    "i": 70.5,
+    "gpu": "RTXPRO6000",
+    "llm": false
+   },
+   {
+    "name": "Raw Qwen3 8B direct logits",
+    "p50": 91.4,
+    "i": 56.8,
+    "gpu": "A6000",
+    "llm": false
+   },
+   {
+    "name": "decider-2b",
+    "p50": 13.7,
+    "i": 48.8,
+    "gpu": "H100",
+    "llm": false
+   },
+   {
+    "name": "system-one",
+    "p50": 38.4,
+    "i": 53.5,
+    "gpu": "RTX5090",
+    "llm": false
+   },
+   {
+    "name": "system-one-open",
+    "p50": 575.0,
+    "i": 44.4,
+    "gpu": null,
+    "llm": false
+   },
+   {
+    "name": "Autoloops \u2013 Gemma 4 31B IT",
+    "p50": 607.4,
+    "i": 76.9,
+    "gpu": null,
+    "llm": false
+   },
+   {
+    "name": "GPT-6 Luna",
+    "p50": 1579.9,
+    "i": 94.7,
+    "gpu": null,
+    "llm": true
+   },
+   {
+    "name": "GPT-6 Luna",
+    "p50": 1555.4,
+    "i": 96.3,
+    "gpu": null,
+    "llm": true
+   },
+   {
+    "name": "JevOne",
+    "p50": 58.5,
+    "i": 53.9,
+    "gpu": "RTXPRO6000",
+    "llm": false
+   },
+   {
+    "name": "kev 4B",
+    "p50": 171.6,
+    "i": 47.1,
+    "gpu": "A6000",
+    "llm": false
+   },
+   {
+    "name": "kev 8B",
+    "p50": 180.6,
+    "i": 54.3,
+    "gpu": "A6000",
+    "llm": false
+   },
+   {
+    "name": "open-alternative-jev",
+    "p50": 36.3,
+    "i": 42.6,
+    "gpu": "RTX5090",
+    "llm": false
+   },
+   {
+    "name": "Bespoke Nimble 9B",
+    "p50": 198.3,
+    "i": 65.1,
+    "gpu": "A6000",
+    "llm": false
+   },
+   {
+    "name": "Malkuth-2B",
+    "p50": 40.7,
+    "i": 44.2,
+    "gpu": "RTX5090",
+    "llm": false
+   },
+   {
+    "name": "openjev-sglang",
+    "p50": 598.1,
+    "i": 61.4,
+    "gpu": null,
+    "llm": false
+   },
+   {
+    "name": "decider-35b-a3b",
+    "p50": 45.3,
+    "i": 64.1,
+    "gpu": "H100",
+    "llm": false
+   },
+   {
+    "name": "Open-Jev 9B",
+    "p50": 563.1,
+    "i": 61.8,
+    "gpu": "H100",
+    "llm": false
+   },
+   {
+    "name": "GPT-5.6 Luna",
+    "p50": 1321.2,
+    "i": 93.2,
+    "gpu": null,
+    "llm": true
+   },
+   {
+    "name": "Gemini 3.1 Flash-Lite",
+    "p50": 863.4,
+    "i": 76.6,
+    "gpu": null,
+    "llm": true
+   },
+   {
+    "name": "NInfer Qwen3.8-27B NVFP4",
+    "p50": 49.1,
+    "i": 67.0,
+    "gpu": "RTX5090",
+    "llm": false
+   },
+   {
+    "name": "NInfer Qwen3.8-27B NVFP4",
+    "p50": 49.1,
+    "i": 62.4,
+    "gpu": "RTX5090",
+    "llm": false
+   },
+   {
+    "name": "Instinct",
+    "p50": 259.5,
+    "i": 61.9,
+    "gpu": null,
+    "llm": false
+   },
+   {
+    "name": "OpenJev",
+    "p50": 705.6,
+    "i": 82.5,
+    "gpu": "H100",
+    "llm": false
+   },
+   {
+    "name": "djev",
+    "p50": 665.6,
+    "i": 76.6,
+    "gpu": "H100",
+    "llm": false
+   },
+   {
+    "name": "LitJev",
+    "p50": 1458.9,
+    "i": 58.1,
+    "gpu": "H100",
+    "llm": false
+   },
+   {
+    "name": "reflex-27b",
+    "p50": 1299.1,
+    "i": 63.1,
+    "gpu": "H100",
+    "llm": false
+   },
+   {
+    "name": "DeepSeek V4.1 Flash",
+    "p50": 1776.2,
+    "i": 91.8,
+    "gpu": null,
+    "llm": true
+   },
+   {
+    "name": "SimpleJev Qwen3.8-27B",
+    "p50": 839.6,
+    "i": 71.9,
+    "gpu": null,
+    "llm": false
+   },
+   {
+    "name": "Open Jev JSON Canvas",
+    "p50": 143.4,
+    "i": 79.2,
+    "gpu": "H100",
+    "llm": false
+   },
+   {
+    "name": "Qwen3.8 27B",
+    "p50": 6489.1,
+    "i": 92.9,
+    "gpu": null,
+    "llm": true
+   },
+   {
+    "name": "classifier.dev",
+    "p50": 517.8,
+    "i": 74.5,
+    "gpu": null,
+    "llm": false
+   },
+   {
+    "name": "JevK5 v0.3",
+    "p50": 15.8,
+    "i": 61.6,
+    "gpu": "H100",
+    "llm": false
+   },
+   {
+    "name": "Plumb-4B",
+    "p50": 17.3,
+    "i": 60.9,
+    "gpu": "H100",
+    "llm": false
+   },
+   {
+    "name": "Decision 4B v1.2",
+    "p50": 16.4,
+    "i": 56.3,
+    "gpu": "H100",
+    "llm": false
+   },
+   {
+    "name": "Imajev-4B",
+    "p50": 42.0,
+    "i": 56.2,
+    "gpu": "RTX 5090",
+    "llm": false
+   },
+   {
+    "name": "Decision 4B v1.1",
+    "p50": 16.3,
+    "i": 54.7,
+    "gpu": "H100",
+    "llm": false
+   },
+   {
+    "name": "Surogate Rune 26B-A4B v3",
+    "p50": 100.5,
+    "i": 69.0,
+    "gpu": "RTX PRO 6000",
+    "llm": false
+   },
+   {
+    "name": "AutoJev-27B",
+    "p50": 100.9,
+    "i": 71.9,
+    "gpu": "H100",
+    "llm": false
+   },
+   {
+    "name": "AutoJev-27B",
+    "p50": 88.1,
+    "i": 72.0,
+    "gpu": "RTX PRO 6000",
+    "llm": false
+   },
+   {
+    "name": "Eikos-27B",
+    "p50": 102.1,
+    "i": 74.1,
+    "gpu": "H100",
+    "llm": false
+   },
+   {
+    "name": "Bev / Bonsai 27B",
+    "p50": 1020.4,
+    "i": 48.7,
+    "gpu": "H100",
+    "llm": false
+   },
+   {
+    "name": "Instinct Dual 4B",
+    "p50": 253.0,
+    "i": 46.3,
+    "gpu": null,
+    "llm": false
+   },
+   {
+    "name": "Manchego v2.1",
+    "p50": 84.5,
+    "i": 54.4,
+    "gpu": "RTX6000",
+    "llm": false
+   },
+   {
+    "name": "Trutina",
+    "mode": "full",
+    "p50": 19.0,
+    "i": 65.8,
+    "i_lo": 61.0,
+    "i_hi": 72.8,
+    "i_ours": 70.1,
+    "us": true
+   },
+   {
+    "name": "Trutina",
+    "mode": "adaptive",
+    "p50": 14.0,
+    "i": 64.0,
+    "i_lo": 59.2,
+    "i_hi": 71.0,
+    "i_ours": 68.3,
+    "us": true
+   }
+  ],
+  "offsets": {
+   "jevk5": -9.1,
+   "plumb": -6.5,
+   "spark": 2.7
+  },
+  "offset_mean": -4.3
+ }
 }

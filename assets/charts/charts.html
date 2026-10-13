@@ -172,53 +172,59 @@ const SAME_RUN_EN = "Six open 4B decision models, each through the server its au
 
 /* ---------- Pareto: Intelligence vs mean latency, same run ---------- */
 function pareto() {
-  const W = 1470, H = 520, m = { l: 70, r: 30, t: 20, b: 56 };
-  const rows = RUNS();
-  const x = logScale(25, 160, m.l, W - m.r), y = linScale(45, 75, H - m.b, m.t);
+  // the whole JevBench board at p50 against Intelligence; Trutina placed by estimate, with its uncertainty as a bar
+  const B = D.board, rows = B.rows;
+  const W = 1470, H = 560, m = { l: 70, r: 30, t: 20, b: 56 };
+  const x = logScale(10, 10000, m.l, W - m.r), y = linScale(40, 100, H - m.b, m.t);
   const front = []; let best = -1;
-  for (const r of [...rows].sort((a, b) => a.mean - b.mean)) if (r.i_open > best) { front.push(r); best = r.i_open; }
+  for (const r of [...rows].sort((a, b) => a.p50 - b.p50 || b.i - a.i)) if (r.i > best) { front.push(r); best = r.i; }
   let g = "";
-  for (const t of [45, 50, 55, 60, 65, 70, 75]) g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/><text class="axis" x="${m.l - 14}" y="${y(t) + 5}" text-anchor="end">${t}</text>`;
-  for (const t of [30, 40, 50, 70, 100, 150]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${m.t}" y2="${H - m.b}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - m.b + 26}" text-anchor="middle">${t} ms</text>`;
-  g += `<text class="axis-title" x="${(m.l + W - m.r) / 2}" y="${H - 4}" text-anchor="middle">${zh ? "单请求平均延迟（对数坐标，越靠左越快）" : "mean latency per request (log scale), faster to the left"}</text>`;
-  g += `<text class="axis-title" transform="translate(16 ${(m.t + H - m.b) / 2}) rotate(-90)" text-anchor="middle">${zh ? "JevBench Intelligence（231 道公开题）" : "JevBench Intelligence (231 public tasks)"}</text>`;
-  // the frontier as a staircase: everything right of and below it is dominated (slower and no more accurate)
-  const st = front.flatMap((r, i) => [[x(r.mean), i ? y(front[i - 1].i_open) : H - m.b], [x(r.mean), y(r.i_open)]]);
-  st.push([W - m.r, y(front.at(-1).i_open)]);
+  for (const t of [40, 50, 60, 70, 80, 90, 100]) g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/><text class="axis" x="${m.l - 14}" y="${y(t) + 5}" text-anchor="end">${t}</text>`;
+  for (const [t, l] of [[10, "10 ms"], [30, "30 ms"], [100, "100 ms"], [300, "300 ms"], [1000, "1 s"], [3000, "3 s"], [10000, "10 s"]]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${m.t}" y2="${H - m.b}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - m.b + 26}" text-anchor="middle">${l}</text>`;
+  g += `<text class="axis-title" x="${(m.l + W - m.r) / 2}" y="${H - 4}" text-anchor="middle">${zh ? "单请求 p50 延迟（对数坐标，越靠左越快）" : "p50 latency per request (log scale), faster to the left"}</text>`;
+  g += `<text class="axis-title" transform="translate(16 ${(m.t + H - m.b) / 2}) rotate(-90)" text-anchor="middle">${zh ? "JevBench Intelligence（官方）" : "JevBench Intelligence (official)"}</text>`;
+  const st = front.flatMap((r, i) => [[x(r.p50), i ? y(front[i - 1].i) : H - m.b], [x(r.p50), y(r.i)]]);
+  st.push([W - m.r, y(front.at(-1).i)]);
   const P = pts => pts.map(([a, b]) => `${a.toFixed(1)},${b.toFixed(1)}`).join(" L");
   g += `<path d="M${P(st)} L${W - m.r},${H - m.b} Z" fill="var(--fg)" opacity=".05"/>`;
   g += `<text class="axis-title" x="${W - m.r - 16}" y="${H - m.b - 16}" text-anchor="end">${zh ? "被支配区域：更慢，且不更准" : "dominated: slower and no more accurate"}</text>`;
   g += `<path d="M${P(st.slice(1))}" fill="none" stroke="var(--fg)" stroke-width="1.6" stroke-dasharray="5 5" opacity=".55"/>`;
-  const lab = { jevk5: [12, -12, "start"], plumb: [14, -8, "start"], decider: [-12, 22, "end"], sieve: [12, 20, "start"], spark: [-12, -14, "end"] };
-  for (const r of rows) {
-    const cx = x(r.mean), cy = y(r.i_open);
-    if (r.us) {
-      g += r.mode === "adaptive" ? usDot(cx, cy, 10) : `<circle cx="${cx}" cy="${cy}" r="8" fill="var(--card)" stroke="var(--fg)" stroke-width="2.5"/>`;
-      const [dx, dy, an] = r.mode === "adaptive" ? [18, 42, "start"] : [-16, -34, "end"];
-      g += `<text class="lbl-us" data-vision x="${cx + dx}" y="${cy + dy}" text-anchor="${an}" style="font-size:16px">${esc(r.label)}</text>`;
-      g += `<text class="lbl-sub" x="${cx + dx}" y="${cy + dy + 18}" text-anchor="${an}">${fmt1(r.i_open)} · ${fmt1(r.mean)} ms</text>`;
-    } else {
-      g += `<circle cx="${cx}" cy="${cy}" r="7" fill="var(--muted)" stroke="var(--card)" stroke-width="1.5"/>`;
-      const L = lab[r.id] || [12, 18, "start"];
-      g += `<text class="lbl" x="${cx + L[0]}" y="${cy + L[1]}" text-anchor="${L[2]}">${esc(r.label)} <tspan class="lbl-sub">${fmt1(r.i_open)} · ${fmt1(r.mean)} ms</tspan></text>`;
-    }
+  for (const r of rows.filter(r => !r.us)) g += `<circle cx="${x(r.p50)}" cy="${y(r.i)}" r="${front.includes(r) ? 6 : 4.5}" fill="${r.llm ? "var(--llm)" : front.includes(r) ? "var(--muted)" : "var(--pale)"}" stroke="var(--card)" stroke-width="1.2"/>`;
+  const lab = { "decider-2b": [12, 18, "start"], "Cygnet": [-10, -12, "end"], "djev": [8, -12, "start"], "Eikos-27B": [10, 20, "start"],
+                "Open Jev JSON Canvas": [10, 20, "start"], "OpenJev": [10, 20, "start"], "GPT-5.6 Luna": [-10, 18, "end"], "GPT-6 Luna": [-10, -10, "end"] };
+  for (const r of front.filter(r => !r.us)) {
+    const L = lab[r.name] || [10, -10, "start"];
+    g += `<text class="lbl" x="${x(r.p50) + L[0]}" y="${y(r.i) + L[1]}" text-anchor="${L[2]}" style="font-size:13px">${esc(r.name)} <tspan class="lbl-sub" style="font-size:12px">${fmt1(r.i)}</tspan></text>`;
+  }
+  for (const r of rows.filter(r => r.us)) {
+    const cx = x(r.p50), cy = y(r.i), ad = r.mode === "adaptive";
+    g += `<line x1="${cx}" x2="${cx}" y1="${y(r.i_lo)}" y2="${y(r.i_hi)}" stroke="var(--fg)" stroke-width="2" opacity=".35" stroke-linecap="round"/>`;
+    g += ad ? usDot(cx, cy, 8) : `<circle cx="${cx}" cy="${cy}" r="7" fill="var(--card)" stroke="var(--fg)" stroke-width="2.5"/>`;
+    // labels sit in the empty top-left corner, each on a leader straight up from its point
+    const ly = y(ad ? 91 : 81), dx = -10, dy = ly - cy, an = "start";
+    g += `<line x1="${cx}" x2="${cx}" y1="${y(r.i_hi) - 4}" y2="${ly + 28}" stroke="var(--fg)" stroke-width="1" opacity=".35"/>`;
+    const name = ad ? (zh ? "Trutina · 自适应深度" : "Trutina · adaptive") : (zh ? "Trutina · 完整深度" : "Trutina · full depth");
+    g += `<text class="lbl-us" data-vision x="${cx + dx}" y="${cy + dy}" text-anchor="${an}" style="font-size:15px">${name}</text>`;
+    g += `<text class="lbl-sub" x="${cx + dx}" y="${cy + dy + 18}" text-anchor="${an}">${zh ? `预估 ${fmt1(r.i)}（${fmt1(r.i_lo)}–${fmt1(r.i_hi)}）` : `est. ${fmt1(r.i)} (${fmt1(r.i_lo)}–${fmt1(r.i_hi)})`} · ${fmt1(r.p50)} ms</text>`;
   }
   const legend = `<div class="legend">
-    <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="var(--fg)"/></svg></i>${MK}Trutina${PILL}${zh ? " · 自适应深度" : " · adaptive"}</span>
-    <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="#fff" stroke="var(--fg)" stroke-width="2"/></svg></i>${MK}Trutina${PILL}${zh ? " · 完整深度" : " · full depth"}</span>
-    <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="var(--muted)"/></svg></i>${zh ? "其他开放 4B 决策模型" : "other open 4B decision models"}</span>
-    <span><i><svg width="26" height="10"><line x1="0" x2="26" y1="5" y2="5" stroke="var(--fg)" stroke-width="1.6" stroke-dasharray="5 4" opacity=".6"/></svg></i>${zh ? "帕累托前沿（平均延迟）" : "Pareto frontier (mean latency)"}</span>
+    <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="var(--fg)"/></svg></i>${MK}Trutina${PILL}${zh ? " · 预估分，竖线为不确定范围" : " · estimated score, bar = uncertainty"}</span>
+    <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="5.5" fill="var(--muted)"/></svg></i>${zh ? "前沿上的系统" : "on the frontier"}</span>
+    <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="4.5" fill="var(--pale)"/></svg></i>${zh ? "其他决策系统" : "other decision systems"}</span>
+    <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="5.5" fill="var(--llm)"/></svg></i>${zh ? "通用 / 推理语言模型" : "general / reasoning language models"}</span>
+    <span><i><svg width="26" height="10"><line x1="0" x2="26" y1="5" y2="5" stroke="var(--fg)" stroke-width="1.6" stroke-dasharray="5 4" opacity=".6"/></svg></i>${zh ? "帕累托前沿" : "Pareto frontier"}</span>
     <span><i><svg width="20" height="14"><rect width="20" height="14" rx="3" fill="var(--fg)" opacity=".08"/></svg></i>${zh ? "被支配区域" : "dominated"}</span></div>`;
+  const n = rows.filter(r => !r.us).length, o = B.offsets;
   return frame(zh ? {
     title: "进一步推进准确率与速度的帕累托前沿",
-    sub: "同一批请求、同型号 GPU。以平均延迟计，Trutina 自适应深度最快（30.6 ms），完整深度（38.7 ms，70.1）与 JevK5（44.4 ms，70.7）构成前沿的其余部分；其他系统均被支配。",
+    sub: `JevBench v1.5.4 官方榜单上 Intelligence ≥ 40 的 ${n} 个系统。按预估分，Trutina 的两种深度都落在前沿上，是 30 ms 以内唯一高于 62 分的系统。`,
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
-    src: `${SAME_RUN_ZH}Intelligence 按 v1.5 规则计分。${US_ZH}若改用 p50 延迟，Trutina 自适应深度同样最快（14.0 ms，次快为 decider 的 17.8 ms）。`,
+    src: `其他系统的 Intelligence 与 p50 均为 JevBench v1.5.4 官方结果（原始延迟，在各自的测试机上测得，GPU 型号不一；经 API 评测的系统含网络往返）。Trutina 尚未经官方评测，位置为预估：延迟为我们在 RTX PRO 6000 上串行处理 231 道公开题的 p50；分数为我们按 v1.5 规则在这 231 题上的自测分，加上同一批权重的官方分与我们自测分之差的平均值（JevK5 v0.3 ${o.jevk5}、Plumb-4B ${o.plumb}、spark-s1 +${o.spark}，平均 ${B.offset_mean}），竖线为按这三个差值的最小与最大值换算出的范围。官方分含未公开的密封题，与自测分口径不同，这只是近似。`,
   } : {
     title: "Pushing the accuracy–speed frontier further",
-    sub: "The same requests on the same GPU type. By mean latency Trutina with adaptive depth is the fastest (30.6 ms); full depth (38.7 ms, 70.1) and JevK5 (44.4 ms, 70.7) make up the rest of the frontier, and every other system is dominated.",
+    sub: `The ${n} systems on the JevBench v1.5.4 official board with Intelligence ≥ 40. On its estimated score, Trutina sits on the frontier at both depths, the only system under 30 ms above 62.`,
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
-    src: `${SAME_RUN_EN} Intelligence: the v1.5 rules. ${US_EN} By p50 latency, Trutina with adaptive depth is also the fastest (14.0 ms; next is decider at 17.8 ms).`,
+    src: `Other systems: JevBench v1.5.4 official Intelligence and p50 (raw latency, measured on each system's own pod, GPU types differ; systems scored via API include the network round trip). Trutina has no official score yet, so its position is an estimate: latency is our serial p50 on an RTX PRO 6000 over the 231 public tasks; the score is our own v1.5-rules score on those tasks plus the mean official-minus-ours difference on the same weights run both ways (JevK5 v0.3 ${o.jevk5}, Plumb-4B ${o.plumb}, spark-s1 +${o.spark}; mean ${B.offset_mean}), and the bar spans the smallest to the largest of those differences. The official score includes sealed tasks our run cannot see, so this is an approximation.`,
   });
 }
 

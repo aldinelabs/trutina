@@ -214,6 +214,24 @@ def main():
         else:  # the other open 4B models, through their own servers in the same run
             big.append({"name": r["name"], "size": "4B", "p50": r["p50"], "p95": r["p95"], "by": "us"})
     data["bigger"] = sorted(big, key=lambda r: r["p50"])
+    # the whole official board at p50 (raw) against Intelligence, with Trutina placed by estimate: it has no official
+    # score, so its own-harness Intelligence is shifted by the official-minus-ours difference on the systems run both ways
+    LLM = ("GPT-", "Gemini", "DeepSeek", "Qwen3.8 27B (Chutes")
+    board = []
+    for r in jb["systems"]:
+        sp, i = r.get("speed") or {}, (r.get("intelligence") or {}).get("I_open")
+        if sp.get("p50_s_raw") and i is not None and i >= 40:
+            board.append({"name": r["display"].split(" (")[0], "p50": round(sp["p50_s_raw"] * 1000, 1), "i": round(i, 1),
+                          "gpu": r.get("gpu"), "llm": r["display"].startswith(LLM)})
+    pairs = {"jevk5": "JevK5 v0.3", "plumb": "Plumb-4B", "spark": "spark-s1-4b-v6"}  # same weights in both runs
+    ours = {r["id"]: r["i_open"] for r in data["compete"]["runs"] if not r["us"]}
+    offs = {k: round(next(b["i"] for b in board if b["name"] == n) - ours[k], 1) for k, n in pairs.items()}
+    lo, hi, mid = min(offs.values()), max(offs.values()), sum(offs.values()) / len(offs)
+    for r in data["compete"]["runs"]:
+        if r["us"]:
+            board.append({"name": "Trutina", "mode": r["mode"], "p50": r["p50"], "i": round(r["i_open"] + mid, 1),
+                          "i_lo": round(r["i_open"] + lo, 1), "i_hi": round(r["i_open"] + hi, 1), "i_ours": r["i_open"], "us": True})
+    data["board"] = {"rows": board, "offsets": offs, "offset_mean": round(mid, 1)}
     # LocalLLaMA: the dataset card's zero-shot rows, plus the six 4B systems we ran (same 5-questions-per-request protocol)
     card = [dict(r, by="card") for r in data["localllama"]["rows"] if not r.get("ours")]
     names = dict(SYSTEMS)
