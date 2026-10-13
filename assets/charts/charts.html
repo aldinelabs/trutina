@@ -279,7 +279,7 @@ function panel() {
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
     src: "Qwen3.8-27B（以及副标题中 Jev 1.13.0、Perplexity Decider 27B）的数值取自 Perplexity 公布的 11 项决策面板（2026 年 9 月测得，经 benchlm.ai 汇总），其抽样题目、提示词与标签映射未公开。Trutina 为已发布权重、完整深度，由我们在同型号公开切分上按相同题数固定种子抽样测得，并已剔除与训练数据近似重复的题目（8-gram 重合 ≥ 30%）；Circa 因出现在训练数据中而未纳入。JudgeBench 为两种顺序的单题准确率，JevBench public hard 为当前版本的 111 题（面板为 101 题）。此为近似对比，并非复现。",
   } : {
-    title: "Better decisions than a general language model several times its size",
+    title: "Better decisions than a general LLM several times its size",
     sub: `Perplexity's decision panel, 10 public tasks, ${P.n.toLocaleString()} rows. Trutina leads on ${wins} tasks and scores ${o.trutina} weighted by rows against Qwen3.8-27B's ${o.qwen}; the dedicated Jev 1.13.0 and Perplexity Decider 27B score ${o.jev} and ${o.pplx}.`,
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
     src: "Qwen3.8-27B (and, in the subtitle, Jev 1.13.0 and Perplexity Decider 27B): Perplexity's published 11-task decision panel (measured September 2026, collected by benchlm.ai); its sampled items, prompts and label mappings are unpublished. Trutina: released weights at full depth, measured by us on the same public splits with the same row counts (fixed seed), near-duplicates of our training data removed (≥ 30% shared 8-grams); Circa is left out because it was in our training data. JudgeBench is per-request accuracy over both orders; JevBench public hard is the current 111 tasks (the panel used 101). An approximate comparison, not a replication.",
