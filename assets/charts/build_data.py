@@ -208,6 +208,8 @@ def main():
     for r in data["compete"]["runs"]:
         if r["us"]:
             big.append({"name": "Trutina", "mode": r["mode"], "size": "4B", "p50": r["p50"], "p95": r["p95"], "us": True, "by": "us"})
+        else:  # the other open 4B models, through their own servers in the same run
+            big.append({"name": r["name"], "size": "4B", "p50": r["p50"], "p95": r["p95"], "by": "us"})
     data["bigger"] = sorted(big, key=lambda r: r["p50"])
     # LocalLLaMA: the dataset card's zero-shot rows, plus the six 4B systems we ran (same 5-questions-per-request protocol)
     card = [dict(r, by="card") for r in data["localllama"]["rows"] if not r.get("ours")]

@@ -321,14 +321,14 @@ function panel() {
 /* ---------- Latency against larger systems on the same GPU type ---------- */
 function bigger() {
   const rows = D.bigger.map(r => ({ ...r, label: r.us ? (r.mode === "adaptive" ? (zh ? "Trutina · 自适应深度" : "Trutina · adaptive") : (zh ? "Trutina · 完整深度" : "Trutina · full depth")) : r.name }));
-  const W = 1470, rowH = 60, top = 10, H = rows.length * rowH + top + 40, lx = 420;
+  const W = 1470, rowH = 41, top = 8, H = rows.length * rowH + top + 40, lx = 420;
   const x = logScale(10, 300, lx, W - 170);
   let g = "";
   for (const t of [10, 20, 50, 100, 200, 300]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 34}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - 10}" text-anchor="middle">${t} ms</text>`;
   rows.forEach((r, i) => {
     const cy = top + i * rowH + rowH / 2;
     g += `<text class="${r.us ? "lbl-us" : "lbl"}" data-nopill x="${lx - 80}" y="${cy + 1}" text-anchor="end" style="font-size:${r.us ? 16 : 15}px">${esc(r.label)}</text>`;
-    g += `<text class="lbl-sub" x="${lx - 80}" y="${cy + 18}" text-anchor="end">${r.us ? (zh ? "本文实测 · 231 道公开题" : "measured by us · 231 public tasks") : (zh ? `JevBench 官方测得 · Intelligence ${fmt1(r.i_open)}` : `JevBench official · Intelligence ${fmt1(r.i_open)}`)}</text>`;
+    g += `<text class="lbl-sub" x="${lx - 80}" y="${cy + 18}" text-anchor="end">${r.us ? (zh ? "本文实测 · 231 道公开题" : "measured by us · 231 public tasks") : r.by === "us" ? (zh ? "本文实测 · 同一容器 · 自带服务端" : "measured by us · same container · own server") : (zh ? `JevBench 官方测得 · Intelligence ${fmt1(r.i_open)}` : `JevBench official · Intelligence ${fmt1(r.i_open)}`)}</text>`;
     g += chip(lx - 66, cy, r.size === "?" ? (zh ? "未公开" : "n/a") : r.size, r.us);
     g += `<line x1="${x(r.p50)}" x2="${x(r.p95)}" y1="${cy}" y2="${cy}" stroke="${r.us ? "var(--fg)" : "var(--faint)"}" stroke-width="2" stroke-dasharray="${r.us ? "" : "3 3"}"/>`;
     g += bar(lx, cy - 12, x(r.p50) - lx, 24, r.us ? "var(--fg)" : "var(--pale)");
@@ -339,17 +339,18 @@ function bigger() {
     <span><i><svg width="26" height="14"><line x1="0" x2="20" y1="7" y2="7" stroke="var(--fg)" stroke-width="2"/><circle cx="20" cy="7" r="4.5" fill="#fff" stroke="var(--fg)" stroke-width="2"/></svg></i>p95</span>
     <span>${zh ? "数值：p50 / p95（ms）" : "values: p50 / p95 (ms)"}</span></div>`;
   const ad = rows.find(r => r.us && r.mode === "adaptive"), big = rows.filter(r => !r.us && ["12B", "26B", "27B", "35B"].includes(r.size));
+  const f4 = rows.filter(r => !r.us && r.size === "4B").map(r => r.p50), f4lo = Math.min(...f4), f4hi = Math.max(...f4);
   const lo = Math.min(...big.map(r => r.p50)) / ad.p50, hi = Math.max(...big.map(r => r.p50)) / ad.p50;
   return frame(zh ? {
-    title: "同型号 GPU 上，Trutina 的 p50 远低于 12–35B 决策系统",
-    sub: `RTX PRO 6000，串行单请求。Trutina 自适应深度的 p50 为 ${fmt1(ad.p50)} ms，12–35B 系统为其 ${lo.toFixed(1)}–${hi.toFixed(1)} 倍；p95（${fmt1(ad.p95)} ms）与 Cygnet、JevOne 相近，低于 27B 级系统。`,
+    title: "同型号 GPU 上，Trutina 的 p50 低于所有 4–35B 决策系统",
+    sub: `RTX PRO 6000，串行单请求。Trutina 自适应深度的 p50 为 ${fmt1(ad.p50)} ms，低于另外 5 个开源 4B（${fmt1(f4lo)}–${fmt1(f4hi)} ms）；12–35B 系统为其 ${lo.toFixed(1)}–${hi.toFixed(1)} 倍。p95（${fmt1(ad.p95)} ms）是 4B 中最低的，与 Cygnet、JevOne 相近。`,
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
-    src: `其他系统的延迟与 Intelligence 为 JevBench v1.5.4 官方结果，由维护方在其 RTX PRO 6000 测试机上以 450 个请求串行测得（原始值，未作调整）。Trutina 由我们在同型号 GPU 上串行处理 231 道 JevBench 公开题测得（HTTP 往返，CUDA graph，预热 10 条），并非官方测试机，请求集也不同，长请求的比例会影响 p95。Trutina 经 CUDA graph 服务；同一容器内不启用 graph 时为 20.8 / 108.9 ms（自适应深度），与此前的同口径对比运行相差不超过 1%。`,
+    src: `另外 5 个 4B 模型由我们在 Trutina 的同一 Modal 容器、同一 231 道题上测得，各用其自带的服务端（HTTP 往返，预热 10 条），官方榜单上没有在 RTX PRO 6000 上测得的 4B 系统。其余系统的延迟与 Intelligence 为 JevBench v1.5.4 官方结果，由维护方在其 RTX PRO 6000 测试机上以 450 个请求串行测得（原始值，未作调整）。Trutina 由我们在同型号 GPU 上串行处理 231 道 JevBench 公开题测得（HTTP 往返，CUDA graph，预热 10 条），并非官方测试机，请求集也不同，长请求的比例会影响 p95。Trutina 经 CUDA graph 服务；同一容器内不启用 graph 时为 20.8 / 108.9 ms（自适应深度），与此前的同口径对比运行相差不超过 1%。`,
   } : {
-    title: "On the same GPU type, Trutina's p50 is far below 12–35B systems'",
-    sub: `RTX PRO 6000, one request at a time. Trutina's adaptive-depth p50 is ${fmt1(ad.p50)} ms; the 12–35B systems take ${lo.toFixed(1)}–${hi.toFixed(1)}× as long. Its p95 (${fmt1(ad.p95)} ms) is close to Cygnet's and JevOne's and below the 27B-class systems'.`,
+    title: "Same GPU, Trutina's p50 is below every 4–35B decision system's",
+    sub: `RTX PRO 6000, one request at a time. Trutina's adaptive-depth p50 is ${fmt1(ad.p50)} ms, below the five other open 4B models (${fmt1(f4lo)}–${fmt1(f4hi)} ms); the 12–35B systems take ${lo.toFixed(1)}–${hi.toFixed(1)}× as long. Its p95 (${fmt1(ad.p95)} ms) is the lowest of the 4B models and close to Cygnet's and JevOne's.`,
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
-    src: `Other systems: JevBench v1.5.4 official latency and Intelligence, measured by the maintainers on their RTX PRO 6000 pods over 450 serial requests (raw, unadjusted). Trutina: measured by us on the same GPU type over the 231 public JevBench tasks (HTTP round trip, CUDA graphs, 10 warm-up requests), not on the official pods and not the same requests; the share of long requests moves p95. Trutina is served with CUDA graphs; without them the same container gives 20.8 / 108.9 ms (adaptive), within 1% of the earlier same-protocol comparison run.`,
+    src: `The five other 4B models: measured by us in the same Modal container as Trutina on the same 231 tasks, each through its own server (HTTP round trip, 10 warm-up requests); the official board has no 4B system measured on an RTX PRO 6000. Other systems: JevBench v1.5.4 official latency and Intelligence, measured by the maintainers on their RTX PRO 6000 pods over 450 serial requests (raw, unadjusted). Trutina: measured by us on the same GPU type over the 231 public JevBench tasks (HTTP round trip, CUDA graphs, 10 warm-up requests), not on the official pods and not the same requests; the share of long requests moves p95. Trutina is served with CUDA graphs; without them the same container gives 20.8 / 108.9 ms (adaptive), within 1% of the earlier same-protocol comparison run.`,
   });
 }
 
