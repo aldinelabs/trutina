@@ -111,23 +111,27 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 const fmt1 = v => (Math.round(v * 10) / 10).toFixed(1);
 const ms = " ms";
 const MARK = "brand/aldine-symbol.svg", MK = `<img class="mk" src="${MARK}" alt="">`, PILL = `<span class="pill4">4B</span>`;
+const VNOTE = () => zh ? "标「多模态」的系统经模型卡或 API 文档确认可接受图像输入；未标注的不一定不支持。" : "Systems marked Multimodal take image input per their model card or API docs; unmarked ones may too. ";
+const VISION = n => /^(JevOne|GPT-6 Luna|GPT-5\.6 Luna|Celeris-1|Decider v1\.1)/.test(n);
 const VIS = zh ? "多模态" : "Multimodal", VPILL = `<span class="pill4 pillv">${VIS}</span>`;
 
 /* The Aldine symbol beside every label of ours: each SVG text.lbl-us gets the mark to its left, sized to the text. */
 function placeMarks() {
   const NS = "http://www.w3.org/2000/svg", el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
-  for (const t of document.querySelectorAll("svg text.lbl-us")) {
+  for (const t of document.querySelectorAll("svg text.lbl-us, svg text[data-vision]")) {
+    const us = t.classList.contains("lbl-us");
     let b = t.getBBox();
     const h = b.height, s = Math.round(h * 0.92);
     // pills after the name: the dark 4B pill unless data-nopill, an outlined multimodal pill with data-vision;
     // a right-aligned label moves left to make room
-    const pills = [...(t.hasAttribute("data-nopill") ? [] : [["4B", true]]), ...(t.hasAttribute("data-vision") ? [[VIS, false]] : [])];
+    const pills = [...(t.hasAttribute("data-nopill") || !us ? [] : [["4B", true]]), ...(t.hasAttribute("data-vision") ? [[VIS, false]] : [])];
     if (pills.length) {
       const ph = Math.round(h * 0.78), gap = Math.round(h * 0.32), end = t.getAttribute("text-anchor") === "end";
       let after = t;
       const made = pills.map(([label, dark]) => {
-        const r = el("rect", { height: ph, rx: ph / 2, fill: dark ? "var(--fg)" : "var(--card)", stroke: dark ? "none" : "var(--fg)", "stroke-width": 1.3 });
-        const tx = el("text", { "text-anchor": "middle", style: `font: 600 ${Math.round(ph * 0.62)}px var(--mono); fill: ${dark ? "#fff" : "var(--fg)"}` });
+        const ink = us ? "var(--fg)" : "var(--muted)";
+        const r = el("rect", { height: ph, rx: ph / 2, fill: dark ? "var(--fg)" : "var(--card)", stroke: dark ? "none" : ink, "stroke-width": 1.3 });
+        const tx = el("text", { "text-anchor": "middle", style: `font: 600 ${Math.round(ph * 0.62)}px var(--mono); fill: ${dark ? "#fff" : ink}` });
         tx.textContent = label;
         after.after(r); r.after(tx); after = tx;
         const w = Math.max(Math.round(ph * 2.05), Math.ceil(tx.getComputedTextLength() + ph * 0.9));
@@ -143,7 +147,7 @@ function placeMarks() {
       }
       b = t.getBBox();
     }
-    t.parentNode.insertBefore(el("image", { href: MARK, width: s, height: s, x: b.x - s - s * 0.38, y: b.y + (b.height - s) / 2 }), t);
+    if (us) t.parentNode.insertBefore(el("image", { href: MARK, width: s, height: s, x: b.x - s - s * 0.38, y: b.y + (b.height - s) / 2 }), t);
   }
 }
 
@@ -194,7 +198,7 @@ function pareto() {
                 "Open Jev JSON Canvas": [10, 20, "start"], "OpenJev": [10, 20, "start"], "GPT-5.6 Luna": [-10, 18, "end"], "GPT-6 Luna": [-10, -10, "end"] };
   for (const r of front.filter(r => !r.us)) {
     const L = lab[r.name] || [10, -10, "start"];
-    g += `<text class="lbl" x="${x(r.p50) + L[0]}" y="${y(r.i) + L[1]}" text-anchor="${L[2]}" style="font-size:13px">${esc(r.name)} <tspan class="lbl-sub" style="font-size:12px">${fmt1(r.i)}</tspan></text>`;
+    g += `<text class="lbl" ${VISION(r.name) ? "data-vision" : ""} x="${x(r.p50) + L[0]}" y="${y(r.i) + L[1]}" text-anchor="${L[2]}" style="font-size:13px">${esc(r.name)} <tspan class="lbl-sub" style="font-size:12px">${fmt1(r.i)}</tspan></text>`;
   }
   for (const r of rows.filter(r => r.us)) {
     const cx = x(r.p50), cy = y(r.i), ad = r.mode === "adaptive";
@@ -220,12 +224,12 @@ function pareto() {
     title: "进一步推进准确率与速度的帕累托前沿",
     sub: `JevBench v1.5.4 官方榜单上 Intelligence ≥ 40 的 ${n} 个系统。按预估分，Trutina 的两种深度都落在前沿上，是 30 ms 以内唯一高于 62 分的系统。`,
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
-    src: `其他系统的 Intelligence 与 p50 均为 JevBench v1.5.4 官方结果（原始延迟，在各自的测试机上测得，GPU 型号不一；经 API 评测的系统含网络往返）。Trutina 尚未经官方评测，位置为预估：延迟为我们在 RTX PRO 6000 上串行处理 231 道公开题的 p50；分数为我们按 v1.5 规则在这 231 题上的自测分，加上同一批权重的官方分与我们自测分之差的平均值（JevK5 v0.3 ${o.jevk5}、Plumb-4B ${o.plumb}、spark-s1 +${o.spark}，平均 ${B.offset_mean}），竖线为按这三个差值的最小与最大值换算出的范围。官方分含未公开的密封题，与自测分口径不同，这只是近似。`,
+    src: `${VNOTE()}其他系统的 Intelligence 与 p50 均为 JevBench v1.5.4 官方结果（原始延迟，在各自的测试机上测得，GPU 型号不一；经 API 评测的系统含网络往返）。Trutina 尚未经官方评测，位置为预估：延迟为我们在 RTX PRO 6000 上串行处理 231 道公开题的 p50；分数为我们按 v1.5 规则在这 231 题上的自测分，加上同一批权重的官方分与我们自测分之差的平均值（JevK5 v0.3 ${o.jevk5}、Plumb-4B ${o.plumb}、spark-s1 +${o.spark}，平均 ${B.offset_mean}），竖线为按这三个差值的最小与最大值换算出的范围。官方分含未公开的密封题，与自测分口径不同，这只是近似。`,
   } : {
     title: "Pushing the accuracy–speed frontier further",
     sub: `The ${n} systems on the JevBench v1.5.4 official board with Intelligence ≥ 40. On its estimated score, Trutina sits on the frontier at both depths, the only system under 30 ms above 62.`,
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
-    src: `Other systems: JevBench v1.5.4 official Intelligence and p50 (raw latency, measured on each system's own pod, GPU types differ; systems scored via API include the network round trip). Trutina has no official score yet, so its position is an estimate: latency is our serial p50 on an RTX PRO 6000 over the 231 public tasks; the score is our own v1.5-rules score on those tasks plus the mean official-minus-ours difference on the same weights run both ways (JevK5 v0.3 ${o.jevk5}, Plumb-4B ${o.plumb}, spark-s1 +${o.spark}; mean ${B.offset_mean}), and the bar spans the smallest to the largest of those differences. The official score includes sealed tasks our run cannot see, so this is an approximation.`,
+    src: `${VNOTE()}Other systems: JevBench v1.5.4 official Intelligence and p50 (raw latency, measured on each system's own pod, GPU types differ; systems scored via API include the network round trip). Trutina has no official score yet, so its position is an estimate: latency is our serial p50 on an RTX PRO 6000 over the 231 public tasks; the score is our own v1.5-rules score on those tasks plus the mean official-minus-ours difference on the same weights run both ways (JevK5 v0.3 ${o.jevk5}, Plumb-4B ${o.plumb}, spark-s1 +${o.spark}; mean ${B.offset_mean}), and the bar spans the smallest to the largest of those differences. The official score includes sealed tasks our run cannot see, so this is an approximation.`,
   });
 }
 
@@ -325,7 +329,7 @@ function bigger() {
     g += `<line x1="${x(ad.p50)}" x2="${x(ad.p50)}" y1="${y + 2}" y2="${y + rs.length * rowH - 2}" stroke="var(--fg)" stroke-width="1.5" stroke-dasharray="4 4" opacity=".55"/>`;
     for (const r of rs) {
       const cy = y + rowH / 2, k = r.p50 / ad.p50;
-      g += `<text class="${r.us ? "lbl-us" : "lbl"}" data-nopill ${r.us ? "data-vision" : ""} x="${lx - 70}" y="${cy + 5}" text-anchor="end" style="font-size:${r.us ? 17 : 15}px">${esc(name(r))}</text>`;
+      g += `<text class="${r.us ? "lbl-us" : "lbl"}" data-nopill ${r.us || VISION(r.name) ? "data-vision" : ""} x="${lx - 70}" y="${cy + 5}" text-anchor="end" style="font-size:${r.us ? 17 : 15}px">${esc(name(r))}</text>`;
       g += chip(lx - 58, cy, r.size === "?" ? (zh ? "未公开" : "n/a") : r.size, r.us);
       g += bar(lx, cy - 13, x(r.p50) - lx, 26, r.us ? "var(--fg)" : "var(--pale)");
       g += r.us
@@ -341,12 +345,12 @@ function bigger() {
     title: "业界最低可用决策延迟",
     sub: `Trutina 自适应深度的 p50 为 ${fmt1(ad.p50)} ms；另外 5 个 4B 决策模型为其 ${rng(s4)} 倍，12–35B 系统为 ${rng(sl)} 倍。RTX PRO 6000，串行单请求。`,
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
-    src: `4B 模型由我们在同一 Modal 容器、同一 231 道 JevBench 公开题上测得，各用其作者提供的服务端（HTTP 往返，预热 10 条）；Trutina 经 CUDA graph 服务，完整深度为 ${fmt1(full.p50)} ms。p95：Trutina ${fmt1(ad.p95)} ms，另外 5 个 4B 为 ${fmt1(Math.min(...p95s))}–${fmt1(Math.max(...p95s))} ms。12–35B 系统为 JevBench v1.5.4 官方结果，由维护方在其 RTX PRO 6000 测试机上以 450 个请求串行测得（原始值），取 Intelligence ≥ 50 者；官方榜单上没有在 RTX PRO 6000 上测得的 4B 系统。两组的测试机与请求集不同。在整个 JevBench v1.5.4 官方榜单（各型号 GPU）上，p50 低于 Trutina 的只有 decider-2b（13.7 ms，H100），其 Intelligence 为 48.8；Intelligence ≥ 50 的系统中最快的是 JevK5 v0.3（15.8 ms，H100）。`,
+    src: `${VNOTE()}4B 模型由我们在同一 Modal 容器、同一 231 道 JevBench 公开题上测得，各用其作者提供的服务端（HTTP 往返，预热 10 条）；Trutina 经 CUDA graph 服务，完整深度为 ${fmt1(full.p50)} ms。p95：Trutina ${fmt1(ad.p95)} ms，另外 5 个 4B 为 ${fmt1(Math.min(...p95s))}–${fmt1(Math.max(...p95s))} ms。12–35B 系统为 JevBench v1.5.4 官方结果，由维护方在其 RTX PRO 6000 测试机上以 450 个请求串行测得（原始值），取 Intelligence ≥ 50 者；官方榜单上没有在 RTX PRO 6000 上测得的 4B 系统。两组的测试机与请求集不同。在整个 JevBench v1.5.4 官方榜单（各型号 GPU）上，p50 低于 Trutina 的只有 decider-2b（13.7 ms，H100），其 Intelligence 为 48.8；Intelligence ≥ 50 的系统中最快的是 JevK5 v0.3（15.8 ms，H100）。`,
   } : {
     title: "The lowest usable decision latency",
     sub: `Trutina's adaptive-depth p50 is ${fmt1(ad.p50)} ms; the five other 4B decision models take ${rng(s4)}× as long, the 12–35B systems ${rng(sl)}×. RTX PRO 6000, one request at a time.`,
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
-    src: `4B models: measured by us in one Modal container on the same 231 public JevBench tasks, each through its authors' server (HTTP round trip, 10 warm-up requests); Trutina is served with CUDA graphs and takes ${fmt1(full.p50)} ms at full depth. p95: Trutina ${fmt1(ad.p95)} ms, the other 4B models ${fmt1(Math.min(...p95s))}–${fmt1(Math.max(...p95s))} ms. 12–35B systems: JevBench v1.5.4 official results, measured by the maintainers on their RTX PRO 6000 pods over 450 serial requests (raw), those with Intelligence ≥ 50; the official board has no 4B system measured on an RTX PRO 6000. The two groups differ in machines and requests. Across the whole JevBench v1.5.4 official board (any GPU), only decider-2b (13.7 ms, H100) has a lower p50 than Trutina, at Intelligence 48.8; the fastest system at Intelligence ≥ 50 is JevK5 v0.3 (15.8 ms, H100).`,
+    src: `${VNOTE()}4B models: measured by us in one Modal container on the same 231 public JevBench tasks, each through its authors' server (HTTP round trip, 10 warm-up requests); Trutina is served with CUDA graphs and takes ${fmt1(full.p50)} ms at full depth. p95: Trutina ${fmt1(ad.p95)} ms, the other 4B models ${fmt1(Math.min(...p95s))}–${fmt1(Math.max(...p95s))} ms. 12–35B systems: JevBench v1.5.4 official results, measured by the maintainers on their RTX PRO 6000 pods over 450 serial requests (raw), those with Intelligence ≥ 50; the official board has no 4B system measured on an RTX PRO 6000. The two groups differ in machines and requests. Across the whole JevBench v1.5.4 official board (any GPU), only decider-2b (13.7 ms, H100) has a lower p50 than Trutina, at Intelligence 48.8; the fastest system at Intelligence ≥ 50 is JevK5 v0.3 (15.8 ms, H100).`,
   });
 }
 
@@ -360,7 +364,7 @@ function typed() {
   for (const t of [0, 20, 40, 60, 80, 100]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 34}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - 10}" text-anchor="middle">${t}</text>`;
   rows.forEach((r, i) => {
     const cy = top + i * rowH + rowH / 2, a = r.acc / 2, c = Math.max(r.cal, 0) / 2, col = r.ours ? "var(--fg)" : LLM(r) ? "var(--llm)" : "var(--muted)";
-    g += `<text class="${r.us ? "lbl-us" : r.ours ? "lbl-us" : "lbl"}" data-nopill x="${lx - 80}" y="${cy + 1}" text-anchor="end" style="font-size:${r.ours ? 17 : 15}px">${esc(r.name)}</text>`;
+    g += `<text class="${r.us ? "lbl-us" : r.ours ? "lbl-us" : "lbl"}" data-nopill ${r.ours || VISION(r.name) ? "data-vision" : ""} x="${lx - 80}" y="${cy + 1}" text-anchor="end" style="font-size:${r.ours ? 17 : 15}px">${esc(r.name)}</text>`;
     g += `<text class="lbl-sub" x="${lx - 80}" y="${cy + 19}" text-anchor="end">${zh ? "准确率" : "accuracy"} ${r.acc.toFixed(1)}% · Brier ${r.brier.toFixed(3)}</text>`;
     g += chip(lx - 66, cy, size(r), r.ours);
     g += `<rect x="${x(0)}" y="${cy - 14}" width="${x(a) - x(0)}" height="28" rx="6" fill="${col}"/>`;
@@ -375,12 +379,12 @@ function typed() {
     title: "将前沿决策智能以真正可部署的尺寸开放给每一个人",
     sub: `typed-decisions 测试集 2,000 题（400 个案例 × 5 题）。指数为准确率与校准分各占一半。Trutina 为 ${us.index.toFixed(1)}，仅次于闭源的 Celeris-1，高于 Decider v1.1 27B（${d27.index.toFixed(1)}）、Jev 1.13.0 与 GPT-6 Luna。`,
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
-    src: `指数 = ½ × 准确率 + ½ × 校准分，校准分 = 100 ×（1 − Brier ÷ 均匀猜测的 Brier），均匀猜测在该测试集上的 Brier 为 ${D.typed.brier_uniform}；Mercury Decide 的 Brier 高于均匀猜测，校准分记为 0。除 Trutina 外，准确率与 Brier 取自 Celeris-1 Decision 发布时公布的对比表（评测框架 0cfd276，由 Celeris 自行测得，经 benchlm.ai 汇总），未能返回分布的请求按均匀分布计分。Trutina 为已发布权重、完整深度，由我们在同一测试集上测得；Brier 按每题各选项与软标签之差的平方和计算，Celeris 未公布其切分与 Brier 的归一化方式。`,
+    src: `${VNOTE()}指数 = ½ × 准确率 + ½ × 校准分，校准分 = 100 ×（1 − Brier ÷ 均匀猜测的 Brier），均匀猜测在该测试集上的 Brier 为 ${D.typed.brier_uniform}；Mercury Decide 的 Brier 高于均匀猜测，校准分记为 0。除 Trutina 外，准确率与 Brier 取自 Celeris-1 Decision 发布时公布的对比表（评测框架 0cfd276，由 Celeris 自行测得，经 benchlm.ai 汇总），未能返回分布的请求按均匀分布计分。Trutina 为已发布权重、完整深度，由我们在同一测试集上测得；Brier 按每题各选项与软标签之差的平方和计算，Celeris 未公布其切分与 Brier 的归一化方式。`,
   } : {
     title: "Frontier decision intelligence, open to all at a deployable size",
     sub: `typed-decisions test, 2,000 questions (400 cases × 5). The index weighs accuracy and calibration equally. Trutina scores ${us.index.toFixed(1)}, second only to the closed Celeris-1 and above Decider v1.1 27B (${d27.index.toFixed(1)}), Jev 1.13.0 and GPT-6 Luna.`,
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
-    src: `Index = ½ × accuracy + ½ × calibration, calibration = 100 × (1 − Brier ÷ the Brier of a uniform guess), which is ${D.typed.brier_uniform} on this test; Mercury Decide's Brier is above the uniform guess's, so its calibration counts as 0. Other systems' accuracy and Brier: the table Celeris published with Celeris-1 Decision (harness 0cfd276, measured by Celeris, collected by benchlm.ai), requests without a distribution scored as uniform. Trutina: released weights at full depth, measured by us on the same test; Brier is the per-question sum over options of the squared difference to the soft label. Celeris did not publish its split or Brier normalisation.`,
+    src: `${VNOTE()}Index = ½ × accuracy + ½ × calibration, calibration = 100 × (1 − Brier ÷ the Brier of a uniform guess), which is ${D.typed.brier_uniform} on this test; Mercury Decide's Brier is above the uniform guess's, so its calibration counts as 0. Other systems' accuracy and Brier: the table Celeris published with Celeris-1 Decision (harness 0cfd276, measured by Celeris, collected by benchlm.ai), requests without a distribution scored as uniform. Trutina: released weights at full depth, measured by us on the same test; Brier is the per-question sum over options of the squared difference to the soft label. Celeris did not publish its split or Brier normalisation.`,
   });
 }
 
