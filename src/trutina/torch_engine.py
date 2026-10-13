@@ -8,8 +8,14 @@ Same prompt, readout, exits and calibration as the MLX engine (`trutina.engine`)
 answers at layer 12, `adaptive` walks the exits (12, 16, 20, 24) and stops at the first whose top
 probability reaches the threshold for every question of the batch, continuing from that layer's
 hidden states otherwise; `deep` runs all 32 layers (without the MLX engine's option rotations).
+`noul="decisive"` (default when the release ships the map) pushes leaning yes/no probabilities out of
+the 0.2-0.8 band, as in the MLX engine; `noul="calibrated"` reports the calibrated probability.
 Questions are length-sorted into padded batches under a token budget; a batch that runs out of GPU
 memory is split in half.
+With `cuda_graphs` (default), batches of up to `graph_tokens` padded tokens replay CUDA graphs, one per
+exit-to-exit segment and (batch, length bucket): short requests are bound by kernel launches, not
+FLOPs. Sequences are right-padded to the bucket without an attention mask; the model is causal and
+each row is read at its own last token, so the padding never reaches what is read.
 Install the CUDA kernels for speed: flash-linear-attention and causal-conv1d.
 """
 
@@ -26,12 +32,13 @@ import torch
 
 from trutina import wide
 from trutina.api import RequestError, handle
-from trutina.readout import FORMAT_VERSION, full_text, prompt, wide_labels
+from trutina.readout import FORMAT_VERSION, decisive, full_text, prompt, wide_labels
 from trutina.schema import Question, Request, State
 
 
 class TorchTrutina:
-    def __init__(self, torso, tok, config: dict, readout: dict, device: str, batch_tokens: int):
+    def __init__(self, torso, tok, config: dict, readout: dict, device: str, batch_tokens: int,
+                 cuda_graphs: bool = True, graph_tokens: int = 4096):
         self.torso, self.tok, self.config, self.device = torso, tok, config, device
         self.exits = config["exits"][:-1]
         temps = [config["temperature"][str(e)] for e in config["exits"]]
@@ -48,11 +55,15 @@ class TorchTrutina:
         self.rows = torso.embed_tokens.weight[ids].float()  # tied LM head: the option letters' rows
         self.batch_tokens = batch_tokens
         self.depth = "adaptive"
+        self.noul = "decisive" if "noul_decisive" in config else "calibrated"
         self.last_exit: int | None = None
+        self.graph_tokens = graph_tokens if cuda_graphs and str(device).startswith("cuda") else 0
+        self.graphs: dict[tuple[int, int], _Chain] = {}
+        self.pool = None
 
     @classmethod
     def load(cls, path: str = "aldinelabs/trutina-4b", device: str = "cuda", dtype=torch.bfloat16,
-             batch_tokens: int = 32768) -> TorchTrutina:
+             batch_tokens: int = 32768, cuda_graphs: bool = True, graph_tokens: int = 4096) -> TorchTrutina:
         from safetensors import safe_open
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -68,7 +79,8 @@ class TorchTrutina:
         torso = getattr(lm.model, "language_model", lm.model).to(device).eval()
         with safe_open(str(local / "readout.safetensors"), "np") as f:
             readout = {k: f.get_tensor(k).astype(np.float32) for k in f.keys()}  # noqa: SIM118 (safe_open)
-        return cls(torso, AutoTokenizer.from_pretrained(str(local)), config, readout, device, batch_tokens)
+        return cls(torso, AutoTokenizer.from_pretrained(str(local)), config, readout, device, batch_tokens,
+                   cuda_graphs, graph_tokens)
 
     def decide(self, body: dict) -> dict:
         return handle(body, self)
@@ -98,6 +110,12 @@ class TorchTrutina:
             for (qi, f), pf in zip(fins.items(), finals):
                 q = req.questions[qi]
                 res[q.id] = wide.combine(len(q.options), parts[qi], f, pf)
+        if self.noul == "decisive":
+            t, b = self.config["noul_decisive"]["T"], self.config["noul_decisive"]["b"]
+            for q in req.questions:
+                if q.kind == "noul":
+                    y = decisive(float(res[q.id][1]), t, b)
+                    res[q.id] = np.array([1 - y, y])
         return res
 
     def encode(self, state: State, q: Question) -> list[int]:
@@ -130,8 +148,14 @@ class TorchTrutina:
             m = len(seqs) // 2
             return self._batch(seqs[:m], ks[:m]) + self._batch(seqs[m:], ks[m:])
 
+    def _plan(self) -> list[tuple[int, float]]:
+        return {"deep": [], "shallow": [(0, 0.0)]}.get(self.depth, [(i, self.threshold) for i in range(len(self.exits))])
+
     def _read(self, seqs: list[list[int]], ks: list[int]) -> list[np.ndarray]:
         """Run the layers segment by segment (exit to exit), reading the exits the depth asks for."""
+        T = bucket(max(map(len, seqs)))
+        if T * len(seqs) <= self.graph_tokens:
+            return self._read_graphs(seqs, ks, T)
         T, dev, torso = max(map(len, seqs)), self.device, self.torso
         ids = torch.tensor([s + [0] * (T - len(s)) for s in seqs], device=dev)
         mask = torch.tensor([[1] * len(s) + [0] * (T - len(s)) for s in seqs], device=dev)
@@ -142,9 +166,8 @@ class TorchTrutina:
         def probs(logits: torch.Tensor) -> list[np.ndarray]:
             return [torch.softmax(logits[r, :k], -1).cpu().double().numpy() for r, k in enumerate(ks)]
 
-        plan = {"deep": [], "shallow": [(0, 0.0)]}.get(self.depth, [(i, self.threshold) for i in range(len(self.exits))])
         start = 0
-        for i, thr in plan:
+        for i, thr in self._plan():
             h = self._layers(h, start, self.exits[i], layer_kw)
             start = self.exits[i]
             x = h[rows, last].float()
@@ -170,6 +193,85 @@ class TorchTrutina:
                  "linear_attention": mod.create_recurrent_attention_mask(**kw)}
         return h, {"masks": masks, "position_embeddings": torso.rotary_emb(h, pos), "position_ids": text_pos}
 
+    def _read_graphs(self, seqs: list[list[int]], ks: list[int], T: int) -> list[np.ndarray]:
+        """`_read` through the captured segment graphs of this (batch, length bucket)."""
+        chain = self.graphs.get((len(seqs), T)) or self._capture(len(seqs), T)
+        chain.ids.copy_(torch.tensor([s + [0] * (T - len(s)) for s in seqs]))
+        chain.last.copy_(torch.tensor([len(s) - 1 for s in seqs]))
+
+        def probs(logits: torch.Tensor) -> list[np.ndarray]:
+            z = logits.cpu().double().numpy()
+            return [_softmax(z[r, :k]) for r, k in enumerate(ks)]
+
+        chain.graphs[0].replay()
+        done = 0  # segments replayed so far
+        for i, thr in self._plan():
+            chain.graphs[i + 1].replay()
+            done = i + 1
+            p = probs(chain.logits[i])
+            if all(q.max() >= thr for q in p):
+                self.last_exit = self.exits[i]
+                return p
+        for g in chain.graphs[done + 1:]:
+            g.replay()
+        self.last_exit = len(self.torso.layers)
+        return probs(chain.logits[-1])
+
+    def _capture(self, B: int, T: int) -> _Chain:
+        """Warm up and capture the prepare step and every exit-to-exit segment for a [B, T] batch."""
+        torso, dev = self.torso, self.device
+        ids = torch.zeros(B, T, dtype=torch.long, device=dev)
+        last = torch.full((B,), T - 1, dtype=torch.long, device=dev)
+        rows = torch.arange(B, device=dev)
+        bounds = [0, *self.exits, len(torso.layers)]
+        # masks and rotary embeddings depend only on the shape when nothing is masked: build them once,
+        # outside the graph (mask construction inspects values on the host)
+        _, kw = self._prepare(ids, torch.ones_like(ids))
+        state: dict = {"kw": kw}
+
+        def prepare():
+            state["h"] = torso.embed_tokens(ids)
+            return state["h"]
+
+        def segment(j: int):
+            h = self._layers(state["h"], bounds[j], bounds[j + 1], state["kw"])
+            state["h"] = h
+            x = h[rows, last].float()
+            z = torso.norm(x + self.lens[j](x)) if j < len(self.exits) else torso.norm(x)
+            return z.float() @ self.rows.T * self.scales[j]
+
+        steps = [prepare, *[lambda j=j: segment(j) for j in range(len(bounds) - 1)]]
+        side = torch.cuda.Stream()
+        side.wait_stream(torch.cuda.current_stream())
+        with torch.cuda.stream(side):  # warm-up: Triton autotuning and cuBLAS workspaces before capture
+            for _ in range(2):
+                for f in steps:
+                    f()
+        torch.cuda.current_stream().wait_stream(side)
+        if self.pool is None:
+            self.pool = torch.cuda.graph_pool_handle()
+        graphs, logits = [], []
+        for n, f in enumerate(steps):
+            g = torch.cuda.CUDAGraph()
+            with torch.cuda.graph(g, pool=self.pool):
+                out = f()
+            graphs.append(g)
+            if n:
+                logits.append(out)
+        chain = _Chain(ids, last, graphs, logits, state)
+        self.graphs[(B, T)] = chain
+        return chain
+
+    def warm_graphs(self, max_tokens: int | None = None, batch: int = 1) -> int:
+        """Capture every length bucket up to `max_tokens` for `batch` rows now, rather than on first use."""
+        n = 0
+        for T in BUCKETS:
+            if T * batch <= min(max_tokens or self.graph_tokens, self.graph_tokens) and (batch, T) not in self.graphs:
+                with torch.inference_mode():
+                    self._capture(batch, T)
+                n += 1
+        return n
+
     def _layers(self, h: torch.Tensor, start: int, stop: int, kw: dict) -> torch.Tensor:
         types = self.torso.config.layer_types
         for i in range(start, stop):
@@ -177,6 +279,28 @@ class TorchTrutina:
                                      attention_mask=kw["masks"][types[i]], position_ids=kw["position_ids"],
                                      past_key_values=None, use_cache=False)
         return h
+
+
+BUCKETS = [*range(64, 512, 64), *range(512, 1024, 128), *range(1024, 2048, 256), *range(2048, 8193, 512)]
+
+
+def bucket(n: int) -> int:
+    """The smallest length bucket that holds `n` tokens (at most ~12% padding); past the table, `n`."""
+    return next((b for b in BUCKETS if b >= n), n)
+
+
+@dataclasses.dataclass
+class _Chain:
+    ids: torch.Tensor          # static input [B, T]
+    last: torch.Tensor         # static input [B]: each row's last token
+    graphs: list               # prepare, then one graph per exit-to-exit segment
+    logits: list               # each segment's static readout logits [B, PASS]
+    state: dict                # keeps the captured hidden states alive
+
+
+def _softmax(z: np.ndarray) -> np.ndarray:
+    e = np.exp(z - z.max())
+    return e / e.sum()
 
 
 def _subset(q: Question, idx: Sequence[int]) -> Question:

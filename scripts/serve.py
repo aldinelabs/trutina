@@ -78,15 +78,24 @@ def main():
     ap.add_argument("--max-body", type=int, default=64 << 20)
     ap.add_argument("--engine", choices=["mlx", "torch"], default="mlx")
     ap.add_argument("--device", default="cuda", help="torch engine only")
+    ap.add_argument("--noul", choices=["decisive", "calibrated"], default=None,
+                    help="yes/no readout (default: decisive when the release ships the map)")
+    ap.add_argument("--no-cuda-graphs", action="store_true", help="torch engine only: run eagerly")
+    ap.add_argument("--warm-graphs", type=int, default=4096,
+                    help="torch engine only: capture the length buckets up to this many tokens at start-up")
     a = ap.parse_args()
     if a.engine == "torch":
         from trutina.torch_engine import TorchTrutina
 
-        engine = TorchTrutina.load(a.model, device=a.device)
+        engine = TorchTrutina.load(a.model, device=a.device, cuda_graphs=not a.no_cuda_graphs)
+        if engine.graph_tokens and a.warm_graphs:
+            print(f"captured CUDA graphs for {engine.warm_graphs(a.warm_graphs)} length buckets", flush=True)
     else:
         from trutina.engine import Trutina
 
         engine = Trutina.load(a.model)
+    if a.noul:
+        engine.noul = a.noul
     server = ThreadingHTTPServer((a.host, a.port), make_handler(engine, a.max_body))
     print(f"trutina-4b on http://{a.host}:{a.port}  (POST /v1/systemone, /v1/decisions)", flush=True)
     server.serve_forever()
