@@ -94,6 +94,14 @@ def compete() -> dict:
             runs.append({"id": s, "name": n, "mode": mode if s == "trutina" else None, "us": s == "trutina",
                          "p50": round(lat["p50"], 1), "p95": round(lat["p95"], 1), "mean": round(lat["mean"], 1),
                          "i_open": intel.get(ikey, {}).get("I_open")})
+    v3 = COMPETE / "trutina-v3.json"
+    if v3.exists():  # Trutina rows: v3 with the decisive yes/no map, served with CUDA graphs
+        t = json.loads(v3.read_text())
+        for r in runs:
+            if r["us"]:
+                lat = t["latency"][r["mode"]]
+                r.update(p50=round(lat["p50"], 1), p95=round(lat["p95"], 1), mean=round(lat["mean"], 1),
+                         i_open=t["intelligence"][r["mode"]], v3=True)
     return {"systems": [{"id": s, "short": n} for s, n in SYSTEMS], "panels": panels, "gpu": gpu, "runs": runs,
             "errors": {s: r.get("error_counts", {}) for s, r in full.items()}}
 

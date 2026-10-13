@@ -133,6 +133,8 @@ const pretty = n => n.replace(" (RTX PRO 6000)", "").replace(" v3", "");
 /* ---------- Same-run helpers: the six 4B systems on one JevBench re-run (lab/modal/compete_modal.py) ---------- */
 const RUNS = () => D.compete.runs.map(r => ({ ...r, label: r.us ? (r.mode === "adaptive" ? (zh ? "Trutina · 自适应深度" : "Trutina · adaptive") : (zh ? "Trutina · 完整深度" : "Trutina · full depth")) : r.name }));
 const SAME_RUN_ZH = "6 个开放 4B 决策模型各经其作者提供的服务端（固定 revision），在同型号 GPU（RTX PRO 6000）上串行处理同一批 231 道 JevBench 公开题，预热 10 条，计 HTTP 往返。";
+const US_ZH = "Trutina 为 v3 权重，启用是非题决断映射，经 CUDA graph 服务（不超过 2,048 token 的请求重放 graph）。Trutina 的 Intelligence 取自 v3 评测中服务端返回的逐题概率；延迟在与对比运行同配置的容器中测得，该容器内不启用 graph 时为 20.8 / 35.3 / 108.9 ms（p50 / 平均 / p95，自适应深度），与对比运行相差不超过 1%。其他系统按其服务端的原始输出计分。";
+const US_EN = "Trutina: v3 weights with the decisive yes/no map, served with CUDA graphs (requests up to 2,048 tokens replay graphs). Its Intelligence comes from the per-task probabilities the server returned in the v3 evaluation; its latency was measured in a container configured like the comparison run, where the same server without graphs gives 20.8 / 35.3 / 108.9 ms (p50 / mean / p95, adaptive depth), within 1% of the comparison run. Other systems are scored on their servers' outputs as served.";
 const SAME_RUN_EN = "Six open 4B decision models, each through the server its authors ship (pinned revision), one request at a time on the same GPU type (RTX PRO 6000), the same 231 public JevBench tasks after 10 warm-up requests, HTTP round trip included.";
 
 /* ---------- Pareto: Intelligence vs mean latency, same run ---------- */
@@ -153,7 +155,7 @@ function pareto() {
     const cx = x(r.mean), cy = y(r.i_open);
     if (r.us) {
       g += r.mode === "adaptive" ? usDot(cx, cy, 10) : `<circle cx="${cx}" cy="${cy}" r="8" fill="var(--card)" stroke="var(--fg)" stroke-width="2.5"/>`;
-      const [dx, dy, an] = r.mode === "adaptive" ? [-20, -14, "end"] : [44, 34, "start"];
+      const [dx, dy, an] = r.mode === "adaptive" ? [18, 42, "start"] : [-16, -34, "end"];
       g += `<text class="lbl-us" x="${cx + dx}" y="${cy + dy}" text-anchor="${an}" style="font-size:16px">${esc(r.label)}</text>`;
       g += `<text class="lbl-sub" x="${cx + dx}" y="${cy + dy + 18}" text-anchor="${an}">${fmt1(r.i_open)} · ${fmt1(r.mean)} ms</text>`;
     } else {
@@ -168,15 +170,15 @@ function pareto() {
     <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="var(--muted)"/></svg></i>${zh ? "其他开放 4B 决策模型" : "other open 4B decision models"}</span>
     <span><i><svg width="26" height="10"><line x1="0" x2="26" y1="5" y2="5" stroke="var(--fg)" stroke-width="1.6" stroke-dasharray="5 4" opacity=".6"/></svg></i>${zh ? "帕累托前沿（平均延迟）" : "Pareto frontier (mean latency)"}</span></div>`;
   return frame(zh ? {
-    title: "按平均延迟，Trutina 自适应深度位于帕累托前沿",
-    sub: "同一批请求、同型号 GPU。以平均延迟计，Trutina 自适应深度最快（35.3 ms），JevK5 的 Intelligence 最高（70.7）；两者之外的系统均被其中之一支配。",
+    title: "Trutina 的两种深度都位于帕累托前沿",
+    sub: "同一批请求、同型号 GPU。以平均延迟计，Trutina 自适应深度最快（30.6 ms），完整深度（38.7 ms，70.1）与 JevK5（44.4 ms，70.7）构成前沿的其余部分；其他系统均被支配。",
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
-    src: `${SAME_RUN_ZH}Intelligence 按 v1.5 规则对各系统的原始输出计分（Trutina 启用是非题决断映射时为 69.0 / 67.9）。若改用 p50 延迟，decider、Plumb 与 JevK5（17.8–20.0 ms）快于 Trutina 自适应深度（20.7 ms），JevK5 同时支配 Trutina。`,
+    src: `${SAME_RUN_ZH}Intelligence 按 v1.5 规则计分。${US_ZH}若改用 p50 延迟，Trutina 自适应深度同样最快（14.0 ms，次快为 decider 的 17.8 ms）。`,
   } : {
-    title: "By mean latency, Trutina with adaptive depth is on the frontier",
-    sub: "The same requests on the same GPU type. By mean latency Trutina with adaptive depth is the fastest (35.3 ms) and JevK5 has the highest Intelligence (70.7); every other system is dominated by one of the two.",
+    title: "Both Trutina depths are on the Pareto frontier",
+    sub: "The same requests on the same GPU type. By mean latency Trutina with adaptive depth is the fastest (30.6 ms); full depth (38.7 ms, 70.1) and JevK5 (44.4 ms, 70.7) make up the rest of the frontier, and every other system is dominated.",
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
-    src: `${SAME_RUN_EN} Intelligence: the v1.5 rules on each system's outputs as served (Trutina with its decisive yes/no map: 69.0 / 67.9). By p50 latency instead, decider, Plumb and JevK5 (17.8–20.0 ms) are faster than Trutina with adaptive depth (20.7 ms), and JevK5 dominates Trutina.`,
+    src: `${SAME_RUN_EN} Intelligence: the v1.5 rules. ${US_EN} By p50 latency, Trutina with adaptive depth is also the fastest (14.0 ms; next is decider at 17.8 ms).`,
   });
 }
 
@@ -184,9 +186,9 @@ function pareto() {
 function efficiency() {
   const rows = RUNS().map(r => ({ ...r, ei: r.i_open / r.mean, ei50: r.i_open / r.p50 })).sort((a, b) => b.ei - a.ei);
   const W = 1470, rowH = 58, top = 8, H = rows.length * rowH + top + 34, lx = 400;
-  const x = linScale(0, 2, lx, W - 260);
+  const x = linScale(0, 2.5, lx, W - 260);
   let g = "";
-  for (const t of [0, 0.5, 1, 1.5, 2]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 30}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - 6}" text-anchor="middle">${t}</text>`;
+  for (const t of [0, 0.5, 1, 1.5, 2, 2.5]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 30}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - 6}" text-anchor="middle">${t}</text>`;
   rows.forEach((r, i) => {
     const cy = top + i * rowH + rowH / 2;
     g += `<text class="${r.us ? "lbl-us" : "lbl"}" ${r.us ? "data-nopill" : ""} x="${lx - 76}" y="${cy + 5}" text-anchor="end" ${r.us ? 'style="font-size:16px"' : ""}>${esc(r.label)}</text>`;
@@ -194,17 +196,20 @@ function efficiency() {
     g += bar(lx, cy - 12, x(r.ei) - lx, 24, r.us ? "var(--fg)" : "var(--pale)");
     g += `<text class="${r.us ? "val" : "val-muted"}" x="${x(r.ei) + 12}" y="${cy + 5}">${r.ei.toFixed(2)} <tspan class="lbl-sub">${fmt1(r.i_open)} / ${fmt1(r.mean)} ms</tspan></text>`;
   });
-  const next = rows.find(r => !r.us), by50 = [...rows].sort((a, b) => b.ei50 - a.ei50), rank50 = by50.findIndex(r => r.us && r.mode === "adaptive") + 1;
+  const next = rows.find(r => !r.us), ad = rows.find(r => r.us && r.mode === "adaptive");
+  const by = k => [...rows].sort((a, b) => b[k] - a[k]), rank = k => by(k).findIndex(r => r === ad) + 1;
+  rows.forEach(r => { r.ei95 = r.i_open / r.p95; });
+  const n50 = by("ei50").find(r => !r.us), n95 = by("ei95").find(r => !r.us);
   return frame(zh ? {
     title: "Efficiency Index：单位平均延迟的 Intelligence",
     sub: `Efficiency Index 定义为 JevBench Intelligence 与单请求平均延迟（ms）之比。Trutina 自适应深度为 ${rows[0].ei.toFixed(2)}，次优为 ${next.label}（${next.ei.toFixed(2)}）。`,
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
-    src: `${SAME_RUN_ZH}平均延迟反映单位请求的计算开销；若改用 p50 延迟，${by50[0].label} 最高（${by50[0].ei50.toFixed(2)}），Trutina 自适应深度排第 ${rank50}（${rows.find(r => r.us && r.mode === "adaptive").ei50.toFixed(2)}）。`,
+    src: `${SAME_RUN_ZH}${US_ZH}改用 p50 或 p95 延迟时，Trutina 自适应深度分别排第 ${rank("ei50")} 与第 ${rank("ei95")}（${ad.ei50.toFixed(2)} / ${ad.ei95.toFixed(2)}），其他系统中最高的分别为 ${n50.label}（${n50.ei50.toFixed(2)}）与 ${n95.label}（${n95.ei95.toFixed(2)}）。`,
   } : {
     title: "Efficiency Index: Intelligence per millisecond of mean latency",
     sub: `Efficiency Index = JevBench Intelligence ÷ mean latency per request in ms. Trutina with adaptive depth scores ${rows[0].ei.toFixed(2)}; next is ${next.label} (${next.ei.toFixed(2)}).`,
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
-    src: `${SAME_RUN_EN} Mean latency tracks the compute spent per request. With p50 latency instead, ${by50[0].label} leads (${by50[0].ei50.toFixed(2)}) and Trutina with adaptive depth ranks ${rank50} (${rows.find(r => r.us && r.mode === "adaptive").ei50.toFixed(2)}).`,
+    src: `${SAME_RUN_EN} ${US_EN} With p50 or p95 latency instead, Trutina with adaptive depth ranks ${rank("ei50")} and ${rank("ei95")} (${ad.ei50.toFixed(2)} / ${ad.ei95.toFixed(2)}); the best other systems are ${n50.label} (${n50.ei50.toFixed(2)}) and ${n95.label} (${n95.ei95.toFixed(2)}).`,
   });
 }
 
@@ -340,15 +345,15 @@ function latency() {
     <span><i><svg width="26" height="14"><line x1="0" x2="20" y1="7" y2="7" stroke="var(--fg)" stroke-width="2"/><circle cx="20" cy="7" r="4.5" fill="#fff" stroke="var(--fg)" stroke-width="2"/></svg></i>p95</span>
     <span>${zh ? "数值：p50 / p95 · 平均（ms），粗体为该列最低" : "values: p50 / p95 · mean (ms), bold = lowest"}</span></div>`;
   return frame(zh ? {
-    title: "同一 GPU 上，Trutina 的尾延迟与平均延迟最低",
-    sub: "启用自适应深度时，Trutina 的 p95 为 109 ms、平均为 35 ms，均为 6 个开放 4B 决策模型中最低；p50 为 20.7 ms，略高于使用 CUDA graph 的 decider（17.8 ms）、Plumb（18.6 ms）与 JevK5（20.0 ms）。",
+    title: "同一 GPU 上，Trutina 的 p50、p95 与平均延迟均为最低",
+    sub: "启用自适应深度时，Trutina 的 p50 为 14.0 ms、p95 为 110 ms、平均为 30.6 ms，三项均为 6 个开放 4B 决策模型中最低；其他模型中 p50 最低的是 decider（17.8 ms）。",
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
-    src: `${SAME_RUN_ZH}`,
+    src: `${SAME_RUN_ZH}${US_ZH}`,
   } : {
-    title: "Lowest tail and mean latency on the same GPU",
-    sub: "With adaptive depth Trutina's p95 is 109 ms and its mean 35 ms, the lowest of the six open 4B decision models; its p50 of 20.7 ms is slightly above decider (17.8 ms), Plumb (18.6 ms) and JevK5 (20.0 ms), whose servers use CUDA graphs.",
+    title: "Lowest p50, p95 and mean latency on the same GPU",
+    sub: "With adaptive depth Trutina's p50 is 14.0 ms, its p95 110 ms and its mean 30.6 ms, the lowest of the six open 4B decision models on all three; the lowest p50 among the others is decider's 17.8 ms.",
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
-    src: SAME_RUN_EN,
+    src: `${SAME_RUN_EN} ${US_EN}`,
   });
 }
 

@@ -1765,20 +1765,22 @@
     "name": "Trutina",
     "mode": "full",
     "us": true,
-    "p50": 29.1,
-    "p95": 111.1,
-    "mean": 44.7,
-    "i_open": 65.8
+    "p50": 19.0,
+    "p95": 110.8,
+    "mean": 38.7,
+    "i_open": 70.1,
+    "v3": true
    },
    {
     "id": "trutina",
     "name": "Trutina",
     "mode": "adaptive",
     "us": true,
-    "p50": 20.7,
-    "p95": 109.3,
-    "mean": 35.3,
-    "i_open": 64.7
+    "p50": 14.0,
+    "p95": 110.2,
+    "mean": 30.6,
+    "i_open": 68.3,
+    "v3": true
    },
    {
     "id": "jevk5",
