@@ -213,37 +213,6 @@ function efficiency() {
   });
 }
 
-/* ---------- Size: JevBench official Intelligence, 4B and 12–35B ---------- */
-function size() {
-  const big = ["Eikos-27B", "Cygnet", "AutoJev-27B (RTX PRO 6000)", "Jev-Omni", "Surogate Rune 26B-A4B v3 (RTX PRO 6000)", "NInfer Qwen3.8-27B NVFP4", "decider-35b-a3b", "reflex-27b"].map(pick).filter(Boolean);
-  const small = ["spark-s1-4b-v6", "decider-4b v2", "JevK5 v0.3", "Plumb-4B", "Malkuth-4B", "Decision 4B v1.2"].map(pick).filter(Boolean);
-  const rows = [...big, ...small].sort((a, b) => b.i_open - a.i_open);
-  rows.push({ name: "Trutina", params_b: 4, us: true, i_open: null });
-  const W = 1470, rowH = 38, top = 8, H = rows.length * rowH + top + 30, lx = 330;
-  const x = linScale(40, 80, lx, W - 120);
-  let g = "";
-  for (const t of [40, 50, 60, 70, 80]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 26}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - 4}" text-anchor="middle">${t}</text>`;
-  rows.forEach((r, i) => {
-    const cy = top + i * rowH + rowH / 2, four = r.params_b === 4;
-    g += `<text class="${r.us ? "lbl-us" : "lbl"}" ${r.us ? "data-nopill" : ""} x="${lx - 76}" y="${cy + 5}" text-anchor="end" ${r.us ? 'style="font-size:16px"' : ""}>${esc(pretty(r.name))}</text>`;
-    g += chip(lx - 64, cy, `${r.params_b}B`, four);
-    if (r.i_open == null) { g += `<text class="lbl-sub" x="${lx}" y="${cy + 5}" style="font-size:14px">${zh ? "尚未经 JevBench 官方评测" : "not yet run by JevBench"}</text>`; return; }
-    g += bar(lx, cy - 11, x(r.i_open) - lx, 22, four ? "var(--muted)" : "var(--pale)");
-    g += `<text class="val-muted" x="${x(r.i_open) + 10}" y="${cy + 5}">${fmt1(r.i_open)}</text>`;
-  });
-  return frame(zh ? {
-    title: "JevBench 官方 Intelligence：4B 与 12–35B 系统",
-    sub: "官方开放集共 904 题，其中 303 题未公开，只能由 JevBench 运行。Trutina 尚未提交官方评测，因此不在此列出分数；同口径的 4B 对比见对比图。",
-    body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
-    src: "数据取自 JevBench v1.5.4 官方结果（开放集 Intelligence，0–100），由榜单维护方在其自有 GPU 上测得。参数量以各系统名称所标为准。",
-  } : {
-    title: "JevBench official Intelligence: 4B and 12–35B systems",
-    sub: "The official open set has 904 tasks, 303 of them unpublished, so only JevBench can run it. Trutina has not been submitted yet and has no score here; the same-protocol 4B comparison is in the head-to-head chart.",
-    body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
-    src: "JevBench v1.5.4 official results (open-set Intelligence, 0–100), measured by the maintainers on their own GPUs. Parameter counts as named by each system.",
-  });
-}
-
 /* ---------- LocalLLaMA zero-shot ---------- */
 function localllama() {
   const rows = D.localllama.rows;
@@ -558,7 +527,7 @@ function overview() {
   });
 }
 
-const CHARTS = { typed, panel, bigger, compare, overview, pareto, efficiency, size, localllama, adaptive, heldout };
+const CHARTS = { typed, panel, bigger, compare, overview, pareto, efficiency, localllama, adaptive, heldout };
 document.getElementById("frame").innerHTML = CHARTS[location.hash.slice(1) || "overview"]();
 document.fonts.ready.then(() => { placeMarks(); document.body.dataset.ready = "1"; });
 </script>
