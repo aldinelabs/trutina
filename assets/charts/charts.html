@@ -112,7 +112,7 @@ const fmt1 = v => (Math.round(v * 10) / 10).toFixed(1);
 const ms = " ms";
 const MARK = "brand/aldine-symbol.svg", MK = `<img class="mk" src="${MARK}" alt="">`, PILL = `<span class="pill4">4B</span>`;
 const VNOTE = () => zh ? "标「多模态」的系统经模型卡或 API 文档确认可接受图像输入；未标注的不一定不支持。" : "Systems marked Multimodal take image input per their model card or API docs; unmarked ones may too. ";
-const VISION = n => /^(JevOne|GPT-6 Luna|GPT-5\.6 Luna|Celeris-1|Decider v1\.1)/.test(n);
+const VISION = n => /^(JevOne|GPT-6 Luna|GPT-5\.6 Luna|Celeris-1|Decider v1\.1|Liquid AI d1|Featherless Simple Jev|prima-ratio|Bongard-mini|jev-vision-27b)/.test(n);
 const VIS = zh ? "多模态" : "Multimodal", VPILL = `<span class="pill4 pillv">${VIS}</span>`;
 
 /* The Aldine symbol beside every label of ours: each SVG text.lbl-us gets the mark to its left, sized to the text. */
@@ -237,12 +237,12 @@ function pareto() {
 function localllama() {
   const rows = D.localllama.rows;
   const W = 900, rowH = 44, top = 8, H = rows.length * rowH + top + 34, lx = 250;
-  const x = linScale(50, 80, lx, W - 70);
+  const x = linScale(40, 80, lx, W - 70);
   let g = "";
-  for (const t of [50, 60, 70, 80]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 30}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - 6}" text-anchor="middle">${t}%</text>`;
+  for (const t of [40, 50, 60, 70, 80]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 30}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - 6}" text-anchor="middle">${t}%</text>`;
   rows.forEach((r, i) => {
     const cy = top + i * rowH + rowH / 2;
-    g += `<text class="${r.ours ? "lbl-us" : "lbl"}" ${r.ours ? "data-vision" : ""} x="${lx - 16}" y="${cy + 1}" text-anchor="end" style="font-size:${r.ours ? 16 : 14}px">${esc(r.name)}</text>`;
+    g += `<text class="${r.ours ? "lbl-us" : "lbl"}" ${r.ours || VISION(r.name) ? "data-vision" : ""} x="${lx - 16}" y="${cy + 1}" text-anchor="end" style="font-size:${r.ours ? 16 : 14}px">${esc(r.name)}</text>`;
     g += `<text class="lbl-sub" x="${lx - 16}" y="${cy + 17}" text-anchor="end">${r.open ? (zh ? "开放权重" : "open weights") : (zh ? "经 API 评测" : "scored via API")} · ${r.by === "us" ? (zh ? "本文实测" : "measured by us") : (zh ? "数据集卡片" : "dataset card")}</text>`;
     g += bar(lx, cy - 11, x(r.acc) - lx, 22, r.ours ? "var(--fg)" : r.by === "us" ? "var(--muted)" : "var(--pale)");
     g += `<text class="${r.ours ? "val" : "val-muted"}" x="${x(r.acc) + 10}" y="${cy + 6}">${r.acc}</text>`;
@@ -261,12 +261,12 @@ function localllama() {
     title: "开源模型中迄今为止最强大的通用领域零样本决策",
     sub: "LocalLLaMA typed-decisions 测试集，涵盖 agent 监控、客户服务、发票处理与安全事件等场景，均未出现在训练数据中。Trutina 在开放权重模型中准确率最高，总榜仅次于一个托管 API；KL 散度略高于 Sieve-4B。",
     body: cards("准确率 <span>· 2,000 题</span>", "与标注分布的 KL 散度 <span>· 越低越好</span>"),
-    src: "标注「数据集卡片」的行取自 LocalLLaMA/typed-decisions 数据集卡片的零样本榜单；标注「本文实测」的 6 个开放 4B 决策模型由我们经各自作者提供的服务端、按卡片协议（每个 case 的五道题放在一个请求中）在同型号 GPU 上测得。",
+    src: VNOTE() + "标注「数据集卡片」的行取自 LocalLLaMA/typed-decisions 数据集卡片的零样本榜单；标注「本文实测」的 6 个开放 4B 决策模型由我们经各自作者提供的服务端、按卡片协议（每个 case 的五道题放在一个请求中）在同型号 GPU 上测得。",
   } : {
     title: "The strongest open model yet for general zero-shot decisions",
     sub: "LocalLLaMA typed-decisions test: agent monitoring, support, invoices and security incidents, none of them in training. Trutina has the highest accuracy among open-weight models, second overall behind one hosted API; its KL is slightly above Sieve-4B's.",
     body: cards("Accuracy <span>· 2,000 questions</span>", "KL to the gold distribution <span>· lower is better</span>"),
-    src: "Rows marked 'dataset card' are from the zero-shot table of the LocalLLaMA/typed-decisions card. The six open 4B decision models marked 'measured by us' ran through their authors' servers with the card's protocol (a case's five questions in one request) on the same GPU type.",
+    src: VNOTE() + "Rows marked 'dataset card' are from the zero-shot table of the LocalLLaMA/typed-decisions card. The six open 4B decision models marked 'measured by us' ran through their authors' servers with the card's protocol (a case's five questions in one request) on the same GPU type.",
   });
 }
 

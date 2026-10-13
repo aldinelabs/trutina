@@ -1485,6 +1485,13 @@
     "by": "card"
    },
    {
+    "name": "jev-vision-27b",
+    "acc": 71.4,
+    "kl": 0.318,
+    "open": true,
+    "by": "card"
+   },
+   {
     "name": "prima-ratio + 12B",
     "acc": 70.2,
     "kl": 0.564,
@@ -1541,6 +1548,20 @@
     "name": "Jeff-Gemma4-E2B",
     "acc": 56.1,
     "kl": 0.403,
+    "open": true,
+    "by": "card"
+   },
+   {
+    "name": "Jeff-Qwen3.5-2B",
+    "acc": 51.1,
+    "kl": 0.46,
+    "open": true,
+    "by": "card"
+   },
+   {
+    "name": "Jeff-Qwen3.5-0.8B",
+    "acc": 48.3,
+    "kl": 0.679,
     "open": true,
     "by": "card"
    }

@@ -157,10 +157,13 @@ def main():
             {"name": "Liquid AI d1", "acc": 74.2, "kl": 0.475, "open": False},
             {"name": "TypeSafe Jev 1.13.0", "acc": 72.7, "kl": 1.442, "open": False},
             {"name": "Featherless Simple Jev", "acc": 71.6, "kl": 0.488, "open": False},
+            {"name": "jev-vision-27b", "acc": 71.4, "kl": 0.318, "open": True},
             {"name": "prima-ratio + 12B", "acc": 70.2, "kl": 0.564, "open": True},
             {"name": "OpenDecider-small", "acc": 67.1, "kl": 0.211, "open": True},
             {"name": "Bongard-mini", "acc": 59.4, "kl": 0.256, "open": True},
-            {"name": "Jeff-Gemma4-E2B", "acc": 56.1, "kl": 0.403, "open": True}]},
+            {"name": "Jeff-Gemma4-E2B", "acc": 56.1, "kl": 0.403, "open": True},
+            {"name": "Jeff-Qwen3.5-2B", "acc": 51.1, "kl": 0.460, "open": True},
+            {"name": "Jeff-Qwen3.5-0.8B", "acc": 48.3, "kl": 0.679, "open": True}]},
     }
     # typed-decisions (400 cases x 5 questions): Celeris's provider-reported table (harness 0cfd276, via
     # benchlm.ai/decision-models) and Trutina measured by us on the same 2,000-question test (released weights,
