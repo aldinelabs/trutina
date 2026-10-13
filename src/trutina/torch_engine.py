@@ -12,7 +12,7 @@ hidden states otherwise; `deep` runs all 32 layers (without the MLX engine's opt
 the 0.2-0.8 band, as in the MLX engine; `noul="calibrated"` reports the calibrated probability.
 Questions are length-sorted into padded batches under a token budget; a batch that runs out of GPU
 memory is split in half.
-With `cuda_graphs` (default), batches of up to `graph_tokens` padded tokens replay CUDA graphs, one per
+With `cuda_graphs` (default), batches of up to `graph_tokens` (2,048) padded tokens replay CUDA graphs, one per
 exit-to-exit segment and (batch, length bucket): short requests are bound by kernel launches, not
 FLOPs. Sequences are right-padded to the bucket without an attention mask; the model is causal and
 each row is read at its own last token, so the padding never reaches what is read.
@@ -38,7 +38,7 @@ from trutina.schema import Question, Request, State
 
 class TorchTrutina:
     def __init__(self, torso, tok, config: dict, readout: dict, device: str, batch_tokens: int,
-                 cuda_graphs: bool = True, graph_tokens: int = 4096):
+                 cuda_graphs: bool = True, graph_tokens: int = 2048):
         self.torso, self.tok, self.config, self.device = torso, tok, config, device
         self.exits = config["exits"][:-1]
         temps = [config["temperature"][str(e)] for e in config["exits"]]
@@ -59,11 +59,10 @@ class TorchTrutina:
         self.last_exit: int | None = None
         self.graph_tokens = graph_tokens if cuda_graphs and str(device).startswith("cuda") else 0
         self.graphs: dict[tuple[int, int], _Chain] = {}
-        self.pool = None
 
     @classmethod
     def load(cls, path: str = "aldinelabs/trutina-4b", device: str = "cuda", dtype=torch.bfloat16,
-             batch_tokens: int = 32768, cuda_graphs: bool = True, graph_tokens: int = 4096) -> TorchTrutina:
+             batch_tokens: int = 32768, cuda_graphs: bool = True, graph_tokens: int = 2048) -> TorchTrutina:
         from safetensors import safe_open
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -227,7 +226,7 @@ class TorchTrutina:
         # masks and rotary embeddings depend only on the shape when nothing is masked: build them once,
         # outside the graph (mask construction inspects values on the host)
         _, kw = self._prepare(ids, torch.ones_like(ids))
-        state: dict = {"kw": kw}
+        state: dict = {"kw": kw, "rows": rows}  # the graphs read these addresses: keep them alive
 
         def prepare():
             state["h"] = torso.embed_tokens(ids)
@@ -248,16 +247,18 @@ class TorchTrutina:
                 for f in steps:
                     f()
         torch.cuda.current_stream().wait_stream(side)
-        if self.pool is None:
-            self.pool = torch.cuda.graph_pool_handle()
-        graphs, logits = [], []
+        # one memory pool per chain, every segment's output kept alive: replaying one bucket must never
+        # write into memory another bucket's graphs read
+        pool, graphs, logits, keep = torch.cuda.graph_pool_handle(), [], [], []
         for n, f in enumerate(steps):
             g = torch.cuda.CUDAGraph()
-            with torch.cuda.graph(g, pool=self.pool):
+            with torch.cuda.graph(g, pool=pool):
                 out = f()
             graphs.append(g)
+            keep.append(state["h"])
             if n:
                 logits.append(out)
+        state["keep"] = keep
         chain = _Chain(ids, last, graphs, logits, state)
         self.graphs[(B, T)] = chain
         return chain

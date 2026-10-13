@@ -81,13 +81,16 @@ def main():
     ap.add_argument("--noul", choices=["decisive", "calibrated"], default=None,
                     help="yes/no readout (default: decisive when the release ships the map)")
     ap.add_argument("--no-cuda-graphs", action="store_true", help="torch engine only: run eagerly")
-    ap.add_argument("--warm-graphs", type=int, default=4096,
+    ap.add_argument("--graph-tokens", type=int, default=2048,
+                    help="torch engine only: longest padded batch replayed from a CUDA graph")
+    ap.add_argument("--warm-graphs", type=int, default=2048,
                     help="torch engine only: capture the length buckets up to this many tokens at start-up")
     a = ap.parse_args()
     if a.engine == "torch":
         from trutina.torch_engine import TorchTrutina
 
-        engine = TorchTrutina.load(a.model, device=a.device, cuda_graphs=not a.no_cuda_graphs)
+        engine = TorchTrutina.load(a.model, device=a.device, cuda_graphs=not a.no_cuda_graphs,
+                                   graph_tokens=a.graph_tokens)
         if engine.graph_tokens and a.warm_graphs:
             print(f"captured CUDA graphs for {engine.warm_graphs(a.warm_graphs)} length buckets", flush=True)
     else:
