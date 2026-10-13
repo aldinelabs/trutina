@@ -61,3 +61,23 @@ def test_http_nested_detail_with_encoded_or_decoded_slashes(tmp_path):
         server.shutdown()
         server.server_close()
         thread.join()
+
+
+def test_live_comparison_preserves_title_phase_units_and_notes(tmp_path):
+    directory = tmp_path / "bench/compete-v3-evaluation"
+    directory.mkdir(parents=True)
+    for model, done in (("v2.1", 4), ("v3", 5)):
+        (directory / f"{model}.json").write_text(json.dumps({
+            "system": model, "title": "v3 evaluation vs v2.1", "progress_unit": "phases",
+            "focus_system": "v3", "notes": ["Fixed DI sample; partial results."],
+            "status": "running", "done": done, "total": 7, "sets": {},
+        }))
+    runs = Runs(tmp_path, [])
+    listing = runs.bench_list()
+    assert listing[0]["title"] == "v3 evaluation vs v2.1"
+    assert listing[0]["running"] is True
+    report = runs.bench("compete-v3-evaluation")
+    assert report["headline"]["value"] == 9 / 14
+    assert report["progress_unit"] == "phases"
+    assert report["focus_system"] == "v3"
+    assert report["notes"] == ["Fixed DI sample; partial results."]

@@ -844,9 +844,11 @@ function renderBenchList() {
 const openGroups = new Set();
 function renderCompete(b) {
   const sys = b.systems, ids = sys.map(x => x.system);
+  const unit = b.progress_unit || "requests";
+  const focus = b.focus_system || "trutina";
   const prog = sys.map(x => {
     const f = x.total ? x.done / x.total : 0;
-    const st = x.status === "done" ? `done · ${fmt.int(x.total)} requests` : x.status === "failed" ? "failed"
+    const st = x.status === "done" ? `done · ${fmt.int(x.total)} ${esc(unit)}` : x.status === "failed" ? "failed"
       : x.status === "starting" ? "starting server…" : `${esc(x.set || "")} · ${fmt.int(x.done)} / ${fmt.int(x.total)}`;
     return `<div class="cprog"><div class="nm"><span class="dot ${x.status}"></span>${esc(x.system)}</div>
       <div class="track" role="img" aria-label="${esc(x.system)} ${(f * 100).toFixed(0)}%"><i style="width:${(f * 100).toFixed(1)}%"></i></div>
@@ -873,13 +875,13 @@ function renderCompete(b) {
       <td class="${sub ? "sub" : ""}">${kids[r.name] ? `<span class="caret">${openGroups.has(r.name) ? "▾" : "▸"}</span> ` : ""}${esc(sub ? r.name.split("/").slice(1).join("/") : r.name)}
       ${r.n ? `<span class="muted" style="font-size:11px"> ${fmt.int(r.n)} q</span>` : ""}</td>${ids.map(id => cell(r, id)).join("")}</tr>`;
   const body = tops.map(r => trow(r, false) + (openGroups.has(r.name) ? (kids[r.name] || []).map(c => trow(c, true)).join("") : "")).join("");
-  const wins = tops.filter(r => r.group === "accuracy" && r.scores.trutina != null).filter(r => {
-    const known = ids.map(i => r.scores[i]).filter(x => x != null); return r.scores.trutina === Math.max(...known); }).length;
-  const ran = tops.filter(r => r.group === "accuracy" && r.scores.trutina != null).length;
+  const wins = tops.filter(r => r.group === "accuracy" && r.scores[focus] != null).filter(r => {
+    const known = ids.map(i => r.scores[i]).filter(x => x != null); return r.scores[focus] === Math.max(...known); }).length;
+  const ran = tops.filter(r => r.group === "accuracy" && r.scores[focus] != null).length;
   const done = sys.reduce((a, x) => a + (x.done || 0), 0), total = sys.reduce((a, x) => a + (x.total || 0), 0);
-  const kpis = [["Progress", total ? `${(done / total * 100).toFixed(0)}<small>%</small>` : "—", `${fmt.int(done)} / ${fmt.int(total)} requests`],
+  const kpis = [["Progress", total ? `${(done / total * 100).toFixed(0)}<small>%</small>` : "—", `${fmt.int(done)} / ${fmt.int(total)} ${esc(unit)}`],
     ["Systems", String(sys.length), `${sys.filter(x => x.status === "done").length} done · ${sys.filter(x => x.status === "failed").length} failed`],
-    ["trutina best on", `${wins}<small> of ${ran}</small>`, "accuracy benchmarks so far"]];
+    [esc(focus) + " best on", `${wins}<small> of ${ran}</small>`, "accuracy benchmarks so far"]];
   $("#view").innerHTML = `
   <header class="run-head"><div><h1>${esc(b.title)}</h1>
     <div class="meta"><span class="mono">${esc(sys[0]?.gpu || "")}</span><span>${new Date((b.created || 0) * 1000).toLocaleString()}</span></div></div></header>

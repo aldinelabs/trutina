@@ -193,14 +193,16 @@ class Runs:
         running = any(p.get("status") in ("starting", "running") for p in parts)
         done = sum(p.get("done", 0) for p in parts)
         total = sum(p.get("total", 0) for p in parts)
-        return {"title": "4B decision models, head to head" + (" (smoke)" if d.name.endswith("smoke") else ""), "kind": "compete",
+        return {"title": parts[0].get("title") or "4B decision models, head to head" + (" (smoke)" if d.name.endswith("smoke") else ""), "kind": "compete",
                 "model": " · ".join(p["system"] for p in parts), "created": min(p.get("started", modified) for p in parts),
+                "progress_unit": parts[0].get("progress_unit", "requests"),
+                "focus_system": parts[0].get("focus_system", "trutina"),
                 "modified": modified, "running": running,
-                "headline": {"label": "requests done", "value": done / total if total else None, "fmt": "pct"},
+                "headline": {"label": parts[0].get("progress_unit", "requests") + " done", "value": done / total if total else None, "fmt": "pct"},
                 "systems": [{k: p.get(k) for k in ("system", "repo", "revision", "gpu", "status", "set", "done", "total",
                                                     "started", "updated", "failure", "error_counts")} for p in parts],
                 "rows": rows,
-                "notes": ["Every system runs in its own container with the server its authors ship, at the pinned revision; one client sends "
+                "notes": parts[0].get("notes") or ["Every system runs in its own container with the server its authors ship, at the pinned revision; one client sends "
                           "the same requests to all of them, one at a time, on the same GPU type, and scores them the same way.",
                           "A request a server refuses counts as wrong. DecisionBench: state-macro accuracy; JudgeBench: pair accuracy "
                           "(both orders right); otherwise accuracy. trutina runs at full depth; 'adaptive' rows are its default mode.",
