@@ -199,12 +199,12 @@ function efficiency() {
   rows.forEach(r => { r.ei95 = r.i_open / r.p95; });
   const n50 = by("ei50").find(r => !r.us), n95 = by("ei95").find(r => !r.us);
   return frame(zh ? {
-    title: "同等级下效率最高",
+    title: "不妥协准确率的高效能决策",
     sub: `Efficiency Index 定义为 JevBench Intelligence 与单请求平均延迟（ms）之比。Trutina 自适应深度为 ${rows[0].ei.toFixed(2)}，次优为 ${next.label}（${next.ei.toFixed(2)}）。`,
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
     src: `${SAME_RUN_ZH}${US_ZH}改用 p50 或 p95 延迟时，Trutina 自适应深度分别排第 ${rank("ei50")} 与第 ${rank("ei95")}（${ad.ei50.toFixed(2)} / ${ad.ei95.toFixed(2)}），其他系统中最高的分别为 ${n50.label}（${n50.ei50.toFixed(2)}）与 ${n95.label}（${n95.ei95.toFixed(2)}）。`,
   } : {
-    title: "The most efficient in its class",
+    title: "Efficient decisions without trading away accuracy",
     sub: `Efficiency Index = JevBench Intelligence ÷ mean latency per request in ms. Trutina with adaptive depth scores ${rows[0].ei.toFixed(2)}; next is ${next.label} (${next.ei.toFixed(2)}).`,
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
     src: `${SAME_RUN_EN} ${US_EN} With p50 or p95 latency instead, Trutina with adaptive depth ranks ${rank("ei50")} and ${rank("ei95")} (${ad.ei50.toFixed(2)} / ${ad.ei95.toFixed(2)}); the best other systems are ${n50.label} (${n50.ei50.toFixed(2)}) and ${n95.label} (${n95.ei95.toFixed(2)}).`,
