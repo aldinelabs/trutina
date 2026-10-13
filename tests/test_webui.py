@@ -70,7 +70,8 @@ def test_live_comparison_preserves_title_phase_units_and_notes(tmp_path):
         (directory / f"{model}.json").write_text(json.dumps({
             "system": model, "title": "v3 evaluation vs v2.1", "progress_unit": "phases",
             "focus_system": "v3", "notes": ["Fixed DI sample; partial results."],
-            "status": "running", "done": done, "total": 7, "sets": {},
+            "status": "running", "done": done, "total": 7,
+            "sets": {"DI": {"metric": "index", "group": "index", "score": 44.71, "n": 2400}},
         }))
     runs = Runs(tmp_path, [])
     listing = runs.bench_list()
@@ -81,3 +82,6 @@ def test_live_comparison_preserves_title_phase_units_and_notes(tmp_path):
     assert report["progress_unit"] == "phases"
     assert report["focus_system"] == "v3"
     assert report["notes"] == ["Fixed DI sample; partial results."]
+    assert report["rows"][0]["metric"] == "index"
+    assert report["rows"][0]["scores"]["v2.1"] == 44.71
+    assert report["rows"][0]["group"] == "index"

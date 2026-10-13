@@ -178,11 +178,15 @@ class Runs:
         names = sorted({k for p in parts for k in p.get("sets", {})})
         rows = []
         for k in names:
-            metric = "pair_acc" if k.startswith("judgebench") else "state_macro_acc" if k.startswith("decisionbench") else "acc"
-            scores = {p["system"]: (p["sets"].get(k) or {}).get(metric) for p in parts}
+            entries = [p.get("sets", {}).get(k) or {} for p in parts]
+            metric = next((e["metric"] for e in entries if e.get("metric")), None) or (
+                "pair_acc" if k.startswith("judgebench") else "state_macro_acc" if k.startswith("decisionbench") else "acc")
+            score_key = "score" if metric == "index" else metric
+            scores = {p["system"]: (p["sets"].get(k) or {}).get(score_key) for p in parts}
             n = max(((p["sets"].get(k) or {}).get("n") or 0) for p in parts)
             extra = {p["system"]: (p["sets"].get(k) or {}).get("kl") for p in parts} if k == "localllama" else None
-            rows.append({"name": k, "group": "accuracy", "metric": metric, "n": n, "scores": scores, "kl": extra,
+            group = next((e["group"] for e in entries if e.get("group")), "accuracy")
+            rows.append({"name": k, "group": group, "metric": metric, "n": n, "scores": scores, "kl": extra,
                          "errors": {p["system"]: (p["sets"].get(k) or {}).get("errors") for p in parts}})
         for key, label in (("latency_jevbench_ms", "latency p50, JevBench public"), ("latency_adaptive_ms", "latency p50, adaptive")):
             if any(p.get(key) for p in parts):

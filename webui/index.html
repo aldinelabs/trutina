@@ -865,7 +865,7 @@ function renderCompete(b) {
     if (v == null) return `<td class="${id === "trutina" ? "us" : ""}">—</td>`;
     const known = ids.map(i => r.scores[i]).filter(x => x != null);
     const best = r.lower ? Math.min(...known) : Math.max(...known), hi = Math.max(...known);
-    const txt = r.metric === "ms" ? fmt.f(v, 1) + " ms" : fmt.pct(v);
+    const txt = r.metric === "ms" ? fmt.f(v, 1) + " ms" : r.metric === "index" ? fmt.f(v, 2) : fmt.pct(v);
     const err = r.errors?.[id] ? ` <span class="muted" title="requests refused or unreadable">(${r.errors[id]} err)</span>` : "";
     const kl = r.kl?.[id] != null ? `<div class="muted" style="font-size:11px">KL ${fmt.f(r.kl[id], 3)}</div>` : "";
     const p95 = r.p95?.[id] != null ? `<div class="muted" style="font-size:11px">p95 ${fmt.f(r.p95[id], 1)}</div>` : "";
