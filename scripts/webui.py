@@ -31,7 +31,7 @@ from urllib.parse import unquote
 ROOT = Path(__file__).resolve().parent.parent
 PAGE = ROOT / "webui" / "index.html"
 SEGMENT = r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
-NAME = re.compile(rf"^{SEGMENT}(/{SEGMENT})?$")  # a run, or a run inside a group directory
+NAME = re.compile(rf"{SEGMENT}(/{SEGMENT})*")  # runs may be nested inside multiple groups
 INT_FLAGS = ("steps", "warmup", "batch_size", "grad_accum", "rank", "head_dim", "max_tokens", "batch_tokens",
              "eval_every", "ckpt_every", "seed")
 
@@ -61,9 +61,12 @@ class Runs:
         root.mkdir(parents=True, exist_ok=True)
 
     def dir(self, name: str) -> Path:
-        if not NAME.match(name):
-            raise ValueError("Run names use letters, digits, dot, dash and underscore (optionally group/run).")
-        return self.root / name
+        if not NAME.fullmatch(name):
+            raise ValueError("Run names use letters, digits, dot, dash and underscore in slash-separated groups.")
+        d = self.root / name
+        if not d.resolve().is_relative_to(self.root.resolve()):
+            raise ValueError("Run paths must stay inside the runs directory.")
+        return d
 
     def status(self, d: Path, config: dict) -> dict:
         st = read_json(d / "status.json", {}) or {}
@@ -93,14 +96,15 @@ class Runs:
         def is_run(d: Path) -> bool:
             return (d / "config.json").exists() or (d / "launch.json").exists()
 
-        dirs = []
-        for d in self.root.iterdir():
-            if not d.is_dir() or not re.fullmatch(SEGMENT, d.name):
-                continue
-            if is_run(d):
-                dirs.append(d)
-            else:  # a group directory: its runs are listed as group/run
-                dirs += [c for c in d.iterdir() if c.is_dir() and re.fullmatch(SEGMENT, c.name) and is_run(c)]
+        dirs, groups = [], [self.root]
+        while groups:
+            for d in groups.pop().iterdir():
+                if d.is_symlink() or not d.is_dir() or not re.fullmatch(SEGMENT, d.name):
+                    continue
+                if is_run(d):
+                    dirs.append(d)
+                else:
+                    groups.append(d)
         return sorted((self.summary(d) for d in dirs), key=lambda r: -r["modified"])
 
     @staticmethod
