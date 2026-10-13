@@ -353,12 +353,12 @@ function typed() {
     <span><i><svg width="26" height="14"><rect width="26" height="14" rx="4" fill="var(--fg)" opacity=".45"/></svg></i>${zh ? "校准分 × ½（相对均匀猜测的 Brier 改善）" : "calibration × ½ (Brier improvement over a uniform guess)"}</span></div>`;
   const us = rows.find(r => r.ours), d27 = rows.find(r => r.size === "27B");
   return frame(zh ? {
-    title: "以 4B 规模胜过 27B 决策模型",
+    title: "将前沿决策智能以真正可部署的尺寸开放给每一个人",
     sub: `typed-decisions 测试集 2,000 题（400 个案例 × 5 题）。指数为准确率与校准分各占一半。Trutina 为 ${us.index.toFixed(1)}，仅次于闭源的 Celeris-1，高于 Decider v1.1 27B（${d27.index.toFixed(1)}）、Jev 1.13.0 与 GPT-6 Luna。`,
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
     src: `指数 = ½ × 准确率 + ½ × 校准分，校准分 = 100 ×（1 − Brier ÷ 均匀猜测的 Brier），均匀猜测在该测试集上的 Brier 为 ${D.typed.brier_uniform}；Mercury Decide 的 Brier 高于均匀猜测，校准分记为 0。除 Trutina 外，准确率与 Brier 取自 Celeris-1 Decision 发布时公布的对比表（评测框架 0cfd276，由 Celeris 自行测得，经 benchlm.ai 汇总），未能返回分布的请求按均匀分布计分。Trutina 为已发布权重、完整深度，由我们在同一测试集上测得；Brier 按每题各选项与软标签之差的平方和计算，Celeris 未公布其切分与 Brier 的归一化方式。`,
   } : {
-    title: "At 4B, ahead of a 27B decision model",
+    title: "Frontier decision intelligence, open to everyone at a size you can deploy",
     sub: `typed-decisions test, 2,000 questions (400 cases × 5). The index weighs accuracy and calibration equally. Trutina scores ${us.index.toFixed(1)}, second only to the closed Celeris-1 and above Decider v1.1 27B (${d27.index.toFixed(1)}), Jev 1.13.0 and GPT-6 Luna.`,
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
     src: `Index = ½ × accuracy + ½ × calibration, calibration = 100 × (1 − Brier ÷ the Brier of a uniform guess), which is ${D.typed.brier_uniform} on this test; Mercury Decide's Brier is above the uniform guess's, so its calibration counts as 0. Other systems' accuracy and Brier: the table Celeris published with Celeris-1 Decision (harness 0cfd276, measured by Celeris, collected by benchlm.ai), requests without a distribution scored as uniform. Trutina: released weights at full depth, measured by us on the same test; Brier is the per-question sum over options of the squared difference to the soft label. Celeris did not publish its split or Brier normalisation.`,
