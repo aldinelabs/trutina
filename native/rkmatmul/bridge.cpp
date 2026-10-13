@@ -64,13 +64,25 @@ struct Pool {
         return result;
     }
 };
-struct Linear {
-    Pool* pool = nullptr;
+// One NPU kernel per tile. Measured on RK3588 (M=64): K=9216 runs in 135 ms but
+// three K=3072 slices take 0.9 ms each; K=4096 is also slower than 2x2048 and
+// N=9216 slower than 2x4608. K slices accumulate in INT32, so tiling is exact.
+constexpr int kMaxTileK = 3072, kMaxTileN = 4608;
+static int tile_size(int size, int limit) {
+    const int parts = (size + limit - 1) / limit;
+    return ((size + parts - 1) / parts + 31) / 32 * 32;
+}
+struct Tile {
+    int k0 = 0, k = 0, n0 = 0, n = 0;
     std::shared_ptr<Kernel> kernel;
     rknn_tensor_mem* b = nullptr;
+    ~Tile() { if (b) rknn_destroy_mem(kernel->context, b); }
+};
+struct Linear {
+    Pool* pool = nullptr;
+    std::vector<std::unique_ptr<Tile>> tiles;
     std::vector<float> scales;
     int k = 0, n = 0;
-    ~Linear() { if (b) rknn_destroy_mem(kernel->context, b); }
 };
 extern "C" {
 int trutina_mm_open(int chunk, int cores, void** out) {
@@ -94,14 +106,27 @@ int trutina_mm_linear(void* opaque, const int8_t* weights_kn, const float* scale
         auto linear = std::make_unique<Linear>();
         linear->pool = pool; linear->k = k; linear->n = n;
         linear->scales.assign(scales, scales + n);
-        linear->kernel = pool->get(k, n);
-        auto& kernel = *linear->kernel;
-        linear->b = rknn_create_mem(kernel.context, kernel.io.B.size);
-        if (!linear->b) throw std::runtime_error("NPU weight allocation failed");
-        std::memset(linear->b->virt_addr, 0, kernel.io.B.size);
-        check(rknn_B_normal_layout_to_native_layout(const_cast<int8_t*>(weights_kn),
-                  linear->b->virt_addr, k, n, &kernel.info), "pack B");
-        check(rknn_mem_sync(kernel.context, linear->b, RKNN_MEMORY_SYNC_TO_DEVICE), "sync B");
+        const int tile_k = tile_size(k, kMaxTileK), tile_n = tile_size(n, kMaxTileN);
+        std::vector<int8_t> block;
+        for (int n0 = 0; n0 < n; n0 += tile_n)
+            for (int k0 = 0; k0 < k; k0 += tile_k) {
+                auto tile = std::make_unique<Tile>();
+                tile->k0 = k0; tile->k = std::min(tile_k, k-k0);
+                tile->n0 = n0; tile->n = std::min(tile_n, n-n0);
+                tile->kernel = pool->get(tile->k, tile->n);
+                auto& kernel = *tile->kernel;
+                tile->b = rknn_create_mem(kernel.context, kernel.io.B.size);
+                if (!tile->b) throw std::runtime_error("NPU weight allocation failed");
+                std::memset(tile->b->virt_addr, 0, kernel.io.B.size);
+                block.resize(static_cast<size_t>(tile->k)*tile->n);
+                for (int i = 0; i < tile->k; ++i)
+                    std::memcpy(&block[static_cast<size_t>(i)*tile->n],
+                                weights_kn + static_cast<size_t>(k0+i)*n + n0, tile->n);
+                check(rknn_B_normal_layout_to_native_layout(block.data(),
+                          tile->b->virt_addr, tile->k, tile->n, &kernel.info), "pack B");
+                check(rknn_mem_sync(kernel.context, tile->b, RKNN_MEMORY_SYNC_TO_DEVICE), "sync B");
+                linear->tiles.push_back(std::move(tile));
+            }
         *out = linear.release(); ++pool->live;
         return 0;
     } catch (const std::exception& e) { pool->error = e.what(); return -1; }
@@ -115,44 +140,62 @@ int trutina_mm_forward(void* opaque, const float* input, size_t rows, float* out
     pool->error.clear();
     try {
         if (!input || !output || rows == 0 || rows > 65536) throw std::runtime_error("Invalid input rows");
-        auto& kernel = *linear->kernel;
-        auto started = Clock::now();
-        check(rknn_matmul_set_io_mem(kernel.context, linear->b, &kernel.io.B), "bind B");
-        pool->bind_ns += elapsed(started);
-        auto* a = static_cast<int8_t*>(kernel.a->virt_addr);
-        const auto* c = static_cast<const int32_t*>(kernel.c->virt_addr);
+        const int k = linear->k, n = linear->n;
         std::vector<float> row_scales(pool->chunk);
+        std::vector<int8_t> quantized(static_cast<size_t>(pool->chunk)*k);
+        std::vector<int32_t> sum;
         for (size_t offset = 0; offset < rows; offset += pool->chunk) {
             const size_t take = std::min(static_cast<size_t>(pool->chunk), rows-offset);
-            started = Clock::now();
-            std::memset(a, 0, kernel.io.A.size);
+            auto started = Clock::now();
             for (size_t r = 0; r < take; ++r) {
-                const float* src = input + (offset+r)*linear->k;
+                const float* src = input + (offset+r)*k;
                 float maximum = 0;
-                for (int i = 0; i < linear->k; ++i) {
+                for (int i = 0; i < k; ++i) {
                     if (!std::isfinite(src[i])) throw std::runtime_error("Non-finite input");
                     maximum = std::max(maximum, std::abs(src[i]));
                 }
                 const float scale = maximum > 0 ? std::max(maximum / 127.f, std::numeric_limits<float>::min()) : 1.f;
                 row_scales[r] = scale;
-                for (int i = 0; i < linear->k; ++i)
-                    a[r*linear->k+i] = static_cast<int8_t>(std::clamp(std::nearbyint(src[i]/scale), -127.f, 127.f));
+                for (int i = 0; i < k; ++i)
+                    quantized[r*k+i] = static_cast<int8_t>(std::clamp(std::nearbyint(src[i]/scale), -127.f, 127.f));
             }
-            check(rknn_mem_sync(kernel.context, kernel.a, RKNN_MEMORY_SYNC_TO_DEVICE), "sync A");
             pool->quant_ns += elapsed(started);
-            started = Clock::now();
-            check(rknn_matmul_run(kernel.context), "matmul run");
-            check(rknn_mem_sync(kernel.context, kernel.c, RKNN_MEMORY_SYNC_FROM_DEVICE), "sync C");
-            pool->run_ns += elapsed(started);
-            ++pool->calls;
-            started = Clock::now();
-            for (size_t r = 0; r < take; ++r)
-                for (int j = 0; j < linear->n; ++j) {
-                    const float value = c[r*linear->n+j] * row_scales[r] * linear->scales[j];
-                    if (!std::isfinite(value)) throw std::runtime_error("Non-finite output");
-                    output[(offset+r)*linear->n+j] = value;
+            for (size_t t = 0; t < linear->tiles.size(); ++t) {
+                const auto& tile = *linear->tiles[t];
+                auto& kernel = *tile.kernel;
+                const bool first = tile.k0 == 0, last = tile.k0 + tile.k == k;
+                started = Clock::now();
+                check(rknn_matmul_set_io_mem(kernel.context, tile.b, &kernel.io.B), "bind B");
+                pool->bind_ns += elapsed(started);
+                started = Clock::now();
+                auto* a = static_cast<int8_t*>(kernel.a->virt_addr);
+                std::memset(a, 0, kernel.io.A.size);
+                for (size_t r = 0; r < take; ++r)
+                    std::memcpy(a + r*tile.k, &quantized[r*k + tile.k0], tile.k);
+                check(rknn_mem_sync(kernel.context, kernel.a, RKNN_MEMORY_SYNC_TO_DEVICE), "sync A");
+                pool->quant_ns += elapsed(started);
+                started = Clock::now();
+                check(rknn_matmul_run(kernel.context), "matmul run");
+                check(rknn_mem_sync(kernel.context, kernel.c, RKNN_MEMORY_SYNC_FROM_DEVICE), "sync C");
+                pool->run_ns += elapsed(started);
+                ++pool->calls;
+                started = Clock::now();
+                const auto* c = static_cast<const int32_t*>(kernel.c->virt_addr);
+                const size_t width = tile.n;
+                if (first && !last) sum.assign(c, c + take*width);
+                else if (!first)
+                    for (size_t i = 0; i < take*width; ++i) sum[i] += c[i];
+                if (last) {
+                    const int32_t* totals = first ? c : sum.data();
+                    for (size_t r = 0; r < take; ++r)
+                        for (size_t j = 0; j < width; ++j) {
+                            const float value = totals[r*width+j] * row_scales[r] * linear->scales[tile.n0+j];
+                            if (!std::isfinite(value)) throw std::runtime_error("Non-finite output");
+                            output[(offset+r)*n + tile.n0 + j] = value;
+                        }
                 }
-            pool->output_ns += elapsed(started);
+                pool->output_ns += elapsed(started);
+            }
         }
         return 0;
     } catch (const std::exception& e) { pool->error = e.what(); return -1; }

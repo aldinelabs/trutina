@@ -1,0 +1,193 @@
+{
+  "board": "ROCK 5B RK3588, one NPU core (mask 1), RKNN SDK 2c723177",
+  "note": "Random weights, 70 rows, chunk 64, mean of 5 calls after warm-up. Tiled outputs were bit-identical to the untiled bridge for every shape.",
+  "single_run_m64": [
+    {
+      "K": 8192,
+      "N": 2560,
+      "run_ms": 9.29
+    },
+    {
+      "K": 7168,
+      "N": 2560,
+      "run_ms": 6.99
+    },
+    {
+      "K": 6144,
+      "N": 2560,
+      "run_ms": 4.11
+    },
+    {
+      "K": 5120,
+      "N": 2560,
+      "run_ms": 7.2
+    },
+    {
+      "K": 4608,
+      "N": 2560,
+      "run_ms": 4.44
+    },
+    {
+      "K": 4096,
+      "N": 2560,
+      "run_ms": 2.1
+    },
+    {
+      "K": 3072,
+      "N": 2560,
+      "run_ms": 0.885
+    },
+    {
+      "K": 2304,
+      "N": 2560,
+      "run_ms": 0.725
+    },
+    {
+      "K": 2048,
+      "N": 2560,
+      "run_ms": 0.639
+    },
+    {
+      "K": 1536,
+      "N": 2560,
+      "run_ms": 0.485
+    },
+    {
+      "K": 2560,
+      "N": 9216,
+      "run_ms": 3.09
+    },
+    {
+      "K": 2560,
+      "N": 8192,
+      "run_ms": 2.66
+    },
+    {
+      "K": 2560,
+      "N": 4608,
+      "run_ms": 1.27
+    },
+    {
+      "K": 2560,
+      "N": 4096,
+      "run_ms": 1.17
+    },
+    {
+      "K": 2560,
+      "N": 3072,
+      "run_ms": 0.88
+    },
+    {
+      "K": 2560,
+      "N": 2048,
+      "run_ms": 0.651
+    },
+    {
+      "K": 9216,
+      "N": 2560,
+      "run_ms": 135.3
+    }
+  ],
+  "untiled": [
+    {
+      "K": 2560,
+      "N": 8192,
+      "ms_per_linear": 7.68,
+      "run_ms": 5.25,
+      "npu_runs": 2
+    },
+    {
+      "K": 2560,
+      "N": 4096,
+      "ms_per_linear": 3.78,
+      "run_ms": 2.25,
+      "npu_runs": 2
+    },
+    {
+      "K": 2560,
+      "N": 32,
+      "ms_per_linear": 5.14,
+      "run_ms": 0.29,
+      "npu_runs": 2
+    },
+    {
+      "K": 4096,
+      "N": 2560,
+      "ms_per_linear": 6.0,
+      "run_ms": 4.19,
+      "npu_runs": 2
+    },
+    {
+      "K": 2560,
+      "N": 9216,
+      "ms_per_linear": 8.76,
+      "run_ms": 6.16,
+      "npu_runs": 2
+    },
+    {
+      "K": 9216,
+      "N": 2560,
+      "ms_per_linear": 274.58,
+      "run_ms": 270.93,
+      "npu_runs": 2
+    },
+    {
+      "K": 2560,
+      "N": 1024,
+      "ms_per_linear": 2.65,
+      "run_ms": 0.88,
+      "npu_runs": 2
+    }
+  ],
+  "tiled": [
+    {
+      "K": 2560,
+      "N": 8192,
+      "ms_per_linear": 7.7,
+      "run_ms": 4.73,
+      "npu_runs": 4
+    },
+    {
+      "K": 2560,
+      "N": 4096,
+      "ms_per_linear": 4.04,
+      "run_ms": 2.34,
+      "npu_runs": 2
+    },
+    {
+      "K": 2560,
+      "N": 32,
+      "ms_per_linear": 4.56,
+      "run_ms": 0.26,
+      "npu_runs": 2
+    },
+    {
+      "K": 4096,
+      "N": 2560,
+      "ms_per_linear": 4.87,
+      "run_ms": 2.6,
+      "npu_runs": 4
+    },
+    {
+      "K": 2560,
+      "N": 9216,
+      "ms_per_linear": 7.97,
+      "run_ms": 4.88,
+      "npu_runs": 4
+    },
+    {
+      "K": 9216,
+      "N": 2560,
+      "ms_per_linear": 9.82,
+      "run_ms": 5.41,
+      "npu_runs": 6
+    },
+    {
+      "K": 2560,
+      "N": 1024,
+      "ms_per_linear": 2.94,
+      "run_ms": 0.92,
+      "npu_runs": 2
+    }
+  ]
+}

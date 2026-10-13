@@ -14,8 +14,9 @@ fixed backend below. `X-Trutina-Backend` reports `cpu` or `npu` in combined mode
 
 An experimental backend can execute the trained adaptive exits while offloading
 decoder Linear layers to the NPU. It keeps one model resident, including for image
-requests, and uses CPU control and state calculations. It is currently slower than
-RKLLM for deep text. See [NPU adaptive execution](#npu-adaptive-execution-experimental).
+requests, and uses CPU control and state calculations. Adaptive requests that exit
+at layer 16 now finish faster than an RKLLM full-depth pass; deep text remains
+faster on RKLLM. See [NPU adaptive execution](#npu-adaptive-execution-experimental).
 
 | Capability | PyTorch ARM CPU | RKLLM NPU | Combined `rock5` |
 |---|---|---|---|
@@ -147,14 +148,22 @@ bounded chunks and a lock around shared NPU IO buffers. The tested configuration
 uses NPU core 0. This SDK rejected a combined core mask of 7; enabling three cores
 requires explicitly partitioning the work, rather than simply changing the mask.
 
+Each Linear is split into NPU tiles of at most K=3072 and N=4608. The RKNN kernel
+time is far from proportional to matrix size: one 64-row run of the MLP down
+projection (K=9216, N=2560) took 135 ms, while each of its three K=3072 slices
+took 0.9 ms. K=4096 and N=9216 were also slower than two halves. K slices
+accumulate exact INT32 products before the same per-token and per-channel scales
+are applied, so tiled outputs were bit-identical to the untiled bridge on every
+model shape. Per-shape timings: [rock5b-npu-matmul-tiles.json](benchmarks/rock5b-npu-matmul-tiles.json).
+
 The real NPU primitive probe passed exact integer-product comparisons, partial
 chunks, weight rebinding, independent repeated requests, zero rows, NaN rejection
 and closed-runtime rejection. A real four-layer Qwen3.5 test also verified that
 early exit skips the later layers, and continuation executes each layer once.
 
 The full release passed text, all depth modes, all decision types, wide choices
-and an image smoke request on the same 16 GB board. Initial measurements with
-four CPU threads and one NPU core are saved in
+and an image smoke request on the same 16 GB board. Initial measurements, taken
+before Linear tiling with four CPU threads and one NPU core, are saved in
 [rock5b-npu-matmul-int8.json](benchmarks/rock5b-npu-matmul-int8.json):
 
 | Single smoke request | Exit | NPU calls | Seconds |
@@ -169,16 +178,29 @@ four CPU threads and one NPU core are saved in
 Startup packing took 206.7 s, and process peak RSS was 12,950 MiB under an
 enforced 13 GiB cgroup limit. These are single smoke samples; they do not establish
 accuracy, confidence recalibration, long-running stability or a latency distribution.
-RKLLM remains considerably faster for deep-only text. The advantage here is real
-adaptive NPU offload and one resident model for text and images.
+The down projection accounted for most of that time; see the tiling note above.
 
-The persistent service also passed both HTTP routes: deep 12.04 s, image 11.11 s,
-adaptive 6.02 s at layer 16, then repeated deep 11.89 s. Every response was HTTP
-200 and reported `X-Trutina-Backend: npu-matmul`; no model switch occurred.
-See [rock5b-npu-matmul-http.json](benchmarks/rock5b-npu-matmul-http.json).
-The [thread profile](benchmarks/rock5b-npu-matmul-thread-profile.json) found no
-speed improvement from reducing CPU threads; NPU execution accounted for most
-of the time. Four CPU threads remain the default.
+The persistent service passed both HTTP routes with the same responses before and
+after tiling. Every response was HTTP 200 and reported `X-Trutina-Backend:
+npu-matmul`; no model switch occurred.
+
+| HTTP smoke request | Exit | Untiled (s) | Tiled (s) |
+|---|---:|---:|---:|
+| Invoice, deep | 32 | 12.04 | 3.46 |
+| Red image | 16 | 11.11 | 4.74 |
+| Invoice, adaptive | 16 | 6.02 | 1.71 |
+| Invoice, deep again | 32 | 11.89 | 3.38 |
+
+For comparison, RKLLM took 2.07 s for the same full-depth invoice. RKLLM remains
+faster for deep-only text; adaptive requests that exit early are now faster here,
+with one resident model for text and images. Raw results:
+[untiled](benchmarks/rock5b-npu-matmul-http.json),
+[tiled](benchmarks/rock5b-npu-matmul-tiled-http.json). A repeat of the tiled probe
+gave 3.42 / 4.57 / 1.74 / 3.37 s, and the service cgroup peaked at 9.4 GiB. These
+remain single smoke samples, not a latency distribution.
+The [thread profile](benchmarks/rock5b-npu-matmul-thread-profile.json), measured
+before tiling, found no speed improvement from reducing CPU threads. Four CPU
+threads remain the default.
 
 Use the service installer to retain the same 13 GiB limit:
 
