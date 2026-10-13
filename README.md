@@ -69,7 +69,7 @@ python scripts/serve.py --port 8000
 curl -s localhost:8000/v1/systemone -d '{"state": "The invoice total is $1,240.", "questions": {"over": {"type": "noul", "instructions": "Is the total over $1,000?"}}}'
 ```
 
-CUDA (PyTorch + transformers, text only; shallow, adaptive and full depth):
+CUDA (PyTorch + transformers; shallow, adaptive and full depth):
 
 ```python
 from trutina.torch_engine import TorchTrutina
@@ -82,6 +82,21 @@ python scripts/serve.py --engine torch --port 8000
 ```
 
 Install `flash-linear-attention` and `causal-conv1d` for the fast linear-attention kernels.
+Load with `vision=True` (server: `--vision`) to enable image inputs.
+
+**ROCK 5B / ARM CPU (16 GB, tested):**
+
+```bash
+python scripts/serve.py --engine torch --device cpu --cpu-int8 --vision \
+  --threads 4 --batch-tokens 512 --model /path/to/trutina-4b
+```
+
+Text, images and every depth mode work on the CPU backend. A short adaptive smoke
+request took 7.9 s on a ROCK 5B; this is not a benchmark latency distribution.
+An RK3588 RKLLM NPU backend and weight exporter are also provided, with full-depth
+text readout (2.1 s on the same invoice smoke request). `--engine rock5` combines
+NPU deep text with CPU vision and intermediate exits while keeping one model
+resident; backend switches include loading. See [installation and measurements](docs/rock5.md).
 
 ## Request format
 
@@ -326,7 +341,9 @@ when choosing the prompt format), so they are not perfectly blind.
 ```
 src/trutina/
   engine.py        MLX engine: load a release, depth modes, images
-  torch_engine.py  CUDA engine (text; shallow / adaptive / full depth)
+  torch_engine.py  CUDA / ARM CPU engine (optional vision; all depth modes)
+  rkllm_engine.py  RK3588 NPU engine (full-depth text readout)
+  rock5_engine.py  One endpoint: NPU deep text, CPU exits/vision; one resident model
   readout.py       the prompt format shared by training and inference
   wide.py          tournament for more than 26 options
   api.py           /v1/systemone parsing and rendering; decisions_api.py: /v1/decisions

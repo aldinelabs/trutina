@@ -65,7 +65,7 @@ python scripts/serve.py --port 8000
 curl -s localhost:8000/v1/systemone -d '{"state": "The invoice total is $1,240.", "questions": {"over": {"type": "noul", "instructions": "Is the total over $1,000?"}}}'
 ```
 
-CUDA（PyTorch + transformers，仅支持文本，支持 shallow、adaptive 与 deep 三种深度）：
+CUDA（PyTorch + transformers，支持 shallow、adaptive 与 deep 三种深度）：
 
 ```python
 from trutina.torch_engine import TorchTrutina
@@ -78,6 +78,19 @@ python scripts/serve.py --engine torch --port 8000
 ```
 
 安装 `flash-linear-attention` 与 `causal-conv1d` 后，线性注意力层将使用优化的 CUDA kernel。
+加载时传入 `vision=True`（服务端：`--vision`）可启用图像输入。
+
+**ROCK 5B / ARM CPU（16GB，已实测）：**
+
+```bash
+python scripts/serve.py --engine torch --device cpu --cpu-int8 --vision \
+  --threads 4 --batch-tokens 512 --model /path/to/trutina-4b
+```
+
+CPU 后端支持文本、图像及全部深度模式。ROCK 5B 上一个短文本 adaptive 样例实测约 7.9 秒；这不是基准延迟分布。
+另提供 RK3588 的 RKLLM NPU 后端与权重导出脚本：相同发票样例的完整深度读出约 2.1 秒。
+`--engine rock5` 将 NPU 文本完整深度与 CPU 图像、中间出口接入同一服务，一次只保留一个模型；切换后端包含重新加载时间。
+参见[安装流程、实测记录与 NPU 限制](docs/rock5.md)。
 
 ## 请求格式
 
@@ -256,7 +269,9 @@ v2 使用约 26.6 万道来自公开数据集的题目与约 3.5 万道图像题
 ```
 src/trutina/
   engine.py        MLX 引擎：加载发布权重、深度模式、图像输入
-  torch_engine.py  CUDA 引擎（仅文本；shallow / adaptive / deep）
+  torch_engine.py  CUDA / ARM CPU 引擎（可选图像；全部深度模式）
+  rkllm_engine.py  RK3588 NPU 引擎（完整深度文本读出）
+  rock5_engine.py  统一服务：NPU 文本完整深度、CPU 出口/图像；单模型驻留
   readout.py       训练与推理共用的 prompt 格式
   wide.py          超过 26 个选项时的分组淘汰
   api.py           /v1/systemone 的解析与输出；decisions_api.py：/v1/decisions

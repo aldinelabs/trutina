@@ -17,6 +17,7 @@ license = "Apache-2.0"
 data = ["datasets>=3.0"]
 # CUDA training (e.g. Colab); inference and latency stay on MLX
 torch = ["torch>=2.6", "transformers>=5.2", "safetensors>=0.4"]
+rkllm = ["transformers>=5.8,<6"]  # runtime bridge is built separately against Rockchip's SDK
 
 [dependency-groups]
 dev = ["pytest>=8", "ruff>=0.6"]

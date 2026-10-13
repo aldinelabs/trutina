@@ -1,4 +1,4 @@
-"""trutina-4b on CUDA with PyTorch + transformers (text only).
+"""trutina-4b with PyTorch + transformers on CUDA or ARM CPU.
 
   from trutina.torch_engine import TorchTrutina
   model = TorchTrutina.load("aldinelabs/trutina-4b", device="cuda")
@@ -17,6 +17,8 @@ exit-to-exit segment and (batch, length bucket): short requests are bound by ker
 FLOPs. Sequences are right-padded to the bucket without an attention mask; the model is causal and
 each row is read at its own last token, so the padding never reaches what is read.
 Install the CUDA kernels for speed: flash-linear-attention and causal-conv1d.
+On ARM CPU, cpu_int8=True quantizes decoder Linear layers with QNNPACK; vision=True
+retains the floating-point vision tower. CUDA graphs remain text-only.
 """
 
 from __future__ import annotations
@@ -62,9 +64,13 @@ class TorchTrutina:
 
     @classmethod
     def load(cls, path: str = "aldinelabs/trutina-4b", device: str = "cuda", dtype=torch.bfloat16,
-             batch_tokens: int = 32768, cuda_graphs: bool = True, graph_tokens: int = 2048) -> TorchTrutina:
+             batch_tokens: int = 32768, cuda_graphs: bool = True, graph_tokens: int = 2048,
+             cpu_int8: bool = False, vision: bool = False) -> TorchTrutina:
         from safetensors import safe_open
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from transformers import AutoModelForCausalLM, AutoModelForImageTextToText, AutoTokenizer
+
+        if cpu_int8 and torch.device(device).type != "cpu":
+            raise ValueError("cpu_int8 requires device='cpu'")
 
         local = Path(path)
         if not local.exists():
@@ -74,19 +80,46 @@ class TorchTrutina:
         config = json.loads((local / "trutina.json").read_text())
         if config["format_version"] != FORMAT_VERSION:
             raise ValueError(f"release format {config['format_version']}, this package reads {FORMAT_VERSION}")
-        lm = AutoModelForCausalLM.from_pretrained(str(local), dtype=dtype, attn_implementation="sdpa")
+        auto = AutoModelForImageTextToText if vision else AutoModelForCausalLM
+        lm = auto.from_pretrained(str(local), dtype=dtype, attn_implementation="sdpa")
         torso = getattr(lm.model, "language_model", lm.model).to(device).eval()
+        if cpu_int8:
+            from trutina.cpu_quant import quantize_torso
+
+            quantize_torso(torso)
+        if vision:
+            lm.model.visual.to(device).float().eval()
         with safe_open(str(local / "readout.safetensors"), "np") as f:
             readout = {k: f.get_tensor(k).astype(np.float32) for k in f.keys()}  # noqa: SIM118 (safe_open)
-        return cls(torso, AutoTokenizer.from_pretrained(str(local)), config, readout, device, batch_tokens,
-                   cuda_graphs, graph_tokens)
+        engine = cls(torso, AutoTokenizer.from_pretrained(str(local)), config, readout, device, batch_tokens,
+                     cuda_graphs, graph_tokens)
+        engine.vision = lm.model if vision else None
+        if cpu_int8:
+            from trutina.cpu_quant import release_cpu_memory
+
+            del lm
+            release_cpu_memory()
+        return engine
 
     def decide(self, body: dict) -> dict:
         return handle(body, self)
 
+    def close(self):
+        """Release weights before another board backend is loaded."""
+        self.graphs.clear()
+        self.torso = None
+        self.vision = None
+        self.rows = None
+        self.lens.clear()
+        if torch.device(self.device).type == "cpu":
+            from trutina.cpu_quant import release_cpu_memory
+
+            release_cpu_memory()
+
     def __call__(self, req: Request) -> dict[str, np.ndarray]:
-        if not isinstance(req.state, str) and any(not isinstance(p, str) for p in req.state):
-            raise RequestError("the torch engine is text-only; use the MLX engine for images")
+        if (not isinstance(req.state, str) and any(not isinstance(p, str) for p in req.state)
+                and getattr(self, "vision", None) is None):
+            raise RequestError("the torch engine needs vision=True (server: --vision) for images")
         jobs: list[tuple[int, list[int] | None]] = []
         qs: list[Question] = []
         for qi, q in enumerate(req.questions):
@@ -123,6 +156,10 @@ class TorchTrutina:
 
     @torch.inference_mode()
     def _forward(self, state: State, qs: Sequence[Question]) -> list[np.ndarray]:
+        if not isinstance(state, str) and any(not isinstance(p, str) for p in state):
+            # Vision is intentionally sequential: keep board memory bounded and avoid
+            # replaying text-only CUDA graphs with multimodal RoPE.
+            return [self._read_image(state, q) for q in qs]
         seqs = [self.encode(state, q) for q in qs]
         ks = [len(q.resolved_options()) for q in qs]
         out: dict[int, np.ndarray] = {}
@@ -136,6 +173,40 @@ class TorchTrutina:
                 out[j] = p
             chunk = [i] if i is not None else []
         return [out[i] for i in range(len(seqs))]
+
+    def _read_image(self, state: State, q: Question) -> np.ndarray:
+        from trutina.vision import IMAGE_PAD, image_grid, n_image_tokens, pixel_patches
+
+        refs = [p for p in state if not isinstance(p, str)]
+        text = full_text(self.tok, prompt(state, q, "sandwich", "letter", images=True), True, "letter")
+        tokens = self.tok.encode(text, add_special_tokens=False)
+        grids, patches = [], []
+        for ref in refs:
+            with ref.open() as img:
+                grid = image_grid(img.size)
+                grids.append(grid)
+                patches.append(pixel_patches(img, grid))
+        if tokens.count(IMAGE_PAD) != len(refs):
+            raise RequestError("Image count does not match prompt image markers")
+        expanded, g = [], iter(grids)
+        for t in tokens:
+            expanded.extend([IMAGE_PAD] * n_image_tokens(next(g)) if t == IMAGE_PAD else [t])
+        ids = torch.tensor([expanded], device=self.device)
+        grid = torch.tensor(grids, device=self.device)
+        pixels = torch.from_numpy(np.concatenate(patches)).to(self.device)
+        feats = self.vision.get_image_features(pixels, grid, return_dict=True)
+        feats = torch.cat(feats.pooler_output).to(self.torso.embed_tokens.weight.dtype)
+        emb = self.torso.embed_tokens(ids)
+        mask = (ids == IMAGE_PAD)[..., None]
+        if int(mask.sum()) != feats.shape[0]:
+            raise RequestError("Vision encoder returned the wrong number of features")
+        emb = emb.masked_scatter(mask, feats)
+        pos, _ = self.vision.get_rope_index(ids, mm_token_type_ids=(ids == IMAGE_PAD).int(),
+                                           image_grid_thw=grid)
+        h, kw = self._prepare(ids, torch.ones_like(ids), emb, pos)
+        rows = torch.zeros(1, dtype=torch.long, device=self.device)
+        last = torch.tensor([len(expanded)-1], device=self.device)
+        return self._read_exits(h, kw, rows, last, [len(q.resolved_options())])[0]
 
     def _batch(self, seqs: list[list[int]], ks: list[int]) -> list[np.ndarray]:
         try:
@@ -155,12 +226,16 @@ class TorchTrutina:
         T = bucket(max(map(len, seqs)))
         if T * len(seqs) <= self.graph_tokens:
             return self._read_graphs(seqs, ks, T)
-        T, dev, torso = max(map(len, seqs)), self.device, self.torso
+        T, dev = max(map(len, seqs)), self.device
         ids = torch.tensor([s + [0] * (T - len(s)) for s in seqs], device=dev)
         mask = torch.tensor([[1] * len(s) + [0] * (T - len(s)) for s in seqs], device=dev)
         rows = torch.arange(len(seqs), device=dev)
         last = torch.tensor([len(s) - 1 for s in seqs], device=dev)
         h, layer_kw = self._prepare(ids, mask)
+        return self._read_exits(h, layer_kw, rows, last, ks)
+
+    def _read_exits(self, h, layer_kw, rows, last, ks):
+        torso = self.torso
 
         def probs(logits: torch.Tensor) -> list[np.ndarray]:
             return [torch.softmax(logits[r, :k], -1).cpu().double().numpy() for r, k in enumerate(ks)]
@@ -179,13 +254,14 @@ class TorchTrutina:
         self.last_exit = len(torso.layers)
         return probs(torso.norm(h[rows, last]).float() @ self.rows.T * self.scales[-1])
 
-    def _prepare(self, ids: torch.Tensor, mask: torch.Tensor) -> tuple[torch.Tensor, dict]:
+    def _prepare(self, ids: torch.Tensor, mask: torch.Tensor, embeds=None,
+                 positions=None) -> tuple[torch.Tensor, dict]:
         """Embeddings, masks and rotary embeddings, as Qwen3_5TextModel.forward builds them."""
         torso = self.torso
         mod = sys.modules[type(torso).__module__]
-        h = torso.embed_tokens(ids)
-        pos = torch.arange(ids.shape[1], device=ids.device).view(1, 1, -1).expand(4, ids.shape[0], -1)
-        text_pos, pos = pos[0], pos[1:]
+        h = torso.embed_tokens(ids) if embeds is None else embeds
+        text_pos = torch.arange(ids.shape[1], device=ids.device).expand(ids.shape[0], -1)
+        pos = text_pos[None].expand(3, -1, -1) if positions is None else positions
         kw = {"config": torso.config, "inputs_embeds": h, "attention_mask": mask, "past_key_values": None,
               "position_ids": text_pos}
         masks = {"full_attention": mod.create_causal_mask(**kw),
