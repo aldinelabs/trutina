@@ -454,46 +454,6 @@ function heldout() {
   });
 }
 
-/* ---------- Trutina against the open 4B decision models, benchmark by benchmark ---------- */
-function compare() {
-  const C = D.compete, W = 360, rowH = 21, top = 3;
-  let lead = 0, behind = 0, tie = 0;
-  const panels = C.panels.map(pn => {
-    const known = C.systems.map(s => pn.vals[s.id]).filter(v => v != null && !(pn.refused || []).includes(C.systems.find(x => pn.vals[x.id] === v)?.id));
-    const best = pn.lower ? Math.min(...known) : Math.max(...known);
-    const hi = pn.lower ? Math.max(...known) : (pn.max || 100);
-    const us = pn.vals.trutina;
-    if (us != null && known.length > 1) { const d = pn.lower ? best / us - 1 : (us - best) / 100; if (us === best) lead++; else if (Math.abs(us - best) <= (pn.lower ? 0 : 1)) tie++; else behind++; }
-    const lx = 100, rx = W - 58, x = linScale(0, hi, lx, rx);
-    let g = "";
-    C.systems.forEach((s, i) => {
-      const v = pn.vals[s.id], cy = top + i * rowH + rowH / 2, me = s.id === "trutina";
-      g += `<text ${me ? 'class="lbl-us"' : ""} x="${lx - 10}" y="${cy + 4}" text-anchor="end" style="font-size:12px; fill:${me ? "var(--fg)" : "var(--ink-2)"}; font-weight:${me ? 700 : 400}">${esc(s.short)}</text>`;
-      if ((pn.refused || []).includes(s.id)) { g += `<text x="${lx}" y="${cy + 4}" style="font-size:11px; fill:var(--faint)">${zh ? "请求被拒绝" : "requests refused"}</text>`; return; }
-      if (v == null) { g += `<text x="${lx}" y="${cy + 4}" style="font-size:11px; fill:var(--faint)">${zh ? "无数据" : "not reported"}</text>`; return; }
-      g += bar(lx, cy - 6, Math.max(x(v) - lx, 12), 12, me ? "var(--fg)" : "var(--pale)");
-      const t = (pn.est?.[s.id] ? "≈" : "") + (pn.unit === "ms" ? (v < 100 ? fmt1(v) : Math.round(v)) + " ms" : fmt1(v));
-      g += `<text x="${Math.max(x(v), lx + 12) + 6}" y="${cy + 4}" style="font-size:12px; font-weight:${v === best ? 700 : 500}; fill:${v === best ? "var(--fg)" : "var(--muted)"}">${t}</text>`;
-    });
-    const H = top * 2 + C.systems.length * rowH;
-    return `<div class="panel"><h3>${zh ? pn.zh : pn.en}</h3><div class="m">${zh ? pn.m_zh : pn.m_en}</div>
-      <div style="flex:1; min-height:0; position:relative"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMinYMid meet" style="position:absolute; inset:0; width:100%; height:100%">${g}</svg></div></div>`;
-  });
-  const sum = `<div class="panel sum"><div class="big">${lead}<small>${zh ? `项领先 · ${tie} 项持平 · ${behind} 项落后` : `lead · ${tie} level · ${behind} behind`}</small></div>
-    <p>${zh ? "同一批请求，各系统经其作者提供的服务端（固定 revision）在同型号 GPU（RTX PRO 6000）上串行运行，按同一规则计分；被服务端拒绝的请求计为错误。粗体为该项最优。" :
-      "The same requests, each system through the server its authors ship (pinned revision), one at a time on the same GPU type (RTX PRO 6000), scored by one set of rules; a refused request counts as wrong. Bold marks the best."}</p></div>`;
-  const body = `<div class="grid5">${panels.join("")}${sum}</div>`;
-  return frame(zh ? {
-    title: "与开放 4B 决策模型的同口径对比",
-    sub: "Trutina 在 LocalLLaMA、this-that 与 DecisionBench medium 上领先；JevK5 与 Plumb 在 JevBench 和高难度决策上领先，decider 与 Sieve 在宽选项分类上领先，三家使用 CUDA graph 的服务端延迟更低。",
-    body, src: "全部为自行测得，Decision Index 除外（Trutina 为约 1.2 万条请求的分层抽样估计，Sieve-4B 为其模型卡自报值，其余系统未报告）。Intelligence 与延迟取自同一轮 JevBench 复跑；Intelligence 按 v1.5 规则计分，各系统输出不做任何变换（Trutina 启用是非题决断映射时为 69.0）。Plumb 使用 jevk5 运行时，未启用其 JevBench 专用的是非题处理。spark 拒绝 59 个选项的请求。",
-  } : {
-    title: "Head to head with the open 4B decision models",
-    sub: "Trutina leads on LocalLLaMA, this-that and DecisionBench medium. JevK5 and Plumb lead on JevBench and the hard decisions, decider and Sieve on wide-option classification, and the three servers with CUDA graphs answer faster.",
-    body, src: "All measured by us except the Decision Index (Trutina: estimate from a ~12k-request stratified sample; Sieve-4B: its model card; the others report none). Intelligence and latency come from one JevBench re-run; Intelligence uses the v1.5 rules on each system's outputs as served (69.0 for Trutina with its decisive yes/no map). Plumb runs on the jevk5 runtime, without its JevBench-specific yes/no handling. spark refuses requests with 59 options.",
-  });
-}
-
 /* ---------- Overview ---------- */
 function overview() {
   const kp = (k, v, f) => `<div class="kpi"><span class="k">${k}</span><span class="v">${v}</span><span class="f">${f}</span></div>`;
@@ -526,7 +486,7 @@ function overview() {
   });
 }
 
-const CHARTS = { typed, panel, bigger, compare, overview, pareto, efficiency, localllama, adaptive, heldout };
+const CHARTS = { typed, panel, bigger, overview, pareto, efficiency, localllama, adaptive, heldout };
 document.getElementById("frame").innerHTML = CHARTS[location.hash.slice(1) || "overview"]();
 document.fonts.ready.then(() => { placeMarks(); document.body.dataset.ready = "1"; });
 </script>

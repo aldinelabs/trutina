@@ -11,7 +11,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 HERE = Path(__file__).resolve().parent
-CHARTS = ["typed", "panel", "bigger", "compare", "overview", "pareto", "efficiency", "localllama", "adaptive", "heldout"]
+CHARTS = ["typed", "panel", "bigger", "overview", "pareto", "efficiency", "localllama", "adaptive", "heldout"]
 LANGS = ["en", "zh"]
 
 
