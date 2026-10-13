@@ -168,12 +168,12 @@ function pareto() {
     <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="var(--muted)"/></svg></i>${zh ? "其他开放 4B 决策模型" : "other open 4B decision models"}</span>
     <span><i><svg width="26" height="10"><line x1="0" x2="26" y1="5" y2="5" stroke="var(--fg)" stroke-width="1.6" stroke-dasharray="5 4" opacity=".6"/></svg></i>${zh ? "帕累托前沿（平均延迟）" : "Pareto frontier (mean latency)"}</span></div>`;
   return frame(zh ? {
-    title: "两种深度都在准确与速度的帕累托前沿上",
+    title: "进一步推进准确率与速度的帕累托前沿",
     sub: "同一批请求、同型号 GPU。以平均延迟计，Trutina 自适应深度最快（30.6 ms），完整深度（38.7 ms，70.1）与 JevK5（44.4 ms，70.7）构成前沿的其余部分；其他系统均被支配。",
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
     src: `${SAME_RUN_ZH}Intelligence 按 v1.5 规则计分。${US_ZH}若改用 p50 延迟，Trutina 自适应深度同样最快（14.0 ms，次快为 decider 的 17.8 ms）。`,
   } : {
-    title: "Both depths sit on the accuracy–speed frontier",
+    title: "Pushing the accuracy–speed frontier further",
     sub: "The same requests on the same GPU type. By mean latency Trutina with adaptive depth is the fastest (30.6 ms); full depth (38.7 ms, 70.1) and JevK5 (44.4 ms, 70.7) make up the rest of the frontier, and every other system is dominated.",
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
     src: `${SAME_RUN_EN} Intelligence: the v1.5 rules. ${US_EN} By p50 latency, Trutina with adaptive depth is also the fastest (14.0 ms; next is decider at 17.8 ms).`,
