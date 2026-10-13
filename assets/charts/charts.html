@@ -19,6 +19,8 @@
   --pale: oklch(0.88 0.011 106.6);
   --border: oklch(0.93 0.007 106.5);
   --grid: oklch(0.955 0.005 106.5);
+  --closed: oklch(0.6 0.075 240);   /* closed decision systems */
+  --llm: oklch(0.63 0.095 50);      /* general-purpose LLMs */
   --r-card: 24px;
   --r-inner: 18px;
   --sans: "Inter", "Noto Sans SC", system-ui, sans-serif;
@@ -329,12 +331,16 @@ function typed() {
     g += `<text class="${r.us ? "lbl-us" : r.ours ? "lbl-us" : "lbl"}" data-nopill x="${lx - 80}" y="${cy + 1}" text-anchor="end" style="font-size:${r.ours ? 17 : 15}px">${esc(r.name)}</text>`;
     g += `<text class="lbl-sub" x="${lx - 80}" y="${cy + 19}" text-anchor="end">${zh ? "准确率" : "accuracy"} ${r.acc.toFixed(1)}% · Brier ${r.brier.toFixed(3)}</text>`;
     g += chip(lx - 66, cy, size(r), r.ours);
-    g += `<rect x="${x(0)}" y="${cy - 14}" width="${x(a) - x(0)}" height="28" rx="6" fill="${r.ours ? "var(--fg)" : "var(--muted)"}"/>`;
-    if (c > 0) g += `<rect x="${x(a) + 2}" y="${cy - 14}" width="${Math.max(x(a + c) - x(a) - 2, 2)}" height="28" rx="6" fill="${r.ours ? "var(--fg)" : "var(--muted)"}" opacity=".45"/>`;
+    const col = r.ours ? "var(--fg)" : r.kind === "closed" ? "var(--closed)" : r.kind === "llm" ? "var(--llm)" : "var(--muted)";
+    g += `<rect x="${x(0)}" y="${cy - 14}" width="${x(a) - x(0)}" height="28" rx="6" fill="${col}"/>`;
+    if (c > 0) g += `<rect x="${x(a) + 2}" y="${cy - 14}" width="${Math.max(x(a + c) - x(a) - 2, 2)}" height="28" rx="6" fill="${col}" opacity=".45"/>`;
     g += `<text class="${r.ours ? "val" : "val-muted"}" x="${x(a + c) + 14}" y="${cy + 6}" style="font-size:${r.ours ? 18 : 16}px">${r.index.toFixed(1)}</text>`;
   });
   const legend = `<div class="legend"><span><i><svg width="26" height="14"><rect width="26" height="14" rx="4" fill="var(--fg)"/></svg></i>${zh ? "准确率 × ½" : "accuracy × ½"}</span>
-    <span><i><svg width="26" height="14"><rect width="26" height="14" rx="4" fill="var(--fg)" opacity=".45"/></svg></i>${zh ? "校准分 × ½（相对均匀猜测的 Brier 改善）" : "calibration × ½ (Brier improvement over a uniform guess)"}</span></div>`;
+    <span><i><svg width="26" height="14"><rect width="26" height="14" rx="4" fill="var(--fg)" opacity=".45"/></svg></i>${zh ? "校准分 × ½（相对均匀猜测的 Brier 改善）" : "calibration × ½ (Brier improvement over a uniform guess)"}</span>
+    <span style="margin-left:24px"><i><svg width="14" height="14"><rect width="14" height="14" rx="4" fill="var(--muted)"/></svg></i>${zh ? "开放权重决策模型" : "open-weight decision model"}</span>
+    <span><i><svg width="14" height="14"><rect width="14" height="14" rx="4" fill="var(--closed)"/></svg></i>${zh ? "闭源决策系统" : "closed decision system"}</span>
+    <span><i><svg width="14" height="14"><rect width="14" height="14" rx="4" fill="var(--llm)"/></svg></i>${zh ? "通用大语言模型" : "general-purpose LLM"}</span></div>`;
   const us = rows.find(r => r.ours), d27 = rows.find(r => r.size === "27B");
   return frame(zh ? {
     title: "Typed Decisions Index：4B 的 Trutina 远高于 27B 决策模型",

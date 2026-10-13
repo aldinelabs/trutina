@@ -1555,6 +1555,7 @@
   "rows": [
    {
     "name": "Celeris-1 Decision",
+    "kind": "closed",
     "size": "closed",
     "acc": 76.5,
     "brier": 0.079,
@@ -1572,6 +1573,7 @@
    },
    {
     "name": "Jev 1.13.0",
+    "kind": "closed",
     "size": "closed",
     "acc": 73.6,
     "brier": 0.149,
@@ -1580,6 +1582,7 @@
    },
    {
     "name": "Decider v1.1",
+    "kind": "open",
     "size": "27B",
     "acc": 73.8,
     "brier": 0.173,
@@ -1588,6 +1591,7 @@
    },
    {
     "name": "GPT-6 Luna",
+    "kind": "llm",
     "size": "closed",
     "acc": 71.8,
     "brier": 0.204,
@@ -1596,6 +1600,7 @@
    },
    {
     "name": "Mercury Decide",
+    "kind": "closed",
     "size": "closed",
     "acc": 71.5,
     "brier": 0.27,

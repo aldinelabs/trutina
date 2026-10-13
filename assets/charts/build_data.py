@@ -163,12 +163,12 @@ def main():
     # benchlm.ai/decision-models) and Trutina measured by us on the same 2,000-question test (released weights,
     # full depth; Brier = sum over options of (p - soft target)^2, per question)
     data["typed"] = {"source": "Celeris-1 Decision launch table (provider-reported), benchlm.ai/decision-models", "rows": [
-        {"name": "Celeris-1 Decision", "size": "closed", "acc": 76.5, "brier": 0.079},
+        {"name": "Celeris-1 Decision", "kind": "closed", "size": "closed", "acc": 76.5, "brier": 0.079},
         {"name": "Trutina", "size": "4B", "acc": 74.7, "brier": 0.079, "ours": True},
-        {"name": "Decider v1.1", "size": "27B", "acc": 73.8, "brier": 0.173},
-        {"name": "Jev 1.13.0", "size": "closed", "acc": 73.6, "brier": 0.149},
-        {"name": "GPT-6 Luna", "size": "closed", "acc": 71.8, "brier": 0.204},
-        {"name": "Mercury Decide", "size": "closed", "acc": 71.5, "brier": 0.270}],
+        {"name": "Decider v1.1", "kind": "open", "size": "27B", "acc": 73.8, "brier": 0.173},
+        {"name": "Jev 1.13.0", "kind": "closed", "size": "closed", "acc": 73.6, "brier": 0.149},
+        {"name": "GPT-6 Luna", "kind": "llm", "size": "closed", "acc": 71.8, "brier": 0.204},
+        {"name": "Mercury Decide", "kind": "closed", "size": "closed", "acc": 71.5, "brier": 0.270}],
         # Brier of a uniform guess on the same 2,000 questions (600 two-way, 1,100 four-way, 300 five-way)
         "brier_uniform": 0.2382}
     for r in data["typed"]["rows"]:
