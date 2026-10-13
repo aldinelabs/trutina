@@ -1,6 +1,7 @@
 // RK3588 INT8 Linear primitives. CPU owns the decoder's execution order.
 // Build with the official RKNN headers; Python sees only this narrow ABI.
 #include "rknn_matmul_api.h"
+#include <arm_neon.h>
 #include <algorithm>
 #include <cmath>
 #include <chrono>
@@ -64,6 +65,41 @@ struct Pool {
         return result;
     }
 };
+// Per-token activation quantization and dequantization in NEON. Same operations
+// as the scalar form (IEEE divide, round-to-nearest-even, multiply order), so
+// results are bit-identical; FMAX propagates NaN into the finiteness checks.
+// K and tile widths are multiples of 32.
+static float abs_max(const float* x, int k) {
+    float32x4_t m0 = vdupq_n_f32(0), m1 = m0;
+    for (int i = 0; i < k; i += 8) {
+        m0 = vmaxq_f32(m0, vabsq_f32(vld1q_f32(x+i)));
+        m1 = vmaxq_f32(m1, vabsq_f32(vld1q_f32(x+i+4)));
+    }
+    return vmaxvq_f32(vmaxq_f32(m0, m1));
+}
+static void quantize_row(const float* x, int k, float scale, int8_t* out) {
+    const float32x4_t s = vdupq_n_f32(scale);
+    const int32x4_t lo = vdupq_n_s32(-127), hi = vdupq_n_s32(127);
+    for (int i = 0; i < k; i += 16) {
+        int32x4_t q[4];
+        for (int j = 0; j < 4; ++j)
+            q[j] = vmaxq_s32(lo, vminq_s32(hi, vcvtnq_s32_f32(vdivq_f32(vld1q_f32(x+i+4*j), s))));
+        const int16x8_t a = vcombine_s16(vqmovn_s32(q[0]), vqmovn_s32(q[1]));
+        const int16x8_t b = vcombine_s16(vqmovn_s32(q[2]), vqmovn_s32(q[3]));
+        vst1q_s8(out+i, vcombine_s8(vqmovn_s16(a), vqmovn_s16(b)));
+    }
+}
+// Returns the largest |output| (NaN if any output is NaN).
+static float dequantize_row(const int32_t* c, int n, float row_scale, const float* scales, float* out) {
+    const float32x4_t r = vdupq_n_f32(row_scale);
+    float32x4_t m = vdupq_n_f32(0);
+    for (int j = 0; j < n; j += 4) {
+        const float32x4_t v = vmulq_f32(vmulq_f32(vcvtq_f32_s32(vld1q_s32(c+j)), r), vld1q_f32(scales+j));
+        vst1q_f32(out+j, v);
+        m = vmaxq_f32(m, vabsq_f32(v));
+    }
+    return vmaxvq_f32(m);
+}
 // One NPU kernel per tile. Measured on RK3588 (M=64): K=9216 runs in 135 ms but
 // three K=3072 slices take 0.9 ms each; K=4096 is also slower than 2x2048 and
 // N=9216 slower than 2x4608. K slices accumulate in INT32, so tiling is exact.
@@ -149,15 +185,11 @@ int trutina_mm_forward(void* opaque, const float* input, size_t rows, float* out
             auto started = Clock::now();
             for (size_t r = 0; r < take; ++r) {
                 const float* src = input + (offset+r)*k;
-                float maximum = 0;
-                for (int i = 0; i < k; ++i) {
-                    if (!std::isfinite(src[i])) throw std::runtime_error("Non-finite input");
-                    maximum = std::max(maximum, std::abs(src[i]));
-                }
+                const float maximum = abs_max(src, k);
+                if (!std::isfinite(maximum)) throw std::runtime_error("Non-finite input");
                 const float scale = maximum > 0 ? std::max(maximum / 127.f, std::numeric_limits<float>::min()) : 1.f;
                 row_scales[r] = scale;
-                for (int i = 0; i < k; ++i)
-                    quantized[r*k+i] = static_cast<int8_t>(std::clamp(std::nearbyint(src[i]/scale), -127.f, 127.f));
+                quantize_row(src, k, scale, &quantized[r*k]);
             }
             pool->quant_ns += elapsed(started);
             for (size_t t = 0; t < linear->tiles.size(); ++t) {
@@ -187,12 +219,11 @@ int trutina_mm_forward(void* opaque, const float* input, size_t rows, float* out
                     for (size_t i = 0; i < take*width; ++i) sum[i] += c[i];
                 if (last) {
                     const int32_t* totals = first ? c : sum.data();
-                    for (size_t r = 0; r < take; ++r)
-                        for (size_t j = 0; j < width; ++j) {
-                            const float value = totals[r*width+j] * row_scales[r] * linear->scales[tile.n0+j];
-                            if (!std::isfinite(value)) throw std::runtime_error("Non-finite output");
-                            output[(offset+r)*n + tile.n0 + j] = value;
-                        }
+                    for (size_t r = 0; r < take; ++r) {
+                        const float largest = dequantize_row(totals + r*width, tile.n, row_scales[r],
+                            &linear->scales[tile.n0], output + (offset+r)*n + tile.n0);
+                        if (!std::isfinite(largest)) throw std::runtime_error("Non-finite output");
+                    }
                 }
                 pool->output_ns += elapsed(started);
             }

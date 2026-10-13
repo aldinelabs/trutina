@@ -184,20 +184,42 @@ The persistent service passed both HTTP routes with the same responses before an
 after tiling. Every response was HTTP 200 and reported `X-Trutina-Backend:
 npu-matmul`; no model switch occurred.
 
-| HTTP smoke request | Exit | Untiled (s) | Tiled (s) |
-|---|---:|---:|---:|
-| Invoice, deep | 32 | 12.04 | 3.46 |
-| Red image | 16 | 11.11 | 4.74 |
-| Invoice, adaptive | 16 | 6.02 | 1.71 |
-| Invoice, deep again | 32 | 11.89 | 3.38 |
+| HTTP smoke request | Exit | Untiled (s) | Tiled (s) | + CPU work (s) |
+|---|---:|---:|---:|---:|
+| Invoice, deep | 32 | 12.04 | 3.46 | 2.47 |
+| Red image | 16 | 11.11 | 4.74 | 4.13 |
+| Invoice, adaptive | 16 | 6.02 | 1.71 | 1.18 |
+| Invoice, deep again | 32 | 11.89 | 3.38 | 2.26 |
 
-For comparison, RKLLM took 2.07 s for the same full-depth invoice. RKLLM remains
-faster for deep-only text; adaptive requests that exit early are now faster here,
-with one resident model for text and images. Raw results:
-[untiled](benchmarks/rock5b-npu-matmul-http.json),
-[tiled](benchmarks/rock5b-npu-matmul-tiled-http.json). A repeat of the tiled probe
-gave 3.42 / 4.57 / 1.74 / 3.37 s, and the service cgroup peaked at 9.4 GiB. These
-remain single smoke samples, not a latency distribution.
+"CPU work" adds NEON activation quantization in the bridge and the Gated DeltaNet
+changes in `trutina.cpu_gdn` (below). For comparison, RKLLM took 2.07 s for the
+same full-depth invoice. Adaptive requests that exit early are now faster here, and
+deep text is close to RKLLM, with one resident model for text and images. Raw
+results: [untiled](benchmarks/rock5b-npu-matmul-http.json),
+[tiled](benchmarks/rock5b-npu-matmul-tiled-http.json),
+[CPU work](benchmarks/rock5b-npu-matmul-cpu-http.json). Repeats gave
+3.42 / 4.57 / 1.74 / 3.37 s (tiled) and 2.30 / 4.00 / 1.17 / 2.26 s (CPU work);
+the service cgroup peaked at 9.4 GiB. These remain single smoke samples, not a
+latency distribution.
+
+After tiling, a profile of one deep request (3.26 s) found 0.84 s of NPU
+execution, 0.74 s of scalar quantization, binding and dequantization around it,
+and about 1.4 s in the reference torch Gated DeltaNet. On CPU devices,
+`trutina.cpu_gdn` replaces two transformers fallbacks: the chunked delta rule
+uses a chunk sized to the prompt (the reference pads 70 tokens to two chunks of
+64) with contiguous key transposes, and the depthwise causal convolution uses
+shifted multiply-adds instead of mkldnn. This also applies to the CPU INT8
+backend, whose latency has not been re-measured.
+
+Exact arithmetic is unchanged, but float rounding differs. Against a float64
+token-by-token recurrence on the image request's captured inputs, every chunk
+size tested (16, 32, 64 and the new size) had a relative error of about 2e-7 in
+every layer. Yet the image request's P(red) was 0.957 with the token recurrence,
+0.913 / 0.932 / 0.931 with chunks of 16 / 32 / 64, and 0.878 with the new chunk
+size. Per-token INT8 activation quantization turns float-rounding differences
+into different integer roundings, which compound over layers. Expect
+probability shifts of this order from any numerically equivalent change on the
+W8A8 path, and evaluate calibration on the deployment distribution.
 The [thread profile](benchmarks/rock5b-npu-matmul-thread-profile.json), measured
 before tiling, found no speed improvement from reducing CPU threads. Four CPU
 threads remain the default.

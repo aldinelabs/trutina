@@ -1,0 +1,70 @@
+[
+  {
+    "name": "deep",
+    "status": 200,
+    "seconds": 2.470866354999089,
+    "backend": "npu-matmul",
+    "exit": "32",
+    "result": {
+      "answers": {
+        "over": {
+          "type": "noul",
+          "noul": 0.9855197088057466
+        }
+      }
+    }
+  },
+  {
+    "name": "image",
+    "status": 200,
+    "seconds": 4.132629357998667,
+    "backend": "npu-matmul",
+    "exit": "16",
+    "result": {
+      "answers": {
+        "color": {
+          "type": "choice",
+          "choice": "red",
+          "confidence": 0.5894139341815872,
+          "probabilities": {
+            "red": 0.8783528575730696,
+            "blue": 0.04643041146914333,
+            "green": 0.07521673095778705
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "adaptive",
+    "status": 200,
+    "seconds": 1.1769077810004092,
+    "backend": "npu-matmul",
+    "exit": "16",
+    "result": {
+      "model": "trutina-4b",
+      "answers": [
+        {
+          "type": "predicate",
+          "name": "over",
+          "probability": 0.9426323353258247
+        }
+      ]
+    }
+  },
+  {
+    "name": "deep_again",
+    "status": 200,
+    "seconds": 2.2576547780008696,
+    "backend": "npu-matmul",
+    "exit": "32",
+    "result": {
+      "answers": {
+        "over": {
+          "type": "noul",
+          "noul": 0.9855197088057466
+        }
+      }
+    }
+  }
+]

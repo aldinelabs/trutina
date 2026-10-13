@@ -86,6 +86,10 @@ class TorchTrutina:
         auto = AutoModelForImageTextToText if vision else AutoModelForCausalLM
         lm = auto.from_pretrained(str(local), dtype=dtype, attn_implementation="sdpa")
         torso = getattr(lm.model, "language_model", lm.model).to(device).eval()
+        if torch.device(device).type == "cpu":
+            from trutina import cpu_gdn
+
+            cpu_gdn.enable()
         if cpu_int8:
             from trutina.cpu_quant import quantize_torso
 
