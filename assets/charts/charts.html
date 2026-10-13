@@ -74,6 +74,7 @@ footer .site { font-family: var(--mono); white-space: nowrap; color: var(--ink-2
 .pill4 { display: inline-block; font: 600 0.66em/1 var(--mono); background: var(--fg); color: #fff; border-radius: 999px; padding: 0.32em 0.62em; margin-left: 0.45em; vertical-align: 0.14em; }
 .mk { height: 1.15em; width: auto; vertical-align: -0.22em; margin-right: 6px; }
 .titles h1 .mk { height: 0.95em; vertical-align: -0.1em; margin-right: 14px; }
+.pillv { background: var(--card); color: var(--fg); box-shadow: inset 0 0 0 1.3px var(--fg); }
 .titles h1 .pill4 { font-size: 0.4em; vertical-align: 0.55em; margin-left: 0.35em; margin-right: 0.15em; }
 </style>
 </head>
@@ -89,6 +90,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 const fmt1 = v => (Math.round(v * 10) / 10).toFixed(1);
 const ms = " ms";
 const MARK = "brand/aldine-symbol.svg", MK = `<img class="mk" src="${MARK}" alt="">`, PILL = `<span class="pill4">4B</span>`;
+const VIS = zh ? "多模态" : "Multimodal", VPILL = `<span class="pill4 pillv">${VIS}</span>`;
 
 /* The Aldine symbol beside every label of ours: each SVG text.lbl-us gets the mark to its left, sized to the text. */
 function placeMarks() {
@@ -96,16 +98,28 @@ function placeMarks() {
   for (const t of document.querySelectorAll("svg text.lbl-us")) {
     let b = t.getBBox();
     const h = b.height, s = Math.round(h * 0.92);
-    if (!t.hasAttribute("data-nopill")) {  // a 4B pill after the name, the label moved left to make room when right-aligned
-      const ph = Math.round(h * 0.78), pw = Math.round(ph * 2.05), gap = Math.round(h * 0.32);
-      const end = t.getAttribute("text-anchor") === "end";
-      if (end) { t.setAttribute("x", +t.getAttribute("x") - pw - gap); }
-      const nb = t.getBBox(), px = end ? b.x + b.width - pw : nb.x + nb.width + gap;
-      const py = nb.y + (nb.height - ph) / 2;
-      t.parentNode.insertBefore(el("rect", { x: px, y: py, width: pw, height: ph, rx: ph / 2, fill: "var(--fg)" }), t.nextSibling);
-      const tx = el("text", { x: px + pw / 2, y: py + ph * 0.72, "text-anchor": "middle", style: `font: 600 ${Math.round(ph * 0.62)}px var(--mono); fill: #fff` });
-      tx.textContent = "4B";
-      t.parentNode.insertBefore(tx, t.nextSibling.nextSibling);
+    // pills after the name: the dark 4B pill unless data-nopill, an outlined multimodal pill with data-vision;
+    // a right-aligned label moves left to make room
+    const pills = [...(t.hasAttribute("data-nopill") ? [] : [["4B", true]]), ...(t.hasAttribute("data-vision") ? [[VIS, false]] : [])];
+    if (pills.length) {
+      const ph = Math.round(h * 0.78), gap = Math.round(h * 0.32), end = t.getAttribute("text-anchor") === "end";
+      let after = t;
+      const made = pills.map(([label, dark]) => {
+        const r = el("rect", { height: ph, rx: ph / 2, fill: dark ? "var(--fg)" : "var(--card)", stroke: dark ? "none" : "var(--fg)", "stroke-width": 1.3 });
+        const tx = el("text", { "text-anchor": "middle", style: `font: 600 ${Math.round(ph * 0.62)}px var(--mono); fill: ${dark ? "#fff" : "var(--fg)"}` });
+        tx.textContent = label;
+        after.after(r); r.after(tx); after = tx;
+        const w = Math.max(Math.round(ph * 2.05), Math.ceil(tx.getComputedTextLength() + ph * 0.9));
+        return { r, tx, w };
+      });
+      if (end) t.setAttribute("x", +t.getAttribute("x") - made.reduce((a, m) => a + m.w + gap, 0));
+      const nb = t.getBBox(), py = nb.y + (nb.height - ph) / 2;
+      let px = nb.x + nb.width + gap;
+      for (const m of made) {
+        m.r.setAttribute("x", px); m.r.setAttribute("y", py); m.r.setAttribute("width", m.w);
+        m.tx.setAttribute("x", px + m.w / 2); m.tx.setAttribute("y", py + ph * 0.72);
+        px += m.w + gap;
+      }
       b = t.getBBox();
     }
     t.parentNode.insertBefore(el("image", { href: MARK, width: s, height: s, x: b.x - s - s * 0.38, y: b.y + (b.height - s) / 2 }), t);
@@ -154,7 +168,7 @@ function pareto() {
     if (r.us) {
       g += r.mode === "adaptive" ? usDot(cx, cy, 10) : `<circle cx="${cx}" cy="${cy}" r="8" fill="var(--card)" stroke="var(--fg)" stroke-width="2.5"/>`;
       const [dx, dy, an] = r.mode === "adaptive" ? [18, 42, "start"] : [-16, -34, "end"];
-      g += `<text class="lbl-us" x="${cx + dx}" y="${cy + dy}" text-anchor="${an}" style="font-size:16px">${esc(r.label)}</text>`;
+      g += `<text class="lbl-us" data-vision x="${cx + dx}" y="${cy + dy}" text-anchor="${an}" style="font-size:16px">${esc(r.label)}</text>`;
       g += `<text class="lbl-sub" x="${cx + dx}" y="${cy + dy + 18}" text-anchor="${an}">${fmt1(r.i_open)} · ${fmt1(r.mean)} ms</text>`;
     } else {
       g += `<circle cx="${cx}" cy="${cy}" r="7" fill="var(--muted)" stroke="var(--card)" stroke-width="1.5"/>`;
@@ -189,7 +203,7 @@ function efficiency() {
   for (const t of [0, 0.5, 1, 1.5, 2, 2.5]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 30}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - 6}" text-anchor="middle">${t}</text>`;
   rows.forEach((r, i) => {
     const cy = top + i * rowH + rowH / 2;
-    g += `<text class="${r.us ? "lbl-us" : "lbl"}" ${r.us ? "data-nopill" : ""} x="${lx - 76}" y="${cy + 5}" text-anchor="end" ${r.us ? 'style="font-size:16px"' : ""}>${esc(r.label)}</text>`;
+    g += `<text class="${r.us ? "lbl-us" : "lbl"}" ${r.us ? "data-nopill data-vision" : ""} x="${lx - 76}" y="${cy + 5}" text-anchor="end" ${r.us ? 'style="font-size:16px"' : ""}>${esc(r.label)}</text>`;
     g += chip(lx - 64, cy, "4B", true);
     g += bar(lx, cy - 12, x(r.ei) - lx, 24, r.us ? "var(--fg)" : "var(--pale)");
     g += `<text class="${r.us ? "val" : "val-muted"}" x="${x(r.ei) + 12}" y="${cy + 5}">${r.ei.toFixed(2)} <tspan class="lbl-sub">${fmt1(r.i_open)} / ${fmt1(r.mean)} ms</tspan></text>`;
@@ -220,7 +234,7 @@ function localllama() {
   for (const t of [50, 60, 70, 80]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 30}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - 6}" text-anchor="middle">${t}%</text>`;
   rows.forEach((r, i) => {
     const cy = top + i * rowH + rowH / 2;
-    g += `<text class="${r.ours ? "lbl-us" : "lbl"}" x="${lx - 16}" y="${cy + 1}" text-anchor="end" style="font-size:${r.ours ? 16 : 14}px">${esc(r.name)}</text>`;
+    g += `<text class="${r.ours ? "lbl-us" : "lbl"}" ${r.ours ? "data-vision" : ""} x="${lx - 16}" y="${cy + 1}" text-anchor="end" style="font-size:${r.ours ? 16 : 14}px">${esc(r.name)}</text>`;
     g += `<text class="lbl-sub" x="${lx - 16}" y="${cy + 17}" text-anchor="end">${r.open ? (zh ? "开放权重" : "open weights") : (zh ? "经 API 评测" : "scored via API")} · ${r.by === "us" ? (zh ? "本文实测" : "measured by us") : (zh ? "数据集卡片" : "dataset card")}</text>`;
     g += bar(lx, cy - 11, x(r.acc) - lx, 22, r.ours ? "var(--fg)" : r.by === "us" ? "var(--muted)" : "var(--pale)");
     g += `<text class="${r.ours ? "val" : "val-muted"}" x="${x(r.acc) + 10}" y="${cy + 6}">${r.acc}</text>`;
@@ -236,12 +250,12 @@ function localllama() {
   });
   const cards = (a, b) => `<div class="row"><div class="card" style="flex:1.9"><h2>${a}</h2>${svgTag(W, H)}${g}</svg></div><div class="card"><h2>${b}</h2>${svgTag(W2, H)}${k}</svg></div></div>`;
   return frame(zh ? {
-    title: "开放权重模型中零样本准确率最高",
+    title: "开源模型中迄今为止最强大的通用领域零样本决策",
     sub: "LocalLLaMA typed-decisions 测试集，涵盖 agent 监控、客户服务、发票处理与安全事件等场景，均未出现在训练数据中。Trutina 在开放权重模型中准确率最高，总榜仅次于一个托管 API；KL 散度略高于 Sieve-4B。",
     body: cards("准确率 <span>· 2,000 题</span>", "与标注分布的 KL 散度 <span>· 越低越好</span>"),
     src: "标注「数据集卡片」的行取自 LocalLLaMA/typed-decisions 数据集卡片的零样本榜单；标注「本文实测」的 6 个开放 4B 决策模型由我们经各自作者提供的服务端、按卡片协议（每个 case 的五道题放在一个请求中）在同型号 GPU 上测得。",
   } : {
-    title: "The best zero-shot accuracy among open-weight models",
+    title: "The strongest open model yet for general zero-shot decisions",
     sub: "LocalLLaMA typed-decisions test: agent monitoring, support, invoices and security incidents, none of them in training. Trutina has the highest accuracy among open-weight models, second overall behind one hosted API; its KL is slightly above Sieve-4B's.",
     body: cards("Accuracy <span>· 2,000 questions</span>", "KL to the gold distribution <span>· lower is better</span>"),
     src: "Rows marked 'dataset card' are from the zero-shot table of the LocalLLaMA/typed-decisions card. The six open 4B decision models marked 'measured by us' ran through their authors' servers with the card's protocol (a case's five questions in one request) on the same GPU type.",
@@ -307,7 +321,7 @@ function bigger() {
     g += `<line x1="${x(ad.p50)}" x2="${x(ad.p50)}" y1="${y + 2}" y2="${y + rs.length * rowH - 2}" stroke="var(--fg)" stroke-width="1.5" stroke-dasharray="4 4" opacity=".55"/>`;
     for (const r of rs) {
       const cy = y + rowH / 2, k = r.p50 / ad.p50;
-      g += `<text class="${r.us ? "lbl-us" : "lbl"}" data-nopill x="${lx - 70}" y="${cy + 5}" text-anchor="end" style="font-size:${r.us ? 17 : 15}px">${esc(name(r))}</text>`;
+      g += `<text class="${r.us ? "lbl-us" : "lbl"}" data-nopill ${r.us ? "data-vision" : ""} x="${lx - 70}" y="${cy + 5}" text-anchor="end" style="font-size:${r.us ? 17 : 15}px">${esc(name(r))}</text>`;
       g += chip(lx - 58, cy, r.size === "?" ? (zh ? "未公开" : "n/a") : r.size, r.us);
       g += bar(lx, cy - 13, x(r.p50) - lx, 26, r.us ? "var(--fg)" : "var(--pale)");
       g += r.us
@@ -476,13 +490,13 @@ function overview() {
       <div class="kpis">${A.slice(0, 4).map(a => kp(...a)).join("")}</div>
       <div class="kpis" style="grid-template-columns: repeat(3, 1fr)">${A.slice(4).map(a => kp(...a)).join("")}</div></div>`;
   return frame(zh ? {
-    title: `Trutina${PILL}：单次前向传播的校准决策模型`,
+    title: `Trutina${PILL}${VPILL}：单次前向传播的校准决策模型`,
     sub: "具备自适应深度的 4B 类型化决策模型。支持基于文本与图像的选择题、等级评分题与是非题，为每个选项输出概率，不生成文本。",
-    body, src: "前四项与平均延迟为同口径实测：6 个开放 4B 决策模型各经其作者提供的服务端，在同型号 GPU（RTX PRO 6000）上处理同一批请求。JevBench 与高难度决策上 JevK5、Plumb 领先，见对比图。",
+    body, src: "前四项与平均延迟为同口径实测：6 个开放 4B 决策模型各经其作者提供的服务端，在同型号 GPU（RTX PRO 6000）上处理同一批请求。JevBench 与高难度决策上 JevK5、Plumb 领先。这 6 个模型中只有 Trutina 接受图像输入，另外 5 个加载的是纯文本权重，只读取文本提示。",
   } : {
-    title: `Trutina${PILL}: calibrated decisions in one forward pass`,
+    title: `Trutina${PILL}${VPILL}: calibrated decisions in one forward pass`,
     sub: "A 4B typed decision model with adaptive depth. Choice, score and yes/no questions over text and images, with a probability for every option and no generated text.",
-    body, src: "The first four and the mean latency are same-protocol measurements: six open 4B decision models, each through its authors' server, the same requests on the same GPU type (RTX PRO 6000). JevK5 and Plumb lead on JevBench and the hard decisions; see the head-to-head chart.",
+    body, src: "The first four and the mean latency are same-protocol measurements: six open 4B decision models, each through its authors' server, the same requests on the same GPU type (RTX PRO 6000). JevK5 and Plumb lead on JevBench and the hard decisions. Of these six, only Trutina takes images: the other five load text-only checkpoints and read a text prompt.",
   });
 }
 
