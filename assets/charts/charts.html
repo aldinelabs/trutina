@@ -295,12 +295,12 @@ function panel() {
     title: "决策质量超越数倍于自身大小的通用语言模型",
     sub: `Perplexity 决策面板 10 项公开任务、${P.n.toLocaleString()} 题。Trutina 在 ${wins} 项上领先，按题数加权为 ${o.trutina}，Qwen3.8-27B 为 ${o.qwen}；专用的 Jev 1.13.0 与 Perplexity Decider 27B 分别为 ${o.jev} 与 ${o.pplx}。`,
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
-    src: "Qwen3.8-27B（以及副标题中 Jev 1.13.0、Perplexity Decider 27B）的数值取自 Perplexity 公布的 11 项决策面板（2026 年 9 月测得，经 benchlm.ai 汇总），其抽样题目、提示词与标签映射未公开。Trutina 为已发布权重、完整深度，由我们在同型号公开切分上按相同题数固定种子抽样测得，并已剔除与训练数据近似重复的题目（8-gram 重合 ≥ 30%）；Circa 因出现在训练数据中而未纳入。JudgeBench 为两种顺序的单题准确率，JevBench public hard 为当前版本的 111 题（面板为 101 题）。此为近似对比，并非复现。",
+    src: "Qwen3.8-27B（以及副标题中 Jev 1.13.0、Perplexity Decider 27B）的数值取自 Perplexity 公布的 11 项决策面板（2026 年 9 月测得，经 benchlm.ai 汇总），其抽样题目、提示词与标签映射未公开。Trutina 为上一版 v2.1 权重、完整深度（v3 尚未在此面板上测量），由我们在同型号公开切分上按相同题数固定种子抽样测得，并已剔除与训练数据近似重复的题目（8-gram 重合 ≥ 30%）；Circa 因出现在训练数据中而未纳入。JudgeBench 为两种顺序的单题准确率，JevBench public hard 为当前版本的 111 题（面板为 101 题）。此为近似对比，并非复现。",
   } : {
     title: "Better decisions than a general LLM several times its size",
     sub: `Perplexity's decision panel, 10 public tasks, ${P.n.toLocaleString()} rows. Trutina leads on ${wins} tasks and scores ${o.trutina} weighted by rows against Qwen3.8-27B's ${o.qwen}; the dedicated Jev 1.13.0 and Perplexity Decider 27B score ${o.jev} and ${o.pplx}.`,
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
-    src: "Qwen3.8-27B (and, in the subtitle, Jev 1.13.0 and Perplexity Decider 27B): Perplexity's published 11-task decision panel (measured September 2026, collected by benchlm.ai); its sampled items, prompts and label mappings are unpublished. Trutina: released weights at full depth, measured by us on the same public splits with the same row counts (fixed seed), near-duplicates of our training data removed (≥ 30% shared 8-grams); Circa is left out because it was in our training data. JudgeBench is per-request accuracy over both orders; JevBench public hard is the current 111 tasks (the panel used 101). An approximate comparison, not a replication.",
+    src: "Qwen3.8-27B (and, in the subtitle, Jev 1.13.0 and Perplexity Decider 27B): Perplexity's published 11-task decision panel (measured September 2026, collected by benchlm.ai); its sampled items, prompts and label mappings are unpublished. Trutina: the previous v2.1 weights at full depth (v3 has not been run on this panel), measured by us on the same public splits with the same row counts (fixed seed), near-duplicates of our training data removed (≥ 30% shared 8-grams); Circa is left out because it was in our training data. JudgeBench is per-request accuracy over both orders; JevBench public hard is the current 111 tasks (the panel used 101). An approximate comparison, not a replication.",
   });
 }
 
@@ -393,7 +393,7 @@ function adaptive() {
   for (const t of [40, 50, 60, 70, 80, 90]) g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/><text class="axis" x="${m.l - 12}" y="${y(t) + 5}" text-anchor="end">${t}%</text>`;
   for (const l of E.layers) g += `<text class="axis" x="${x(l)}" y="${H - m.b + 26}" text-anchor="middle">${l}</text>`;
   g += `<text class="axis-title" x="${(m.l + W - m.r) / 2}" y="${H - 2}" text-anchor="middle">${zh ? "停下作答的层" : "layer it stops at"}</text>`;
-  const series = [["jevbench", zh ? "JevBench 公开集" : "JevBench public", "var(--fg)", 3], ["val", zh ? "验证集" : "our validation split", "var(--muted)", 2.2], ["localllama", "LocalLLaMA", "var(--faint)", 2.2]];
+  const series = [["val", zh ? "验证集" : "our validation split", "var(--fg)", 3], ["localllama", "LocalLLaMA", "var(--muted)", 2.2]];
   for (const [k2, , c, w] of series) {
     const pts = E.layers.map((l, i) => [x(l), y(E[k2][i])]);
     g += `<path d="M${pts.map(p => p.join(",")).join(" L")}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"/>`;
@@ -403,16 +403,18 @@ function adaptive() {
   g += `<text class="lbl-sub" x="${W - m.r}" y="${y(46) + 18}" text-anchor="end">${zh ? "前 19 层基本只能瞎猜" : "the first 19 layers barely beat a guess"}</text>`;
   const lineLegend = `<div class="legend">${series.map(([, name, c, w]) => `<span><i><svg width="26" height="12"><line x1="0" x2="26" y1="6" y2="6" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/><circle cx="13" cy="6" r="4" fill="#fff" stroke="${c}" stroke-width="2"/></svg></i>${name}</span>`).join("")}</div>`;
   const sh = E.share_val, keys = ["12", "16", "20", "24", "32"], SW = 520, tones = ["var(--fg)", "var(--ink-2)", "var(--muted)", "var(--faint)", "var(--pale)"];
-  let acc = 0, s = "";
+  let acc = 0, s = "", lastX = 0;
   keys.forEach((k2, i) => {
     const w = sh[k2] / 100 * SW;
     s += `<rect x="${acc}" y="0" width="${Math.max(w - 3, 1)}" height="44" rx="${Math.min(12, (w - 3) / 2)}" fill="${tones[i]}"/>`;
-    s += `<text x="${acc + 4}" y="70" class="lbl" style="font-size:13px">L${k2}</text><text x="${acc + 4}" y="90" class="val" style="font-size:15px">${Math.round(sh[k2])}%</text>`;
+    const lx2 = Math.max(acc + 4, lastX);  // labels never overlap a narrow segment's neighbour
+    s += `<text x="${lx2}" y="70" class="lbl" style="font-size:13px">L${k2}</text><text x="${lx2}" y="90" class="val" style="font-size:15px">${Math.round(sh[k2])}%</text>`;
+    lastX = lx2 + 44;
     acc += w;
   });
   const kp = (k2, v, f) => `<div class="kpi inner" style="padding:22px 24px"><span class="k">${k2}</span><span class="v" style="font-size:40px">${v}</span><span class="f">${f}</span></div>`;
-  const K = zh ? [["平均只用", `${fmt1(E.mean_layers.jevbench)}<small>/ 32 层</small>`, "省下约三分之一的计算"], ["准确率", `${fmt1(E.adaptive.jevbench)}<small>%</small>`, `走完全部 32 层为 ${fmt1(E.jevbench.at(-1))}%`], ["中位延迟", `${fmt1(ad.p50)}<small>ms</small>`, `走完全部 32 层为 ${fmt1(full.p50)} ms`], ["平均延迟", `${fmt1(ad.mean)}<small>ms</small>`, `走完全部 32 层为 ${fmt1(full.mean)} ms`]]
-    : [["Layers used", `${fmt1(E.mean_layers.jevbench)}<small>/ 32</small>`, "about a third of the compute saved"], ["Accuracy", `${fmt1(E.adaptive.jevbench)}<small>%</small>`, `${fmt1(E.jevbench.at(-1))}% with all 32 layers`], ["Median latency", `${fmt1(ad.p50)}<small>ms</small>`, `${fmt1(full.p50)} ms with all 32 layers`], ["Mean latency", `${fmt1(ad.mean)}<small>ms</small>`, `${fmt1(full.mean)} ms with all 32 layers`]];
+  const K = zh ? [["平均只用", `${fmt1(E.mean_layers.jevbench)}<small>/ 32 层</small>`, "省下约三分之一的计算"], ["准确率", `${fmt1(E.adaptive.jevbench)}<small>%</small>`, `走完全部 32 层为 ${fmt1(E.full.jevbench)}%`], ["中位延迟", `${fmt1(ad.p50)}<small>ms</small>`, `走完全部 32 层为 ${fmt1(full.p50)} ms`], ["平均延迟", `${fmt1(ad.mean)}<small>ms</small>`, `走完全部 32 层为 ${fmt1(full.mean)} ms`]]
+    : [["Layers used", `${fmt1(E.mean_layers.jevbench)}<small>/ 32</small>`, "about a third of the compute saved"], ["Accuracy", `${fmt1(E.adaptive.jevbench)}<small>%</small>`, `${fmt1(E.full.jevbench)}% with all 32 layers`], ["Median latency", `${fmt1(ad.p50)}<small>ms</small>`, `${fmt1(full.p50)} ms with all 32 layers`], ["Mean latency", `${fmt1(ad.mean)}<small>ms</small>`, `${fmt1(full.mean)} ms with all 32 layers`]];
   const body = `<div class="row"><div class="card" style="flex:1.6"><h2>${zh ? "在第几层停下来作答，准确率是多少" : "How accurate the answer is if it stops at each layer"}</h2>${lineLegend}${svgTag(W, H)}${g}</svg></div>
       <div style="flex:1; display:flex; flex-direction:column; gap:20px">
         <div class="card" style="flex:none"><h2>${zh ? "请求实际在哪一层停下" : "Where requests actually stop"}</h2><svg width="${SW}" height="96">${s}</svg></div>
@@ -420,11 +422,11 @@ function adaptive() {
   return frame(zh ? {
     title: "业界首个可变深度决策模型",
     sub: "简单的题在浅层就有把握，提前给出答案；只有难题才走完全部 32 层。平均少算三分之一，准确率几乎不变。",
-    body, src: "第 12、16、20、24 层各有一个训练过的出口，与最后一层用同样的方式读出答案；置信度够高就在该层作答，否则接着往后算，不重复计算前面的层。各层准确率在合并 LoRA 之前的训练检查点上测得（与发布权重相差不超过 0.1）；停下层的分布取自验证集；层数与准确率为 JevBench 公开集；延迟为单张 RTX PRO 6000 上串行请求（CUDA graph）。",
+    body, src: "第 12、16、20、24 层各有一个训练过的出口，与最后一层用同样的方式读出答案；置信度够高就在该层作答，否则接着往后算，不重复计算前面的层。各层准确率在合并 LoRA 之前的训练检查点上测得（与发布权重相差不超过 0.1）；停下层的分布取自验证集；右侧层数与准确率为 JevBench 公开集；延迟为单张 RTX PRO 6000 上串行请求（CUDA graph），用 v2.1 权重测得，v3 架构与出口相同。",
   } : {
     title: "The first decision model with variable depth",
     sub: "Easy questions are settled in the early layers and answered there; only the hard ones go through all 32. A third less compute on average, at nearly the same accuracy.",
-    body, src: "Trained exits at layers 12, 16, 20 and 24 read the answer the same way as the last layer; a request answers at the first exit that is confident enough and otherwise carries on, without recomputing earlier layers. Per-exit accuracy measured on the training checkpoint before the LoRA merge (the released weights differ by at most 0.1); where requests stop: our validation split; layers and accuracy: JevBench public tasks; latency: serial requests on one RTX PRO 6000 (CUDA graphs).",
+    body, src: "Trained exits at layers 12, 16, 20 and 24 read the answer the same way as the last layer; a request answers at the first exit that is confident enough and otherwise carries on, without recomputing earlier layers. Per-exit accuracy measured on the training checkpoint before the LoRA merge (the released weights differ by at most 0.1); where requests stop: our validation split; layers and accuracy: JevBench public tasks; latency: serial requests on one RTX PRO 6000 (CUDA graphs), measured with the v2.1 weights; v3 has the same architecture and exits.",
   });
 }
 
@@ -465,12 +467,12 @@ function heldout() {
   const body = `<div class="row">${left}${right}</div>`;
   return frame(zh ? {
     title: "在未见过的基准与图像上依然有效",
-    sub: "左：与相同骨干、相同 prompt 的未微调模型对比，fast-decisions 上准确率持平，但校准误差降低约一半（ECE 0.251 → 0.122）。右：Qwen3.5 视觉编码器保持冻结，加入约 3.5 万道图像题训练后，网页智能体类判断由 75.0 提升至 91.9。",
-    body, src: "全部结果均为自行测得。左图数据集既未用于训练，也未用于权重选择；未列出 DecisionBench hard，该基准上 Trutina（49.6）低于未微调的骨干模型（53.6）。右图为自建验证集（非公开基准），对照组 v2 为同一架构、仅经文本微调的版本；Decision Index 视觉套件尚未评测。",
+    sub: "左：与相同骨干、相同 prompt 的未微调模型对比，fast-decisions 上准确率持平，但校准误差降低约四成（ECE 0.251 → 0.142）。右：Qwen3.5 视觉编码器保持冻结，加入约 3.5 万道图像题训练后，网页智能体类判断由 75.0 提升至 93.0。",
+    body, src: "全部结果均为自行测得。左图数据集既未用于训练，也未用于权重选择；未列出 DecisionBench hard，该基准上 Trutina（52.5）低于未微调的骨干模型（53.6）。右图为自建验证集（非公开基准），对照组 v2 为同一架构、仅经文本微调的版本；Decision Index 视觉套件尚未评测。",
   } : {
     title: "Gains on held-out benchmarks and image questions",
-    sub: "Left: against the untrained model with the same backbone and prompt; fast-decisions accuracy is flat but calibration error halves (ECE 0.251 → 0.122). Right: with the Qwen3.5 vision tower frozen, training on about 35k image questions lifts web-agent decisions from 75.0 to 91.9.",
-    body, src: "All numbers measured by us. Left: none of these sets was used for training or for choosing weights; not shown is DecisionBench hard, where Trutina (49.6) is below the untrained backbone (53.6). Right: our own validation split, not a public benchmark; v2 is the same architecture fine-tuned on text only. The Decision Index vision suite has not been run yet.",
+    sub: "Left: against the untrained model with the same backbone and prompt; fast-decisions accuracy is flat but calibration error drops by about 40% (ECE 0.251 → 0.142). Right: with the Qwen3.5 vision tower frozen, training on about 35k image questions lifts web-agent decisions from 75.0 to 93.0.",
+    body, src: "All numbers measured by us. Left: none of these sets was used for training or for choosing weights; not shown is DecisionBench hard, where Trutina (52.5) is below the untrained backbone (53.6). Right: our own validation split, not a public benchmark; v2 is the same architecture fine-tuned on text only. The Decision Index vision suite has not been run yet.",
   });
 }
 

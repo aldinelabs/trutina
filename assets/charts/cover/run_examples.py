@@ -1,9 +1,10 @@
 """Run the release-cover examples through the released weights (MLX engine) and save the real answers.
 
-  uv run python assets/charts/cover/run_examples.py
+  uv run python assets/charts/cover/run_examples.py [model]   # Hugging Face repo id or release directory
 """
 import base64
 import json
+import sys
 from pathlib import Path
 
 from trutina.api import handle
@@ -45,7 +46,7 @@ SCREEN = {"en": ("The user wants to reset their password. Which element should t
           "zh": ("用户想重置密码。智能体应该点击哪个元素？",
                  {"登录": "“登录”按钮", "忘记密码": "“忘记密码？”链接", "注册账号": "“注册账号”链接"})}
 
-eng = Trutina.load("aldinelabs/trutina-4b")
+eng = Trutina.load(sys.argv[1] if len(sys.argv) > 1 else "aldinelabs/trutina-4b")
 out = {}
 for lang, items in EX.items():
     out[lang] = []

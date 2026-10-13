@@ -129,23 +129,26 @@ def main():
             "latency_rtxpro6000": {"full": {"p50": 28.3, "p95": 112.1, "mean": 99.5},
                                    "adaptive": {"p50": 21.1, "p95": 107.4, "mean": 35.3}},
             "latency_m5pro": {"jevbench": {"full": 113, "adaptive": 71}, "localllama": {"full": 201, "adaptive": 177}},
+            # v3: per-exit accuracy from the calibration report (val) and the saved per-exit LocalLLaMA
+            # probabilities with the release temperatures; JevBench full / adaptive from the server run (lab exp11)
             "exits": {"layers": [12, 16, 20, 24, 32],
-                      "val": [50.0, 73.5, 85.8, 87.4, 87.9], "jevbench": [42.9, 71.9, 87.0, 87.9, 87.0],
-                      "localllama": [43.5, 59.3, 72.8, 75.2, 74.75],
-                      "adaptive": {"val": 87.5, "jevbench": 86.1, "localllama": 74.75},
-                      "share_val": {"12": 6.8, "16": 28.1, "20": 26.2, "24": 9.5, "32": 29.4},
-                      "mean_layers": {"val": 22.2, "jevbench": 22.1, "localllama": 28.2}},
+                      "val": [47.9, 73.0, 87.2, 88.5, 89.4],
+                      "localllama": [42.5, 60.9, 72.15, 73.85, 74.65],
+                      "adaptive": {"val": 89.1, "jevbench": 86.6, "localllama": 74.65},
+                      "full": {"jevbench": 87.4},
+                      "share_val": {"12": 3.6, "16": 26.8, "20": 33.2, "24": 10.9, "32": 25.6},
+                      "mean_layers": {"val": 22.1, "jevbench": 21.6, "localllama": 27.9}},
             "heldout": [
-                {"set": "JevBench public", "metric": "accuracy", "zero_shot": 79.7, "trutina": 87.0},
-                {"set": "DecisionBench medium", "metric": "state-macro acc.", "zero_shot": 75.2, "trutina": 83.2},
-                {"set": "JudgeBench", "metric": "pair accuracy", "zero_shot": 46.0, "trutina": 52.1},
+                {"set": "JevBench public", "metric": "accuracy", "zero_shot": 79.7, "trutina": 87.4},
+                {"set": "DecisionBench medium", "metric": "state-macro acc.", "zero_shot": 75.2, "trutina": 83.3},
+                {"set": "JudgeBench", "metric": "pair accuracy", "zero_shot": 46.0, "trutina": 54.5},
                 {"set": "this-that", "metric": "accuracy", "zero_shot": 43.8, "trutina": 51.3},
-                {"set": "fast-decisions", "metric": "accuracy", "zero_shot": 61.5, "trutina": 61.4},
-                {"set": "DecisionBench hard", "metric": "state-macro acc.", "zero_shot": 53.6, "trutina": 49.6}],
-            "massive": {"tournament": 79.3, "two_letter_labels": 59.4},
+                {"set": "fast-decisions", "metric": "accuracy", "zero_shot": 61.5, "trutina": 61.1},
+                {"set": "DecisionBench hard", "metric": "state-macro acc.", "zero_shot": 53.6, "trutina": 52.5}],
+            "massive": {"tournament": 79.7, "two_letter_labels": 59.4},
             # image questions, our validation split (in-distribution): v2 (text-only fine-tune) vs the release
-            "vision": [{"set": "ScienceQA", "before": 91.6, "after": 96.2}, {"set": "Mind2Web", "before": 75.0, "after": 91.9},
-                       {"set": "A-OKVQA", "before": 87.4, "after": 89.6},
+            "vision": [{"set": "ScienceQA", "before": 91.6, "after": 98.5}, {"set": "Mind2Web", "before": 75.0, "after": 93.0},
+                       {"set": "A-OKVQA", "before": 87.4, "after": 90.2},
                        {"set": "Rendered workflow screenshots", "before": 84.6, "after": 84.9}],
         },
         "localllama": {"source": "LocalLLaMA/typed-decisions dataset card, zero-shot table", "rows": [
@@ -164,7 +167,7 @@ def main():
     # full depth; Brier = sum over options of (p - soft target)^2, per question)
     data["typed"] = {"source": "Celeris-1 Decision launch table (provider-reported), benchlm.ai/decision-models", "rows": [
         {"name": "Celeris-1 Decision", "size": "closed", "acc": 76.5, "brier": 0.079},
-        {"name": "Trutina", "size": "4B", "acc": 74.7, "brier": 0.079, "ours": True},
+        {"name": "Trutina", "size": "4B", "acc": 74.65, "brier": 0.082, "ours": True},  # v3, served temperature
         {"name": "Decider v1.1", "size": "27B", "acc": 73.8, "brier": 0.173},
         {"name": "Jev 1.13.0", "size": "closed", "acc": 73.6, "brier": 0.149},
         {"name": "GPT-6 Luna", "size": "closed", "acc": 71.8, "brier": 0.204},
@@ -239,7 +242,10 @@ def main():
         f = COMPETE / f"{s}.json"
         if f.exists():
             r = json.loads(f.read_text())["sets"]["localllama"]
-            card.append({"name": n, "acc": round(r["acc"] * 100, 1), "kl": round(r["kl"], 3), "open": True, "ours": s == "trutina", "by": "us"})
+            row = {"name": n, "acc": round(r["acc"] * 100, 1), "kl": round(r["kl"], 3), "open": True, "ours": s == "trutina", "by": "us"}
+            if s == "trutina":  # v3 at full depth on the same 2,000 questions (lab exp11), served temperature
+                row.update(acc=74.65, kl=0.156)
+            card.append(row)
     data["localllama"]["rows"] = sorted(card, key=lambda r: -r["acc"])
     (HERE / "data.json").write_text(json.dumps(data, indent=1))
     (HERE / "data.js").write_text("window.DATA = " + json.dumps(data) + ";\n")  # for file:// pages

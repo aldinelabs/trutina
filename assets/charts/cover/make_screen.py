@@ -1,6 +1,7 @@
 """Draw the sign-in screen used as the image example on the release cover (both languages)."""
-from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path
+
+from PIL import Image, ImageDraw, ImageFont
 
 HERE = Path(__file__).parent
 FONT = "/System/Library/Fonts/Hiragino Sans GB.ttc"
