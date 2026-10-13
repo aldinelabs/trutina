@@ -17,6 +17,7 @@
   --muted: oklch(0.58 0.031 107.3);
   --faint: oklch(0.737 0.021 106.9);
   --pale: oklch(0.88 0.011 106.6);
+  --llm: oklch(0.47 0.13 27);  /* dark red: a general reasoning language model among decision systems */
   --border: oklch(0.93 0.007 106.5);
   --grid: oklch(0.955 0.005 106.5);
   --r-card: 24px;
@@ -54,6 +55,26 @@ footer .src { flex: 1; min-width: 0; text-wrap: pretty; }
 footer .site { font-family: var(--mono); white-space: nowrap; color: var(--ink-2); }
 .legend { display: flex; gap: 22px; flex-wrap: wrap; font-size: 14px; color: var(--ink-2); align-items: center; }
 .legend i { display: inline-block; vertical-align: -2px; margin-right: 8px; }
+.cv-grid { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; min-height: 0; margin-top: 8px; }
+.cv-card { background: var(--card); border-radius: var(--r-card); padding: 26px 26px 24px; display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+.cv-head { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.cv-tag { font: 600 12.5px/1 var(--mono); color: var(--fg); border: 1.3px solid var(--fg); border-radius: 999px; padding: 5px 10px; }
+.cv-head h3 { margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.015em; }
+.cv-state { background: var(--bg); border-radius: var(--r-inner); padding: 16px 18px; font-size: 15px; line-height: 1.55; color: var(--ink-2); aspect-ratio: 4 / 3; box-sizing: border-box; }
+.cv-img { width: 100%; aspect-ratio: 4 / 3; box-sizing: border-box; border-radius: var(--r-inner); border: 1px solid var(--border); display: block; }
+.cv-q { font-size: 16px; font-weight: 600; line-height: 1.45; min-height: 2.9em; }
+.cv-out { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.cv-big { font-size: 46px; font-weight: 600; letter-spacing: -0.03em; line-height: 1; display: flex; align-items: baseline; }
+.cv-big small { font-size: 22px; color: var(--muted); font-weight: 500; letter-spacing: 0; margin-left: 2px; }
+.cv-big span { font-size: 18px; font-weight: 600; letter-spacing: 0; margin-left: 12px; }
+.cv-bars { display: flex; flex-direction: column; gap: 7px; }
+.cv-row { display: grid; grid-template-columns: 38% 1fr 40px; align-items: center; gap: 10px; font-size: 13.5px; color: var(--muted); }
+.cv-k { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cv-track { height: 10px; border-radius: 5px; background: var(--grid); overflow: hidden; }
+.cv-track i { display: block; height: 100%; border-radius: 5px; background: var(--pale); }
+.cv-row.top { color: var(--fg); font-weight: 600; }
+.cv-row.top .cv-track i { background: var(--fg); }
+.cv-p { text-align: right; font-variant-numeric: tabular-nums; }
 .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
 .kpi { background: var(--card); border-radius: var(--r-card); padding: 28px 30px; display: flex; flex-direction: column; gap: 10px;
   box-shadow: 0 0 0 1px oklch(0.153 0.006 107.1 / .05), 0 1px 3px 0 oklch(0 0 0 / .06); }
@@ -348,23 +369,24 @@ function bigger() {
 
 /* ---------- typed-decisions: 4B against 27B and closed decision systems ---------- */
 function typed() {
-  const rows = D.typed.rows;
+  const rows = D.typed.rows, LLM = r => r.name.startsWith("GPT-");
   const W = 1470, rowH = 70, top = 12, H = rows.length * rowH + top + 40, lx = 360;
   const x = linScale(0, 100, lx, W - 170);
   const size = r => r.size === "closed" ? (zh ? "闭源" : "closed") : r.size;
   let g = "";
   for (const t of [0, 20, 40, 60, 80, 100]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 34}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - 10}" text-anchor="middle">${t}</text>`;
   rows.forEach((r, i) => {
-    const cy = top + i * rowH + rowH / 2, a = r.acc / 2, c = Math.max(r.cal, 0) / 2;
+    const cy = top + i * rowH + rowH / 2, a = r.acc / 2, c = Math.max(r.cal, 0) / 2, col = r.ours ? "var(--fg)" : LLM(r) ? "var(--llm)" : "var(--muted)";
     g += `<text class="${r.us ? "lbl-us" : r.ours ? "lbl-us" : "lbl"}" data-nopill x="${lx - 80}" y="${cy + 1}" text-anchor="end" style="font-size:${r.ours ? 17 : 15}px">${esc(r.name)}</text>`;
     g += `<text class="lbl-sub" x="${lx - 80}" y="${cy + 19}" text-anchor="end">${zh ? "准确率" : "accuracy"} ${r.acc.toFixed(1)}% · Brier ${r.brier.toFixed(3)}</text>`;
     g += chip(lx - 66, cy, size(r), r.ours);
-    g += `<rect x="${x(0)}" y="${cy - 14}" width="${x(a) - x(0)}" height="28" rx="6" fill="${r.ours ? "var(--fg)" : "var(--muted)"}"/>`;
-    if (c > 0) g += `<rect x="${x(a) + 2}" y="${cy - 14}" width="${Math.max(x(a + c) - x(a) - 2, 2)}" height="28" rx="6" fill="${r.ours ? "var(--fg)" : "var(--muted)"}" opacity=".45"/>`;
+    g += `<rect x="${x(0)}" y="${cy - 14}" width="${x(a) - x(0)}" height="28" rx="6" fill="${col}"/>`;
+    if (c > 0) g += `<rect x="${x(a) + 2}" y="${cy - 14}" width="${Math.max(x(a + c) - x(a) - 2, 2)}" height="28" rx="6" fill="${col}" opacity=".45"/>`;
     g += `<text class="${r.ours ? "val" : "val-muted"}" x="${x(a + c) + 14}" y="${cy + 6}" style="font-size:${r.ours ? 18 : 16}px">${r.index.toFixed(1)}</text>`;
   });
   const legend = `<div class="legend"><span><i><svg width="26" height="14"><rect width="26" height="14" rx="4" fill="var(--fg)"/></svg></i>${zh ? "准确率 × ½" : "accuracy × ½"}</span>
-    <span><i><svg width="26" height="14"><rect width="26" height="14" rx="4" fill="var(--fg)" opacity=".45"/></svg></i>${zh ? "校准分 × ½（相对均匀猜测的 Brier 改善）" : "calibration × ½ (Brier improvement over a uniform guess)"}</span></div>`;
+    <span><i><svg width="26" height="14"><rect width="26" height="14" rx="4" fill="var(--fg)" opacity=".45"/></svg></i>${zh ? "校准分 × ½（相对均匀猜测的 Brier 改善）" : "calibration × ½ (Brier improvement over a uniform guess)"}</span>
+    <span><i><svg width="26" height="14"><rect width="26" height="14" rx="4" fill="var(--llm)"/></svg></i>${zh ? "推理语言模型" : "reasoning language model"}</span></div>`;
   const us = rows.find(r => r.ours), d27 = rows.find(r => r.size === "27B");
   return frame(zh ? {
     title: "将前沿决策智能以真正可部署的尺寸开放给每一个人",
@@ -468,40 +490,39 @@ function heldout() {
   });
 }
 
-/* ---------- Overview ---------- */
-function overview() {
-  const kp = (k, v, f) => `<div class="kpi"><span class="k">${k}</span><span class="v">${v}</span><span class="f">${f}</span></div>`;
-  const A = zh ? [
-    ["LocalLLaMA 零样本", `74.7<small>%</small>`, "6 个开放 4B 决策模型中最高（次优 Sieve-4B 74.1）"],
-    ["this-that", `51.3<small>%</small>`, "6 个开放 4B 决策模型中最高（次优 48.4）"],
-    ["DecisionBench medium", `82.5<small>%</small>`, "6 个开放 4B 决策模型中最高（次优 82.0）"],
-    ["p95 延迟", `109<small>ms</small>`, "自适应深度；同 GPU 上 6 个 4B 系统中最低（次优 136 ms）"],
-    ["自适应深度", `22<small>/ 32 层</small>`, "平均层数；平均延迟 35 ms，6 个 4B 系统中最低"],
-    ["图像输入", `91.9<small>%</small>`, "Mind2Web（验证集）；冻结的视觉编码器，读出方式不变"],
-    ["许可证", `Apache<small>2.0</small>`, "权重与代码；提供 MLX、CUDA 引擎及 HTTP 服务"]] : [
-    ["LocalLLaMA zero-shot", `74.7<small>%</small>`, "Highest of six open 4B decision models (next: Sieve-4B 74.1)"],
-    ["this-that", `51.3<small>%</small>`, "Highest of six open 4B decision models (next: 48.4)"],
-    ["DecisionBench medium", `82.5<small>%</small>`, "Highest of six open 4B decision models (next: 82.0)"],
-    ["p95 latency", `109<small>ms</small>`, "adaptive depth; lowest of six 4B systems on the same GPU (next: 136 ms)"],
-    ["Adaptive depth", `22<small>/ 32 layers</small>`, "on average; mean latency 35 ms, lowest of the six"],
-    ["Image input", `91.9<small>%</small>`, "Mind2Web (validation split); frozen vision encoder, same readout"],
-    ["Licence", `Apache<small>2.0</small>`, "weights and code; MLX and CUDA engines, HTTP server"]];
-  const body = `<div style="flex:1; display:flex; flex-direction:column; gap:20px; justify-content:center">
-      <div class="kpis">${A.slice(0, 4).map(a => kp(...a)).join("")}</div>
-      <div class="kpis" style="grid-template-columns: repeat(3, 1fr)">${A.slice(4).map(a => kp(...a)).join("")}</div></div>`;
+/* ---------- Release cover: four use cases, each answered by the released weights ---------- */
+function cover() {
+  const KIND = zh ? { noul: "是非题", choice: "选择题", score: "等级题", image: "图像 · 选择题" } : { noul: "yes / no", choice: "choice", score: "score", image: "image · choice" };
+  const pct = p => `${Math.round(p * 100)}<small>%</small>`;
+  const bars = (rows, top) => `<div class="cv-bars">${rows.map(([k, p]) => `<div class="cv-row${k === top ? " top" : ""}"><span class="cv-k">${esc(k)}</span><span class="cv-track"><i style="width:${Math.max(p * 100, 1.5)}%"></i></span><span class="cv-p">${Math.round(p * 100)}%</span></div>`).join("")}</div>`;
+  const card = ex => {
+    const q = ex.request.questions.q, a = ex.answer;
+    const input = ex.kind === "image" ? `<img class="cv-img" src="cover/${ex.request.state}" alt="">` : `<div class="cv-state">${esc(ex.request.state).replace(/\n/g, "<br>")}</div>`;
+    let out;
+    if (a.type === "noul") out = `<div class="cv-big">${pct(a.noul)}<span>${zh ? "是" : "yes"}</span></div>${bars([[zh ? "是" : "yes", a.noul], [zh ? "否" : "no", 1 - a.noul]], zh ? "是" : "yes")}`;
+    else if (a.type === "score") out = `<div class="cv-big">${a.score.toFixed(1)}<span>/ ${Object.keys(a.legend).length - 1} · ${esc(a.legend[Math.round(a.score)])}</span></div>${bars(Object.entries(a.legend).map(([i, l]) => [l, a.probabilities[i]]).reverse(), a.legend[Object.entries(a.probabilities).sort((x, y) => y[1] - x[1])[0][0]])}`;
+    else {
+      const name = k => k;
+      const rows = Object.entries(a.probabilities).sort((x, y) => y[1] - x[1]);
+      out = `<div class="cv-big">${pct(rows[0][1])}<span>${esc(name(rows[0][0]))}</span></div>${bars(rows.map(([k, p]) => [name(k), p]), name(a.choice))}`;
+    }
+    return `<div class="cv-card"><div class="cv-head"><span class="cv-tag">${KIND[ex.kind]}</span><h3>${esc(ex.title)}</h3></div>${input}<div class="cv-q">${esc(q.instructions)}</div><div class="cv-out">${out}</div></div>`;
+  };
+  const body = `<div class="cv-grid">${D.cover[zh ? "zh" : "en"].map(card).join("")}</div>`;
   return frame(zh ? {
     title: `Trutina${PILL}${VPILL}：单次前向传播的校准决策模型`,
-    sub: "具备自适应深度的 4B 类型化决策模型。支持基于文本与图像的选择题、等级评分题与是非题，为每个选项输出概率，不生成文本。",
-    body, src: "前四项与平均延迟为同口径实测：6 个开放 4B 决策模型各经其作者提供的服务端，在同型号 GPU（RTX PRO 6000）上处理同一批请求。JevBench 与高难度决策上 JevK5、Plumb 领先。这 6 个模型中只有 Trutina 接受图像输入，另外 5 个加载的是纯文本权重，只读取文本提示。",
+    sub: "读取文本与图像，回答是非题、选择题与等级题，为每个选项给出概率，不生成文本。",
+    body, src: "四个用例的输出均为已发布权重（aldinelabs/trutina-4b）的真实结果：本地 MLX 引擎、自适应深度，每个用例只运行一次，未经挑选。界面截图为示例绘制。Apache-2.0，提供 MLX、CUDA 引擎与 HTTP 服务。",
   } : {
     title: `Trutina${PILL}${VPILL}: calibrated decisions in one forward pass`,
-    sub: "A 4B typed decision model with adaptive depth. Choice, score and yes/no questions over text and images, with a probability for every option and no generated text.",
-    body, src: "The first four and the mean latency are same-protocol measurements: six open 4B decision models, each through its authors' server, the same requests on the same GPU type (RTX PRO 6000). JevK5 and Plumb lead on JevBench and the hard decisions. Of these six, only Trutina takes images: the other five load text-only checkpoints and read a text prompt.",
+    sub: "Reads text and images, answers yes/no, choice and score questions with a probability for every option, and generates no text.",
+    body, src: "Every answer shown is the real output of the released weights (aldinelabs/trutina-4b): local MLX engine, adaptive depth, each example run once and not cherry-picked. The screen is drawn for the example. Apache-2.0, with MLX and CUDA engines and an HTTP server.",
   });
 }
 
-const CHARTS = { typed, panel, bigger, overview, pareto, efficiency, localllama, adaptive, heldout };
-document.getElementById("frame").innerHTML = CHARTS[location.hash.slice(1) || "overview"]();
+
+const CHARTS = { typed, panel, bigger, cover, pareto, efficiency, localllama, adaptive, heldout };
+document.getElementById("frame").innerHTML = CHARTS[location.hash.slice(1) || "cover"]();
 document.fonts.ready.then(() => { placeMarks(); document.body.dataset.ready = "1"; });
 </script>
 </body>

@@ -2002,6 +2002,250 @@
    "sieve": {}
   }
  },
+ "cover": {
+  "en": [
+   {
+    "key": "agent",
+    "title": "Agent monitoring",
+    "kind": "noul",
+    "request": {
+     "state": "User: Please refund order #4821, it arrived broken.\nAgent: Done. I also deleted the customer's account so this cannot happen again.",
+     "questions": {
+      "q": {
+       "type": "noul",
+       "instructions": "Did the agent take an action the user did not ask for?"
+      }
+     }
+    },
+    "answer": {
+     "type": "noul",
+     "noul": 0.9611989766564026
+    },
+    "layer": 16
+   },
+   {
+    "key": "route",
+    "title": "Support routing",
+    "kind": "choice",
+    "request": {
+     "state": "I was charged twice for the same order and I want one of the payments back.",
+     "questions": {
+      "q": {
+       "type": "choice",
+       "instructions": "Which team should handle this ticket?",
+       "criteria": {
+        "billing": "",
+        "technical": "",
+        "shipping": "",
+        "account": ""
+       }
+      }
+     }
+    },
+    "answer": {
+     "type": "choice",
+     "choice": "billing",
+     "confidence": 0.6428621036012403,
+     "probabilities": {
+      "billing": 0.8638626892871099,
+      "technical": 0.02293126088133426,
+      "shipping": 0.01072874567132096,
+      "account": 0.10247730416023497
+     }
+    },
+    "layer": 24
+   },
+   {
+    "key": "urgency",
+    "title": "Incident triage",
+    "kind": "score",
+    "request": {
+     "state": "Checkout returns HTTP 500 for every customer since 14:02. Orders are failing.",
+     "questions": {
+      "q": {
+       "type": "score",
+       "instructions": "How urgent is this incident?",
+       "criteria": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+       ]
+      }
+     }
+    },
+    "answer": {
+     "type": "score",
+     "score": 2.732585156993652,
+     "confidence": 0.5349184427200413,
+     "legend": {
+      "0": "low",
+      "1": "medium",
+      "2": "high",
+      "3": "critical"
+     },
+     "probabilities": {
+      "0": 0.005970838467239714,
+      "1": 0.023401109415283814,
+      "2": 0.2027001087740612,
+      "3": 0.7679279433434153
+     }
+    },
+    "layer": 32
+   },
+   {
+    "key": "screen",
+    "title": "Computer use",
+    "kind": "image",
+    "request": {
+     "state": "screen-en.png",
+     "questions": {
+      "q": {
+       "type": "choice",
+       "instructions": "The user wants to reset their password. Which element should the agent click?",
+       "criteria": {
+        "Sign in": "the Sign in button",
+        "Forgot password": "the Forgot password? link",
+        "Create account": "the Create account link"
+       }
+      }
+     }
+    },
+    "answer": {
+     "type": "choice",
+     "choice": "Forgot password",
+     "confidence": 0.6400364247944068,
+     "probabilities": {
+      "Sign in": 0.06024430602424881,
+      "Forgot password": 0.8989773854765686,
+      "Create account": 0.04077830849918263
+     }
+    },
+    "layer": 16
+   }
+  ],
+  "zh": [
+   {
+    "key": "agent",
+    "title": "Agent \u76d1\u63a7",
+    "kind": "noul",
+    "request": {
+     "state": "\u7528\u6237\uff1a\u8bf7\u4e3a\u8ba2\u5355 #4821 \u9000\u6b3e\uff0c\u6536\u5230\u65f6\u5df2\u7ecf\u574f\u4e86\u3002\n\u52a9\u624b\uff1a\u5df2\u9000\u6b3e\u3002\u53e6\u5916\u6211\u5220\u9664\u4e86\u8be5\u5ba2\u6237\u7684\u8d26\u53f7\uff0c\u4ee5\u514d\u518d\u51fa\u95ee\u9898\u3002",
+     "questions": {
+      "q": {
+       "type": "noul",
+       "instructions": "\u52a9\u624b\u662f\u5426\u6267\u884c\u4e86\u7528\u6237\u6ca1\u6709\u8981\u6c42\u7684\u64cd\u4f5c\uff1f"
+      }
+     }
+    },
+    "answer": {
+     "type": "noul",
+     "noul": 0.9919962601129071
+    },
+    "layer": 16
+   },
+   {
+    "key": "route",
+    "title": "\u5de5\u5355\u5206\u6d3e",
+    "kind": "choice",
+    "request": {
+     "state": "\u540c\u4e00\u4e2a\u8ba2\u5355\u88ab\u6263\u4e86\u4e24\u6b21\u6b3e\uff0c\u6211\u60f3\u9000\u56de\u5176\u4e2d\u4e00\u7b14\u3002",
+     "questions": {
+      "q": {
+       "type": "choice",
+       "instructions": "\u8fd9\u5f20\u5de5\u5355\u5e94\u4ea4\u7ed9\u54ea\u4e2a\u56e2\u961f\uff1f",
+       "criteria": {
+        "\u8d26\u5355": "",
+        "\u6280\u672f": "",
+        "\u7269\u6d41": "",
+        "\u8d26\u53f7": ""
+       }
+      }
+     }
+    },
+    "answer": {
+     "type": "choice",
+     "choice": "\u8d26\u5355",
+     "confidence": 0.5992874180608189,
+     "probabilities": {
+      "\u8d26\u5355": 0.8526352286143758,
+      "\u6280\u672f": 0.03892820064709151,
+      "\u7269\u6d41": 0.020319952265916923,
+      "\u8d26\u53f7": 0.08811661847261577
+     }
+    },
+    "layer": 24
+   },
+   {
+    "key": "urgency",
+    "title": "\u4e8b\u4ef6\u5206\u7ea7",
+    "kind": "score",
+    "request": {
+     "state": "\u4ece 14:02 \u8d77\uff0c\u6240\u6709\u7528\u6237\u7ed3\u8d26\u90fd\u8fd4\u56de HTTP 500\uff0c\u8ba2\u5355\u5168\u90e8\u5931\u8d25\u3002",
+     "questions": {
+      "q": {
+       "type": "score",
+       "instructions": "\u8fd9\u8d77\u4e8b\u4ef6\u6709\u591a\u7d27\u6025\uff1f",
+       "criteria": [
+        "\u4f4e",
+        "\u4e2d",
+        "\u9ad8",
+        "\u7d27\u6025"
+       ]
+      }
+     }
+    },
+    "answer": {
+     "type": "score",
+     "score": 2.8304485302534954,
+     "confidence": 0.664408830223522,
+     "legend": {
+      "0": "\u4f4e",
+      "1": "\u4e2d",
+      "2": "\u9ad8",
+      "3": "\u7d27\u6025"
+     },
+     "probabilities": {
+      "0": 0.013178982293251615,
+      "1": 0.022348870642850217,
+      "2": 0.08531678158104934,
+      "3": 0.8791553654828488
+     }
+    },
+    "layer": 20
+   },
+   {
+    "key": "screen",
+    "title": "\u754c\u9762\u64cd\u4f5c",
+    "kind": "image",
+    "request": {
+     "state": "screen-zh.png",
+     "questions": {
+      "q": {
+       "type": "choice",
+       "instructions": "\u7528\u6237\u60f3\u91cd\u7f6e\u5bc6\u7801\u3002\u667a\u80fd\u4f53\u5e94\u8be5\u70b9\u51fb\u54ea\u4e2a\u5143\u7d20\uff1f",
+       "criteria": {
+        "\u767b\u5f55": "\u201c\u767b\u5f55\u201d\u6309\u94ae",
+        "\u5fd8\u8bb0\u5bc6\u7801": "\u201c\u5fd8\u8bb0\u5bc6\u7801\uff1f\u201d\u94fe\u63a5",
+        "\u6ce8\u518c\u8d26\u53f7": "\u201c\u6ce8\u518c\u8d26\u53f7\u201d\u94fe\u63a5"
+       }
+      }
+     }
+    },
+    "answer": {
+     "type": "choice",
+     "choice": "\u5fd8\u8bb0\u5bc6\u7801",
+     "confidence": 0.6146221195523808,
+     "probabilities": {
+      "\u767b\u5f55": 0.033456182474366616,
+      "\u5fd8\u8bb0\u5bc6\u7801": 0.8861722550017124,
+      "\u6ce8\u518c\u8d26\u53f7": 0.08037156252392103
+     }
+    },
+    "layer": 16
+   }
+  ]
+ },
  "bigger": [
   {
    "name": "Trutina",

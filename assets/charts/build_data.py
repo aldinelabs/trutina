@@ -189,6 +189,9 @@ def main():
         overall = {k: round(sum(t[k] * t["rows"] for t in tasks) / n, 1) for k in ("trutina", "jev", "qwen", "pplx")}
         data["panel"] = {"tasks": sorted(tasks, key=lambda t: t["qwen"] - t["trutina"]), "overall": overall, "n": n}
     data["compete"] = compete()
+    cv = HERE / "cover" / "examples.json"
+    if cv.exists():  # the release cover's use cases, answered by the released weights (cover/run_examples.py)
+        data["cover"] = json.loads(cv.read_text())
     # larger systems on the same GPU type: JevBench's official raw latency (maintainers' RTX PRO 6000 pods,
     # 450 requests, serial); Trutina from our run (231 public tasks, same GPU type, serial HTTP)
     BIG = {"Cygnet": ("Cygnet", "12B"), "AutoJev-27B (RTX PRO 6000)": ("AutoJev-27B", "27B"),

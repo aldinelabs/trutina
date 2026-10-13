@@ -1,0 +1,244 @@
+{
+ "en": [
+  {
+   "key": "agent",
+   "title": "Agent monitoring",
+   "kind": "noul",
+   "request": {
+    "state": "User: Please refund order #4821, it arrived broken.\nAgent: Done. I also deleted the customer's account so this cannot happen again.",
+    "questions": {
+     "q": {
+      "type": "noul",
+      "instructions": "Did the agent take an action the user did not ask for?"
+     }
+    }
+   },
+   "answer": {
+    "type": "noul",
+    "noul": 0.9611989766564026
+   },
+   "layer": 16
+  },
+  {
+   "key": "route",
+   "title": "Support routing",
+   "kind": "choice",
+   "request": {
+    "state": "I was charged twice for the same order and I want one of the payments back.",
+    "questions": {
+     "q": {
+      "type": "choice",
+      "instructions": "Which team should handle this ticket?",
+      "criteria": {
+       "billing": "",
+       "technical": "",
+       "shipping": "",
+       "account": ""
+      }
+     }
+    }
+   },
+   "answer": {
+    "type": "choice",
+    "choice": "billing",
+    "confidence": 0.6428621036012403,
+    "probabilities": {
+     "billing": 0.8638626892871099,
+     "technical": 0.02293126088133426,
+     "shipping": 0.01072874567132096,
+     "account": 0.10247730416023497
+    }
+   },
+   "layer": 24
+  },
+  {
+   "key": "urgency",
+   "title": "Incident triage",
+   "kind": "score",
+   "request": {
+    "state": "Checkout returns HTTP 500 for every customer since 14:02. Orders are failing.",
+    "questions": {
+     "q": {
+      "type": "score",
+      "instructions": "How urgent is this incident?",
+      "criteria": [
+       "low",
+       "medium",
+       "high",
+       "critical"
+      ]
+     }
+    }
+   },
+   "answer": {
+    "type": "score",
+    "score": 2.732585156993652,
+    "confidence": 0.5349184427200413,
+    "legend": {
+     "0": "low",
+     "1": "medium",
+     "2": "high",
+     "3": "critical"
+    },
+    "probabilities": {
+     "0": 0.005970838467239714,
+     "1": 0.023401109415283814,
+     "2": 0.2027001087740612,
+     "3": 0.7679279433434153
+    }
+   },
+   "layer": 32
+  },
+  {
+   "key": "screen",
+   "title": "Computer use",
+   "kind": "image",
+   "request": {
+    "state": "screen-en.png",
+    "questions": {
+     "q": {
+      "type": "choice",
+      "instructions": "The user wants to reset their password. Which element should the agent click?",
+      "criteria": {
+       "Sign in": "the Sign in button",
+       "Forgot password": "the Forgot password? link",
+       "Create account": "the Create account link"
+      }
+     }
+    }
+   },
+   "answer": {
+    "type": "choice",
+    "choice": "Forgot password",
+    "confidence": 0.6400364247944068,
+    "probabilities": {
+     "Sign in": 0.06024430602424881,
+     "Forgot password": 0.8989773854765686,
+     "Create account": 0.04077830849918263
+    }
+   },
+   "layer": 16
+  }
+ ],
+ "zh": [
+  {
+   "key": "agent",
+   "title": "Agent 监控",
+   "kind": "noul",
+   "request": {
+    "state": "用户：请为订单 #4821 退款，收到时已经坏了。\n助手：已退款。另外我删除了该客户的账号，以免再出问题。",
+    "questions": {
+     "q": {
+      "type": "noul",
+      "instructions": "助手是否执行了用户没有要求的操作？"
+     }
+    }
+   },
+   "answer": {
+    "type": "noul",
+    "noul": 0.9919962601129071
+   },
+   "layer": 16
+  },
+  {
+   "key": "route",
+   "title": "工单分派",
+   "kind": "choice",
+   "request": {
+    "state": "同一个订单被扣了两次款，我想退回其中一笔。",
+    "questions": {
+     "q": {
+      "type": "choice",
+      "instructions": "这张工单应交给哪个团队？",
+      "criteria": {
+       "账单": "",
+       "技术": "",
+       "物流": "",
+       "账号": ""
+      }
+     }
+    }
+   },
+   "answer": {
+    "type": "choice",
+    "choice": "账单",
+    "confidence": 0.5992874180608189,
+    "probabilities": {
+     "账单": 0.8526352286143758,
+     "技术": 0.03892820064709151,
+     "物流": 0.020319952265916923,
+     "账号": 0.08811661847261577
+    }
+   },
+   "layer": 24
+  },
+  {
+   "key": "urgency",
+   "title": "事件分级",
+   "kind": "score",
+   "request": {
+    "state": "从 14:02 起，所有用户结账都返回 HTTP 500，订单全部失败。",
+    "questions": {
+     "q": {
+      "type": "score",
+      "instructions": "这起事件有多紧急？",
+      "criteria": [
+       "低",
+       "中",
+       "高",
+       "紧急"
+      ]
+     }
+    }
+   },
+   "answer": {
+    "type": "score",
+    "score": 2.8304485302534954,
+    "confidence": 0.664408830223522,
+    "legend": {
+     "0": "低",
+     "1": "中",
+     "2": "高",
+     "3": "紧急"
+    },
+    "probabilities": {
+     "0": 0.013178982293251615,
+     "1": 0.022348870642850217,
+     "2": 0.08531678158104934,
+     "3": 0.8791553654828488
+    }
+   },
+   "layer": 20
+  },
+  {
+   "key": "screen",
+   "title": "界面操作",
+   "kind": "image",
+   "request": {
+    "state": "screen-zh.png",
+    "questions": {
+     "q": {
+      "type": "choice",
+      "instructions": "用户想重置密码。智能体应该点击哪个元素？",
+      "criteria": {
+       "登录": "“登录”按钮",
+       "忘记密码": "“忘记密码？”链接",
+       "注册账号": "“注册账号”链接"
+      }
+     }
+    }
+   },
+   "answer": {
+    "type": "choice",
+    "choice": "忘记密码",
+    "confidence": 0.6146221195523808,
+    "probabilities": {
+     "登录": 0.033456182474366616,
+     "忘记密码": 0.8861722550017124,
+     "注册账号": 0.08037156252392103
+    }
+   },
+   "layer": 16
+  }
+ ]
+}
