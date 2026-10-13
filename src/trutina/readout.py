@@ -9,6 +9,7 @@ letters. No framework imports.
 from __future__ import annotations
 
 import itertools
+import math
 import re
 import string
 
@@ -109,3 +110,9 @@ def full_text(tok, user: str, chat: bool, labels: str) -> str:
     head = tok.apply_chat_template([{"role": "user", "content": user}], tokenize=False,
                                    add_generation_prompt=True, enable_thinking=False)
     return head + answer_prefix(labels)
+
+
+def decisive(p_yes: float, t: float, b: float) -> float:
+    """The decisive yes/no map: logit shifted by b and divided by t (fitted after the final temperature)."""
+    z = math.log(max(p_yes, 1e-9)) - math.log(max(1 - p_yes, 1e-9))
+    return 1 / (1 + math.exp(-(z - b) / t))

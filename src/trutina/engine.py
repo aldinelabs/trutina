@@ -19,7 +19,8 @@ Depth:
   deep      the full 32 layers, averaged over up to 4 cyclic rotations of each choice question's options
 Probabilities are temperature-calibrated per exit. `noul="decisive"` additionally pushes leaning yes/no
 probabilities out of a 0.2-0.8 abstention band (for scorers that count such answers as abstentions,
-e.g. JevBench v1.5); the default reports the calibrated probability. Images (OpenAI-style `input_image` parts in the
+e.g. JevBench v1.5) and is the default when the release ships the map; `noul="calibrated"` reports the
+calibrated probability. Images (OpenAI-style `input_image` parts in the
 state) go through the Qwen3.5 vision tower, loaded on the first image.
 """
 
@@ -38,7 +39,15 @@ from mlx_lm import load as mlx_load
 from trutina import wide
 from trutina.api import handle
 from trutina.backbone import forward_hidden
-from trutina.readout import FORMAT_VERSION, encode_ids, full_text, is_wide, prompt, wide_labels
+from trutina.readout import (
+    FORMAT_VERSION,
+    decisive,
+    encode_ids,
+    full_text,
+    is_wide,
+    prompt,
+    wide_labels,
+)
 from trutina.schema import Question, Request, State
 from trutina.vision import IMAGE_PAD, ImageRef, image_grid, n_image_tokens, pixel_patches
 
@@ -79,7 +88,7 @@ class Trutina:
         self.temps = [config["temperature"][str(e)] for e in exits]
         self.threshold = config["adaptive_threshold"]
         self.label_ids = mx.array(wide_labels(tok)[1][: wide.PASS])
-        self.noul = "calibrated"  # or "decisive"
+        self.noul = "decisive" if "noul_decisive" in self.config else "calibrated"
         self.vision = None
         self.last_exit: int | None = None  # layer that answered the last batch (for adaptive stats)
 
@@ -223,11 +232,6 @@ class Trutina:
         p = probs(self.model.final_logits(h[rows, last], w), len(exits))
         self.last_exit = len(torso.layers)
         return [p[r, :k] for r, k in enumerate(ks)]
-
-
-def decisive(p_yes: float, t: float, b: float) -> float:
-    z = np.log(max(p_yes, 1e-9)) - np.log(max(1 - p_yes, 1e-9))
-    return float(1 / (1 + np.exp(-(z - b) / t)))
 
 
 def _subset(q: Question, idx: Sequence[int]) -> Question:
