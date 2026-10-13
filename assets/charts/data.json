@@ -2114,11 +2114,11 @@
     "answer": {
      "type": "choice",
      "choice": "Forgot password",
-     "confidence": 0.6400364247944068,
+     "confidence": 0.7291544239427429,
      "probabilities": {
-      "Sign in": 0.06024430602424881,
-      "Forgot password": 0.8989773854765686,
-      "Create account": 0.04077830849918263
+      "Sign in": 0.03894393891096115,
+      "Forgot password": 0.931216299533844,
+      "Create account": 0.029839761555194855
      }
     },
     "layer": 16
@@ -2235,11 +2235,11 @@
     "answer": {
      "type": "choice",
      "choice": "\u5fd8\u8bb0\u5bc6\u7801",
-     "confidence": 0.6146221195523808,
+     "confidence": 0.5774841302548064,
      "probabilities": {
-      "\u767b\u5f55": 0.033456182474366616,
-      "\u5fd8\u8bb0\u5bc6\u7801": 0.8861722550017124,
-      "\u6ce8\u518c\u8d26\u53f7": 0.08037156252392103
+      "\u767b\u5f55": 0.02938849276273422,
+      "\u5fd8\u8bb0\u5bc6\u7801": 0.8661082934619395,
+      "\u6ce8\u518c\u8d26\u53f7": 0.10450321377532623
      }
     },
     "layer": 16

@@ -55,16 +55,16 @@ footer .src { flex: 1; min-width: 0; text-wrap: pretty; }
 footer .site { font-family: var(--mono); white-space: nowrap; color: var(--ink-2); }
 .legend { display: flex; gap: 22px; flex-wrap: wrap; font-size: 14px; color: var(--ink-2); align-items: center; }
 .legend i { display: inline-block; vertical-align: -2px; margin-right: 8px; }
-.cv-grid { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; min-height: 0; margin-top: 8px; }
-.cv-card { background: var(--card); border-radius: var(--r-card); padding: 26px 26px 24px; display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+.cv-grid { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: auto auto auto auto; column-gap: 20px; row-gap: 0; min-height: 0; margin: auto 0; flex: 0 0 auto; }
+.cv-card { background: var(--card); border-radius: var(--r-card); padding: 26px 26px 26px; display: grid; grid-row: span 4; grid-template-rows: subgrid; row-gap: 18px; min-height: 0; }
 .cv-head { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .cv-tag { font: 600 12.5px/1 var(--mono); color: var(--fg); border: 1.3px solid var(--fg); border-radius: 999px; padding: 5px 10px; }
 .cv-head h3 { margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.015em; }
-.cv-state { background: var(--bg); border-radius: var(--r-inner); padding: 16px 18px; font-size: 15px; line-height: 1.55; color: var(--ink-2); aspect-ratio: 4 / 3; box-sizing: border-box; }
-.cv-img { width: 100%; aspect-ratio: 4 / 3; box-sizing: border-box; border-radius: var(--r-inner); border: 1px solid var(--border); display: block; }
-.cv-q { font-size: 16px; font-weight: 600; line-height: 1.45; min-height: 2.9em; }
-.cv-out { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
-.cv-big { font-size: 46px; font-weight: 600; letter-spacing: -0.03em; line-height: 1; display: flex; align-items: baseline; }
+.cv-state { background: var(--bg); border-radius: var(--r-inner); padding: 16px 18px; font-size: 17px; line-height: 1.6; color: var(--ink-2); aspect-ratio: 16 / 10; box-sizing: border-box; margin: 0; }
+.cv-img { width: 100%; aspect-ratio: 16 / 10; box-sizing: border-box; border-radius: var(--r-inner); border: 1px solid var(--border); display: block; }
+.cv-q { font-size: 16px; font-weight: 600; line-height: 1.45; }
+.cv-out { display: flex; flex-direction: column; gap: 14px; align-self: start; padding-top: 4px; }
+.cv-big { font-size: 52px; font-weight: 600; letter-spacing: -0.03em; line-height: 1; display: flex; align-items: baseline; }
 .cv-big small { font-size: 22px; color: var(--muted); font-weight: 500; letter-spacing: 0; margin-left: 2px; }
 .cv-big span { font-size: 18px; font-weight: 600; letter-spacing: 0; margin-left: 12px; }
 .cv-bars { display: flex; flex-direction: column; gap: 7px; }
