@@ -182,7 +182,13 @@ function pareto() {
   for (const t of [30, 40, 50, 70, 100, 150]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${m.t}" y2="${H - m.b}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - m.b + 26}" text-anchor="middle">${t} ms</text>`;
   g += `<text class="axis-title" x="${(m.l + W - m.r) / 2}" y="${H - 4}" text-anchor="middle">${zh ? "单请求平均延迟（对数坐标，越靠左越快）" : "mean latency per request (log scale), faster to the left"}</text>`;
   g += `<text class="axis-title" transform="translate(16 ${(m.t + H - m.b) / 2}) rotate(-90)" text-anchor="middle">${zh ? "JevBench Intelligence（231 道公开题）" : "JevBench Intelligence (231 public tasks)"}</text>`;
-  g += `<path d="M${front.map(r => `${x(r.mean).toFixed(1)},${y(r.i_open).toFixed(1)}`).join(" L")}" fill="none" stroke="var(--fg)" stroke-width="1.6" stroke-dasharray="5 5" opacity=".55"/>`;
+  // the frontier as a staircase: everything right of and below it is dominated (slower and no more accurate)
+  const st = front.flatMap((r, i) => [[x(r.mean), i ? y(front[i - 1].i_open) : H - m.b], [x(r.mean), y(r.i_open)]]);
+  st.push([W - m.r, y(front.at(-1).i_open)]);
+  const P = pts => pts.map(([a, b]) => `${a.toFixed(1)},${b.toFixed(1)}`).join(" L");
+  g += `<path d="M${P(st)} L${W - m.r},${H - m.b} Z" fill="var(--fg)" opacity=".05"/>`;
+  g += `<text class="axis-title" x="${W - m.r - 16}" y="${H - m.b - 16}" text-anchor="end">${zh ? "被支配区域：更慢，且不更准" : "dominated: slower and no more accurate"}</text>`;
+  g += `<path d="M${P(st.slice(1))}" fill="none" stroke="var(--fg)" stroke-width="1.6" stroke-dasharray="5 5" opacity=".55"/>`;
   const lab = { jevk5: [12, -12, "start"], plumb: [14, -8, "start"], decider: [-12, 22, "end"], sieve: [12, 20, "start"], spark: [-12, -14, "end"] };
   for (const r of rows) {
     const cx = x(r.mean), cy = y(r.i_open);
@@ -201,7 +207,8 @@ function pareto() {
     <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="var(--fg)"/></svg></i>${MK}Trutina${PILL}${zh ? " · 自适应深度" : " · adaptive"}</span>
     <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="#fff" stroke="var(--fg)" stroke-width="2"/></svg></i>${MK}Trutina${PILL}${zh ? " · 完整深度" : " · full depth"}</span>
     <span><i><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="var(--muted)"/></svg></i>${zh ? "其他开放 4B 决策模型" : "other open 4B decision models"}</span>
-    <span><i><svg width="26" height="10"><line x1="0" x2="26" y1="5" y2="5" stroke="var(--fg)" stroke-width="1.6" stroke-dasharray="5 4" opacity=".6"/></svg></i>${zh ? "帕累托前沿（平均延迟）" : "Pareto frontier (mean latency)"}</span></div>`;
+    <span><i><svg width="26" height="10"><line x1="0" x2="26" y1="5" y2="5" stroke="var(--fg)" stroke-width="1.6" stroke-dasharray="5 4" opacity=".6"/></svg></i>${zh ? "帕累托前沿（平均延迟）" : "Pareto frontier (mean latency)"}</span>
+    <span><i><svg width="20" height="14"><rect width="20" height="14" rx="3" fill="var(--fg)" opacity=".08"/></svg></i>${zh ? "被支配区域" : "dominated"}</span></div>`;
   return frame(zh ? {
     title: "进一步推进准确率与速度的帕累托前沿",
     sub: "同一批请求、同型号 GPU。以平均延迟计，Trutina 自适应深度最快（30.6 ms），完整深度（38.7 ms，70.1）与 JevK5（44.4 ms，70.7）构成前沿的其余部分；其他系统均被支配。",
@@ -212,37 +219,6 @@ function pareto() {
     sub: "The same requests on the same GPU type. By mean latency Trutina with adaptive depth is the fastest (30.6 ms); full depth (38.7 ms, 70.1) and JevK5 (44.4 ms, 70.7) make up the rest of the frontier, and every other system is dominated.",
     body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
     src: `${SAME_RUN_EN} Intelligence: the v1.5 rules. ${US_EN} By p50 latency, Trutina with adaptive depth is also the fastest (14.0 ms; next is decider at 17.8 ms).`,
-  });
-}
-
-/* ---------- Efficiency Index: Intelligence per ms of mean latency, same run ---------- */
-function efficiency() {
-  const rows = RUNS().map(r => ({ ...r, ei: r.i_open / r.mean, ei50: r.i_open / r.p50 })).sort((a, b) => b.ei - a.ei);
-  const W = 1470, rowH = 58, top = 8, H = rows.length * rowH + top + 34, lx = 400;
-  const x = linScale(0, 2.5, lx, W - 260);
-  let g = "";
-  for (const t of [0, 0.5, 1, 1.5, 2, 2.5]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 30}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - 6}" text-anchor="middle">${t}</text>`;
-  rows.forEach((r, i) => {
-    const cy = top + i * rowH + rowH / 2;
-    g += `<text class="${r.us ? "lbl-us" : "lbl"}" ${r.us ? "data-nopill data-vision" : ""} x="${lx - 76}" y="${cy + 5}" text-anchor="end" ${r.us ? 'style="font-size:16px"' : ""}>${esc(r.label)}</text>`;
-    g += chip(lx - 64, cy, "4B", true);
-    g += bar(lx, cy - 12, x(r.ei) - lx, 24, r.us ? "var(--fg)" : "var(--pale)");
-    g += `<text class="${r.us ? "val" : "val-muted"}" x="${x(r.ei) + 12}" y="${cy + 5}">${r.ei.toFixed(2)} <tspan class="lbl-sub">${fmt1(r.i_open)} / ${fmt1(r.mean)} ms</tspan></text>`;
-  });
-  const next = rows.find(r => !r.us), ad = rows.find(r => r.us && r.mode === "adaptive");
-  const by = k => [...rows].sort((a, b) => b[k] - a[k]), rank = k => by(k).findIndex(r => r === ad) + 1;
-  rows.forEach(r => { r.ei95 = r.i_open / r.p95; });
-  const n50 = by("ei50").find(r => !r.us), n95 = by("ei95").find(r => !r.us);
-  return frame(zh ? {
-    title: "不妥协准确率的高效能决策",
-    sub: `Efficiency Index 定义为 JevBench Intelligence 与单请求平均延迟（ms）之比。Trutina 自适应深度为 ${rows[0].ei.toFixed(2)}，次优为 ${next.label}（${next.ei.toFixed(2)}）。`,
-    body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
-    src: `${SAME_RUN_ZH}${US_ZH}改用 p50 或 p95 延迟时，Trutina 自适应深度分别排第 ${rank("ei50")} 与第 ${rank("ei95")}（${ad.ei50.toFixed(2)} / ${ad.ei95.toFixed(2)}），其他系统中最高的分别为 ${n50.label}（${n50.ei50.toFixed(2)}）与 ${n95.label}（${n95.ei95.toFixed(2)}）。`,
-  } : {
-    title: "Efficient decisions without trading away accuracy",
-    sub: `Efficiency Index = JevBench Intelligence ÷ mean latency per request in ms. Trutina with adaptive depth scores ${rows[0].ei.toFixed(2)}; next is ${next.label} (${next.ei.toFixed(2)}).`,
-    body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
-    src: `${SAME_RUN_EN} ${US_EN} With p50 or p95 latency instead, Trutina with adaptive depth ranks ${rank("ei50")} and ${rank("ei95")} (${ad.ei50.toFixed(2)} / ${ad.ei95.toFixed(2)}); the best other systems are ${n50.label} (${n50.ei50.toFixed(2)}) and ${n95.label} (${n95.ei95.toFixed(2)}).`,
   });
 }
 
@@ -521,7 +497,7 @@ function cover() {
 }
 
 
-const CHARTS = { typed, panel, bigger, cover, pareto, efficiency, localllama, adaptive, heldout };
+const CHARTS = { typed, panel, bigger, cover, pareto, localllama, adaptive, heldout };
 document.getElementById("frame").innerHTML = CHARTS[location.hash.slice(1) || "cover"]();
 document.fonts.ready.then(() => { placeMarks(); document.body.dataset.ready = "1"; });
 </script>
