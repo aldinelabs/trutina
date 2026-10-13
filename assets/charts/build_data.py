@@ -175,6 +175,19 @@ def main():
         r["cal"] = round(100 * (1 - r["brier"] / data["typed"]["brier_uniform"]), 1)  # Brier skill vs uniform
         r["index"] = round((r["acc"] + max(r["cal"], 0)) / 2, 1)
     data["typed"]["rows"].sort(key=lambda r: -r["index"])
+    # Perplexity's 11-task decision panel without Circa (trained on): published numbers for Jev 1.13.0,
+    # Qwen3.8-27B and Perplexity Decider 27B (benchlm.ai/decision-models), Trutina from lab/modal/panel_modal.py
+    pp = HERE.parents[1] / "runs" / "release" / "perplexity-panel-scores.json"
+    if pp.exists():
+        pz = json.loads(pp.read_text())
+        names = {"winogrande": "WinoGrande", "financial_phrasebank": "FinancialPhraseBank", "ragtruth": "RAGTruth",
+                 "judgebench": "JudgeBench", "bbh": "BBH", "jevbench_hard": "JevBench public hard", "tabfact": "TabFact",
+                 "contractnli": "ContractNLI", "belebele": "Belebele", "truthfulqa": "TruthfulQA binary"}
+        tasks = [{"id": t, "name": names[t], "rows": pz["rows"][t], "trutina": round(pz["ours_full_depth"][t], 1),
+                  "jev": pz["published"][t][0], "qwen": pz["published"][t][1], "pplx": pz["published"][t][2]} for t in names]
+        n = sum(t["rows"] for t in tasks)
+        overall = {k: round(sum(t[k] * t["rows"] for t in tasks) / n, 1) for k in ("trutina", "jev", "qwen", "pplx")}
+        data["panel"] = {"tasks": sorted(tasks, key=lambda t: t["qwen"] - t["trutina"]), "overall": overall, "n": n}
     data["compete"] = compete()
     # larger systems on the same GPU type: JevBench's official raw latency (maintainers' RTX PRO 6000 pods,
     # 450 requests, serial); Trutina from our run (231 public tasks, same GPU type, serial HTTP)

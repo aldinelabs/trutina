@@ -1610,6 +1610,107 @@
   ],
   "brier_uniform": 0.2382
  },
+ "panel": {
+  "tasks": [
+   {
+    "id": "ragtruth",
+    "name": "RAGTruth",
+    "rows": 1500,
+    "trutina": 79.3,
+    "jev": 77.27,
+    "qwen": 61.53,
+    "pplx": 88.8
+   },
+   {
+    "id": "financial_phrasebank",
+    "name": "FinancialPhraseBank",
+    "rows": 999,
+    "trutina": 82.6,
+    "jev": 76.98,
+    "qwen": 75.68,
+    "pplx": 84.18
+   },
+   {
+    "id": "tabfact",
+    "name": "TabFact",
+    "rows": 500,
+    "trutina": 84.8,
+    "jev": 89.8,
+    "qwen": 78.6,
+    "pplx": 90.6
+   },
+   {
+    "id": "contractnli",
+    "name": "ContractNLI",
+    "rows": 510,
+    "trutina": 84.7,
+    "jev": 77.45,
+    "qwen": 80.78,
+    "pplx": 80.78
+   },
+   {
+    "id": "belebele",
+    "name": "Belebele",
+    "rows": 500,
+    "trutina": 94.6,
+    "jev": 95.0,
+    "qwen": 93.2,
+    "pplx": 94.0
+   },
+   {
+    "id": "jevbench_hard",
+    "name": "JevBench public hard",
+    "rows": 101,
+    "trutina": 73.0,
+    "jev": 73.27,
+    "qwen": 72.28,
+    "pplx": 70.3
+   },
+   {
+    "id": "winogrande",
+    "name": "WinoGrande",
+    "rows": 1000,
+    "trutina": 72.6,
+    "jev": 90.7,
+    "qwen": 73.1,
+    "pplx": 83.3
+   },
+   {
+    "id": "judgebench",
+    "name": "JudgeBench",
+    "rows": 350,
+    "trutina": 67.1,
+    "jev": 78.57,
+    "qwen": 68.86,
+    "pplx": 78.29
+   },
+   {
+    "id": "truthfulqa",
+    "name": "TruthfulQA binary",
+    "rows": 500,
+    "trutina": 77.8,
+    "jev": 92.0,
+    "qwen": 82.8,
+    "pplx": 85.4
+   },
+   {
+    "id": "bbh",
+    "name": "BBH",
+    "rows": 750,
+    "trutina": 66.1,
+    "jev": 94.27,
+    "qwen": 72.8,
+    "pplx": 82.8
+   }
+  ],
+  "overall": {
+   "trutina": 78.4,
+   "jev": 84.5,
+   "qwen": 73.8,
+   "pplx": 85.5
+  },
+  "n": 6710
+ },
  "compete": {
   "systems": [
    {
