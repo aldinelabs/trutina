@@ -2207,6 +2207,9 @@ dependencies = [
 data = [
     { name = "datasets" },
 ]
+rkllm = [
+    { name = "transformers" },
+]
 torch = [
     { name = "safetensors" },
     { name = "torch" },
@@ -2229,9 +2232,10 @@ requires-dist = [
     { name = "pillow", specifier = ">=10" },
     { name = "safetensors", marker = "extra == 'torch'", specifier = ">=0.4" },
     { name = "torch", marker = "extra == 'torch'", specifier = ">=2.6" },
+    { name = "transformers", marker = "extra == 'rkllm'", specifier = ">=5.8,<6" },
     { name = "transformers", marker = "extra == 'torch'", specifier = ">=5.2" },
 ]
-provides-extras = ["data", "torch"]
+provides-extras = ["data", "torch", "rkllm"]
 
 [package.metadata.requires-dev]
 dev = [
