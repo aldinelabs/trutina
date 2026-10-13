@@ -90,6 +90,7 @@ python scripts/serve.py --engine torch --device cpu --cpu-int8 --vision \
 CPU 后端支持文本、图像及全部深度模式。ROCK 5B 上一个短文本 adaptive 样例实测约 7.9 秒；这不是基准延迟分布。
 另提供 RK3588 的 RKLLM NPU 后端与权重导出脚本：相同发票样例的完整深度读出约 2.1 秒。
 `--engine rock5` 将 NPU 文本完整深度与 CPU 图像、中间出口接入同一服务，一次只保留一个模型；切换后端包含重新加载时间。
+实验性的 `--npu-matmul` 后端将解码器 Linear 层交给 NPU，保留真正的 adaptive 提前退出，文本和图像共用同一个驻留模型。
 参见[安装流程、实测记录与 NPU 限制](docs/rock5.md)。
 
 ## 请求格式

@@ -12,6 +12,11 @@ The first request after a switch includes loading: CPU quantization can take abo
 two to three minutes. Keep requests on one backend when latency matters, or use either
 fixed backend below. `X-Trutina-Backend` reports `cpu` or `npu` in combined mode.
 
+An experimental backend can execute the trained adaptive exits while offloading
+decoder Linear layers to the NPU. It keeps one model resident, including for image
+requests, and uses CPU control and state calculations. It is currently slower than
+RKLLM for deep text. See [NPU adaptive execution](#npu-adaptive-execution-experimental).
+
 | Capability | PyTorch ARM CPU | RKLLM NPU | Combined `rock5` |
 |---|---|---|---|
 | choice / score / noul | Yes | Yes | Yes |
@@ -104,6 +109,105 @@ Those initial measurements predate the allocator trimming and service memory cap
 The subsequent real HTTP test returned the same invoice probability (0.97497),
 exit 16, HTTP 200 through both routes: 14.41 s for the first `/v1/systemone`
 request and 6.09 s for the warmed `/v1/decisions` request.
+
+## NPU adaptive execution (experimental)
+
+`--engine torch --device cpu --npu-matmul <library>` uses our own C++ Linear
+bridge over Rockchip's RKNN Matmul API. CPU code retains the original layer
+order and checks the trained exits at 12, 16, 20 and 24, continuing from the
+current hidden state when necessary. No earlier layer is recomputed. Decoder
+Linear weights are packed once into NPU memory; the CPU keeps embeddings, norms,
+attention/DeltaNet calculations, convolution, exit heads and the vision tower.
+Image requests use the same resident decoder, so no CPU/NPU backbone reload is
+needed. This is a hybrid backend, not execution of every operation on the NPU.
+
+Unlike RKLLM conversion, this path quantizes the original release directly on the
+board and requires no x86 machine or Docker. Install the CPU environment above,
+join `video` and `render` as described below, then fetch and build the separate
+official RKNN SDK:
+
+```bash
+bash native/rkmatmul/fetch_sdk.sh /tmp/trutina-rknn2
+bash native/rkmatmul/build.sh /tmp/trutina-rknn2 build/rkmatmul
+PYTHONPATH=src python scripts/probe_rkmatmul.py \
+  --library build/rkmatmul/libtrutina_matmul.so --out primitive-results.json
+TRUTINA_MATMUL_LIBRARY="$PWD/build/rkmatmul/libtrutina_matmul.so" \
+  python -m pytest tests/test_npu_matmul.py -q
+python scripts/serve.py --engine torch --device cpu --vision --threads 4 \
+  --batch-tokens 512 --model models/trutina-4b \
+  --npu-matmul build/rkmatmul/libtrutina_matmul.so --port 8000
+```
+
+Do not combine `--cpu-int8` and `--npu-matmul`. The native build checks the
+headers and ARM runtime hashes from RKNN SDK commit
+`2c723177a94fac65cbc036d722907ddbc91980cf`. Kernels are shared by matrix shape;
+each Linear has its own packed weight buffer. Inference uses symmetric INT8
+weights per output channel and activations per token, explicit memory sync,
+bounded chunks and a lock around shared NPU IO buffers. The tested configuration
+uses NPU core 0. This SDK rejected a combined core mask of 7; enabling three cores
+requires explicitly partitioning the work, rather than simply changing the mask.
+
+The real NPU primitive probe passed exact integer-product comparisons, partial
+chunks, weight rebinding, independent repeated requests, zero rows, NaN rejection
+and closed-runtime rejection. A real four-layer Qwen3.5 test also verified that
+early exit skips the later layers, and continuation executes each layer once.
+
+The full release passed text, all depth modes, all decision types, wide choices
+and an image smoke request on the same 16 GB board. Initial measurements with
+four CPU threads and one NPU core are saved in
+[rock5b-npu-matmul-int8.json](benchmarks/rock5b-npu-matmul-int8.json):
+
+| Single smoke request | Exit | NPU calls | Seconds |
+|---|---:|---:|---:|
+| Invoice, shallow | 12 | 186 | 4.78 |
+| Invoice, adaptive | 16 | 248 | 5.95 |
+| Invoice, deep | 32 | 496 | 11.87 |
+| Choice and score, deep | 32 | 744 | 18.63 |
+| 27 options, deep | 32 | 3224 | 79.41 |
+| Red image, adaptive | 16 | 372 | 10.95 |
+
+Startup packing took 206.7 s, and process peak RSS was 12,950 MiB under an
+enforced 13 GiB cgroup limit. These are single smoke samples; they do not establish
+accuracy, confidence recalibration, long-running stability or a latency distribution.
+RKLLM remains considerably faster for deep-only text. The advantage here is real
+adaptive NPU offload and one resident model for text and images.
+
+The persistent service also passed both HTTP routes: deep 12.04 s, image 11.11 s,
+adaptive 6.02 s at layer 16, then repeated deep 11.89 s. Every response was HTTP
+200 and reported `X-Trutina-Backend: npu-matmul`; no model switch occurred.
+See [rock5b-npu-matmul-http.json](benchmarks/rock5b-npu-matmul-http.json).
+The [thread profile](benchmarks/rock5b-npu-matmul-thread-profile.json) found no
+speed improvement from reducing CPU threads; NPU execution accounted for most
+of the time. Four CPU threads remain the default.
+
+Use the service installer to retain the same 13 GiB limit:
+
+```bash
+python scripts/install_rock5_service.py --engine torch --vision \
+  --model models/trutina-4b --npu-matmul build/rkmatmul/libtrutina_matmul.so
+```
+
+### RKLLM segmentation investigation
+
+The public RKLLM repository distributes examples, headers, toolkit wheels and
+precompiled runtime libraries. The kernel driver is open source; the layer
+scheduler inside `librkllmrt.so` is not supplied as buildable source. The public
+API exposes the last hidden layer, not arbitrary intermediate layer boundaries.
+
+`scripts/probe_rkllm_segments.py` and `native/rkllm/probe_hidden.cpp` are separate
+research tools, not the adaptive serving backend. They generate synthetic CPU
+references and require full-sequence numerical agreement before accepting a
+segmented model. The eight-layer control model returned all token hidden states
+on the NPU. Removing the final norm exported a file, but the runtime rejected it
+with `Tensor output_norm.weight not found`. Four-layer synthetic segments also
+failed initialization with missing GDN tensors; that conversion issue has not
+been resolved. Successful export alone is therefore not proof of a usable
+segmented model. The converter sometimes exits with status zero after an error;
+the research tool additionally requires an explicit completion marker.
+
+Sources: [RKLLM SDK repository](https://github.com/airockchip/rknn-llm),
+[public RKLLM header](https://github.com/airockchip/rknn-llm/blob/main/rkllm-runtime/Linux/librkllm_api/include/rkllm.h),
+[RKNN Matmul API example](https://github.com/airockchip/rknn-toolkit2/tree/master/rknpu2/examples/rknn_matmul_api_demo).
 
 ## RKLLM conversion
 

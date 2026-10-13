@@ -18,6 +18,7 @@ def main():
     ap.add_argument("--library", default="build/rkllm/libtrutina_rkllm.so")
     ap.add_argument("--vision", action="store_true")
     ap.add_argument("--cpu-int8", action="store_true")
+    ap.add_argument("--npu-matmul", help="experimental torch: RK3588 Linear library")
     ap.add_argument("--out", default="rock5-results.json")
     a = ap.parse_args()
     start = time.perf_counter()
@@ -28,7 +29,7 @@ def main():
 
         torch.set_num_threads(4)
         model = TorchTrutina.load(a.model, device="cpu", batch_tokens=512,
-                                  cpu_int8=a.cpu_int8, vision=a.vision)
+                                  cpu_int8=a.cpu_int8, vision=a.vision, npu_matmul=a.npu_matmul)
     elif a.engine == "rock5":
         from trutina.rock5_engine import Rock5Trutina
 
@@ -40,6 +41,7 @@ def main():
 
         model = RKLLMTrutina.load(a.model, library=a.library)
     results = {"engine": a.engine, "cpu_int8": a.cpu_int8,
+               "npu_matmul": bool(a.npu_matmul),
                "load_seconds": time.perf_counter()-start, "cases": []}
     print(json.dumps({"loaded": results["load_seconds"]}), flush=True)
     requests = []
@@ -69,10 +71,14 @@ def main():
             "questions": {"color": {"type": "choice", "instructions": "What color fills the image?",
                                      "criteria": {"red": "", "blue": "", "green": ""}}}}))
     for name, req in requests:
+        runtime = getattr(model, "npu_runtime", None)
+        calls_before = runtime.calls if runtime is not None else 0
         start = time.perf_counter()
         result = model.decide(req)
         row = {"name": name, "seconds": time.perf_counter()-start,
                "exit": model.last_exit, "result": result}
+        if runtime is not None:
+            row["npu_calls"] = runtime.calls-calls_before
         if getattr(model, "last_backend", None):
             row["backend"] = model.last_backend
         answers = result["answers"]

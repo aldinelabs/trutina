@@ -1,0 +1,158 @@
+[
+  {
+    "threads": 4,
+    "affinity": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "depth": "adaptive",
+    "seconds": 6.242280995999863,
+    "exit": 16,
+    "result": {
+      "answers": {
+        "over": {
+          "type": "noul",
+          "noul": 0.9644968868406071
+        }
+      }
+    },
+    "native": {
+      "bind_seconds": 0.054487841,
+      "quant_seconds": 0.187435045,
+      "run_seconds": 4.736772089,
+      "output_seconds": 0.096614396
+    }
+  },
+  {
+    "threads": 4,
+    "affinity": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "depth": "deep",
+    "seconds": 11.89015214400024,
+    "exit": 32,
+    "result": {
+      "answers": {
+        "over": {
+          "type": "noul",
+          "noul": 0.9870688617842259
+        }
+      }
+    },
+    "native": {
+      "bind_seconds": 0.073909012,
+      "quant_seconds": 0.375517298,
+      "run_seconds": 9.468994504000001,
+      "output_seconds": 0.188683094
+    }
+  },
+  {
+    "threads": 1,
+    "affinity": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "depth": "adaptive",
+    "seconds": 6.6989713880002455,
+    "exit": 16,
+    "result": {
+      "answers": {
+        "over": {
+          "type": "noul",
+          "noul": 0.9644968868406071
+        }
+      }
+    },
+    "native": {
+      "bind_seconds": 0.03551554499999998,
+      "quant_seconds": 0.18713519300000003,
+      "run_seconds": 4.733260178000002,
+      "output_seconds": 0.09408299000000003
+    }
+  },
+  {
+    "threads": 1,
+    "affinity": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "depth": "deep",
+    "seconds": 13.363230778999423,
+    "exit": 32,
+    "result": {
+      "answers": {
+        "over": {
+          "type": "noul",
+          "noul": 0.9870688617842259
+        }
+      }
+    },
+    "native": {
+      "bind_seconds": 0.06992624,
+      "quant_seconds": 0.3741951360000001,
+      "run_seconds": 9.466536179999999,
+      "output_seconds": 0.18839550100000002
+    }
+  },
+  {
+    "threads": 2,
+    "affinity": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "depth": "adaptive",
+    "seconds": 6.381130782999207,
+    "exit": 16,
+    "result": {
+      "answers": {
+        "over": {
+          "type": "noul",
+          "noul": 0.9644968868406071
+        }
+      }
+    },
+    "native": {
+      "bind_seconds": 0.03513317100000002,
+      "quant_seconds": 0.187066352,
+      "run_seconds": 4.733037414000002,
+      "output_seconds": 0.09434636899999993
+    }
+  },
+  {
+    "threads": 2,
+    "affinity": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "depth": "deep",
+    "seconds": 12.702127024999754,
+    "exit": 32,
+    "result": {
+      "answers": {
+        "over": {
+          "type": "noul",
+          "noul": 0.9870688617842259
+        }
+      }
+    },
+    "native": {
+      "bind_seconds": 0.070127212,
+      "quant_seconds": 0.375570647,
+      "run_seconds": 9.466212325999997,
+      "output_seconds": 0.18855387700000004
+    }
+  }
+]

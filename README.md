@@ -96,7 +96,9 @@ request took 7.9 s on a ROCK 5B; this is not a benchmark latency distribution.
 An RK3588 RKLLM NPU backend and weight exporter are also provided, with full-depth
 text readout (2.1 s on the same invoice smoke request). `--engine rock5` combines
 NPU deep text with CPU vision and intermediate exits while keeping one model
-resident; backend switches include loading. See [installation and measurements](docs/rock5.md).
+resident; backend switches include loading. An experimental `--npu-matmul` backend
+offloads decoder Linear layers while preserving real adaptive exits and one resident
+model for text/images. See [installation and measurements](docs/rock5.md).
 
 ## Request format
 

@@ -1,0 +1,61 @@
+{
+  "passed": true,
+  "cores": 1,
+  "npu_calls": 12,
+  "measurements": [
+    {
+      "rows": 7,
+      "weight": 0,
+      "seconds": 0.00017471000046498375,
+      "max_abs_error": 0.0
+    },
+    {
+      "rows": 7,
+      "weight": 1,
+      "seconds": 0.0001992110001083347,
+      "max_abs_error": 0.0
+    },
+    {
+      "rows": 7,
+      "weight": 0,
+      "seconds": 0.000160126999617205,
+      "max_abs_error": 0.0
+    },
+    {
+      "rows": 64,
+      "weight": 0,
+      "seconds": 0.00023275300009117927,
+      "max_abs_error": 0.0
+    },
+    {
+      "rows": 64,
+      "weight": 1,
+      "seconds": 0.00022546100080944598,
+      "max_abs_error": 0.0
+    },
+    {
+      "rows": 64,
+      "weight": 0,
+      "seconds": 0.00022312799956125673,
+      "max_abs_error": 0.0
+    },
+    {
+      "rows": 65,
+      "weight": 0,
+      "seconds": 0.00030187800075509585,
+      "max_abs_error": 0.0
+    },
+    {
+      "rows": 65,
+      "weight": 1,
+      "seconds": 0.0003050860004805145,
+      "max_abs_error": 0.0
+    },
+    {
+      "rows": 65,
+      "weight": 0,
+      "seconds": 0.00029662799988727784,
+      "max_abs_error": 0.0
+    }
+  ]
+}

@@ -20,6 +20,7 @@ def main():
     ap.add_argument("--port", type=int, default=8000)
     ap.add_argument("--vision", action="store_true")
     ap.add_argument("--library", default="build/rkllm/libtrutina_rkllm.so")
+    ap.add_argument("--npu-matmul", help="torch: experimental RK3588 Linear library")
     a = ap.parse_args()
     root = Path(__file__).resolve().parents[1]
     model = Path(a.model).resolve()
@@ -27,10 +28,13 @@ def main():
         ap.error("--model must point to a local model directory")
     if not 1 <= a.port <= 65535:
         ap.error("invalid --port")
+    if a.npu_matmul and (a.engine != "torch" or not Path(a.npu_matmul).is_file()):
+        ap.error("--npu-matmul requires --engine torch and a built library")
     args = [sys.executable, "-u", str(root / "scripts/serve.py"), "--engine", a.engine,
             "--model", str(model), "--host", a.host, "--port", str(a.port)]
     if a.engine == "torch":
-        args += ["--device", "cpu", "--cpu-int8", "--threads", "4", "--batch-tokens", "512"]
+        args += ["--device", "cpu", "--threads", "4", "--batch-tokens", "512"]
+        args += ["--npu-matmul", str(Path(a.npu_matmul).resolve())] if a.npu_matmul else ["--cpu-int8"]
         if a.vision:
             args += ["--vision"]
     else:
@@ -68,7 +72,7 @@ WantedBy=default.target
     subprocess.run(["systemctl", "--user", "daemon-reload"], check=True)
     subprocess.run(["systemctl", "--user", "enable", "trutina.service"], check=True)
     subprocess.run(["systemctl", "--user", "restart", "trutina.service"], check=True)
-    print(f"Installed {target}. Model startup may take two minutes; check /health.")
+    print(f"Installed {target}. Startup includes loading/packing; check /health and service logs.")
 
 
 if __name__ == "__main__":

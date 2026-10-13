@@ -65,12 +65,15 @@ class TorchTrutina:
     @classmethod
     def load(cls, path: str = "aldinelabs/trutina-4b", device: str = "cuda", dtype=torch.bfloat16,
              batch_tokens: int = 32768, cuda_graphs: bool = True, graph_tokens: int = 2048,
-             cpu_int8: bool = False, vision: bool = False) -> TorchTrutina:
+             cpu_int8: bool = False, vision: bool = False,
+             npu_matmul: str | None = None) -> TorchTrutina:
         from safetensors import safe_open
         from transformers import AutoModelForCausalLM, AutoModelForImageTextToText, AutoTokenizer
 
         if cpu_int8 and torch.device(device).type != "cpu":
             raise ValueError("cpu_int8 requires device='cpu'")
+        if npu_matmul and (cpu_int8 or torch.device(device).type != "cpu"):
+            raise ValueError("npu_matmul requires device='cpu' and cpu_int8=False")
 
         local = Path(path)
         if not local.exists():
@@ -87,6 +90,12 @@ class TorchTrutina:
             from trutina.cpu_quant import quantize_torso
 
             quantize_torso(torso)
+        runtime = None
+        if npu_matmul:
+            from trutina.npu_matmul import MatmulRuntime, offload_torso
+
+            runtime = MatmulRuntime(npu_matmul)
+            offload_torso(torso, runtime)
         if vision:
             lm.model.visual.to(device).float().eval()
         with safe_open(str(local / "readout.safetensors"), "np") as f:
@@ -94,7 +103,10 @@ class TorchTrutina:
         engine = cls(torso, AutoTokenizer.from_pretrained(str(local)), config, readout, device, batch_tokens,
                      cuda_graphs, graph_tokens)
         engine.vision = lm.model if vision else None
-        if cpu_int8:
+        engine.npu_runtime = runtime
+        if runtime is not None:
+            engine.last_backend = "npu-matmul"
+        if cpu_int8 or npu_matmul:
             from trutina.cpu_quant import release_cpu_memory
 
             del lm
@@ -111,6 +123,10 @@ class TorchTrutina:
         self.vision = None
         self.rows = None
         self.lens.clear()
+        runtime = getattr(self, "npu_runtime", None)
+        if runtime is not None:
+            runtime.close()
+            self.npu_runtime = None
         if torch.device(self.device).type == "cpu":
             from trutina.cpu_quant import release_cpu_memory
 

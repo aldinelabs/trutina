@@ -87,6 +87,7 @@ def main():
     ap.add_argument("--engine", choices=["mlx", "torch", "rkllm", "rock5"], default="mlx")
     ap.add_argument("--device", default="cuda", help="torch engine only")
     ap.add_argument("--cpu-int8", action="store_true", help="torch CPU: dynamic INT8 decoder layers")
+    ap.add_argument("--npu-matmul", help="experimental torch CPU: RK3588 Linear bridge library")
     ap.add_argument("--vision", action="store_true", help="torch: load the vision tower")
     ap.add_argument("--threads", type=int, default=4, help="torch CPU worker threads")
     ap.add_argument("--batch-tokens", type=int, default=32768, help="torch: padded batch token budget")
@@ -101,6 +102,8 @@ def main():
     ap.add_argument("--warm-graphs", type=int, default=2048,
                     help="torch engine only: capture the length buckets up to this many tokens at start-up")
     a = ap.parse_args()
+    if a.npu_matmul and a.engine != "torch":
+        ap.error("--npu-matmul requires --engine torch --device cpu")
     if a.engine == "torch":
         import torch
 
@@ -112,7 +115,7 @@ def main():
             torch.set_num_threads(a.threads)
         engine = TorchTrutina.load(a.model, device=a.device, cuda_graphs=not a.no_cuda_graphs,
                                    graph_tokens=a.graph_tokens, cpu_int8=a.cpu_int8,
-                                   vision=a.vision, batch_tokens=a.batch_tokens)
+                                   vision=a.vision, batch_tokens=a.batch_tokens, npu_matmul=a.npu_matmul)
         if engine.graph_tokens and a.warm_graphs:
             print(f"captured CUDA graphs for {engine.warm_graphs(a.warm_graphs)} length buckets", flush=True)
     elif a.engine == "rock5":

@@ -1,4 +1,4 @@
-"""Probe an already running combined service, including real backend switches."""
+"""Probe an existing combined or resident NPU adaptive HTTP service."""
 from __future__ import annotations
 
 import argparse
@@ -14,6 +14,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--url", default="http://127.0.0.1:8000")
     ap.add_argument("--out", default="rock5-http-results.json")
+    ap.add_argument("--backend", help="expect this resident backend for every request")
     a = ap.parse_args()
     from PIL import Image
 
@@ -41,7 +42,7 @@ def main():
             row = {"name": name, "status": r.status, "seconds": time.perf_counter()-start,
                    "backend": r.headers.get("X-Trutina-Backend"),
                    "exit": r.headers.get("X-Trutina-Exit-Layer"), "result": json.loads(r.read())}
-        assert row["backend"] == expected, row
+        assert row["backend"] == (a.backend or expected), row
         answers = row["result"]["answers"]
         if name == "image":
             assert answers["color"]["choice"] == "red", row
