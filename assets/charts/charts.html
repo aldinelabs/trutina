@@ -386,44 +386,38 @@ function typed() {
 
 /* ---------- Adaptive depth ---------- */
 function adaptive() {
-  const E = T.exits, W = 860, H = 470, m = { l: 60, r: 30, t: 20, b: 50 };
-  const x = linScale(10, 33, m.l, W - m.r), y = linScale(40, 92, H - m.b, m.t);
-  let g = "";
-  for (const t of [40, 50, 60, 70, 80, 90]) g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/><text class="axis" x="${m.l - 12}" y="${y(t) + 5}" text-anchor="end">${t}%</text>`;
-  for (const l of E.layers) g += `<text class="axis" x="${x(l)}" y="${H - m.b + 26}" text-anchor="middle">${l}</text>`;
-  g += `<text class="axis-title" x="${(m.l + W - m.r) / 2}" y="${H - 2}" text-anchor="middle">${zh ? "出口层" : "exit layer"}</text>`;
-  const series = [["jevbench", zh ? "JevBench 公开集" : "JevBench public", "var(--fg)", 3], ["val", zh ? "验证集" : "our validation split", "var(--muted)", 2.2], ["localllama", "LocalLLaMA", "var(--faint)", 2.2]];
-  for (const [k2, , c, w] of series) {
-    const pts = E.layers.map((l, i) => [x(l), y(E[k2][i])]);
-    g += `<path d="M${pts.map(p => p.join(",")).join(" L")}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"/>`;
-    for (const p of pts) g += `<circle cx="${p[0]}" cy="${p[1]}" r="5" fill="var(--card)" stroke="${c}" stroke-width="2.2"/>`;
+  // one picture: 32 layers, the share of requests that leave at each exit, and the track fading as they leave
+  const E = T.exits, sh = E.share_val, exits = [12, 16, 20, 24, 32];
+  const ad = D.compete.runs.find(r => r.us && r.mode === "adaptive"), full = D.compete.runs.find(r => r.us && r.mode === "full");
+  const W = 1000, H = 640, l = 30, r = 30, cw = (W - l - r) / 32, ty = 470, th = 40, top = 40, maxH = ty - top - 60;
+  const cx = L => l + (L - 0.5) * cw, mx = Math.max(...exits.map(k => sh[k]));
+  let g = "", gone = 0;
+  for (let L = 1; L <= 32; L++) {
+    const left = 1 - gone / 100;
+    g += `<rect x="${l + (L - 1) * cw + 1.5}" y="${ty}" width="${cw - 3}" height="${th}" rx="4" fill="var(--fg)" opacity="${(0.12 + 0.88 * left).toFixed(2)}"/>`;
+    if (exits.includes(L)) {
+      const h = sh[L] / mx * maxH, x0 = cx(L);
+      g += `<rect x="${x0 - 22}" y="${ty - 14 - h}" width="44" height="${h}" rx="8" fill="var(--fg)" opacity=".85"/>`;
+      g += `<text class="val" x="${x0}" y="${ty - 24 - h}" text-anchor="middle" style="font-size:20px">${Math.round(sh[L])}%</text>`;
+      g += `<text class="lbl" x="${x0}" y="${ty + th + 28}" text-anchor="middle" style="font-size:15px">${zh ? `第 ${L} 层` : `layer ${L}`}</text>`;
+      gone += sh[L];
+    }
   }
-  g += `<text class="lbl-sub" x="${W - m.r}" y="${y(46)}" text-anchor="end">${zh ? "若不训练出口，中间层读出" : "without trained exits, intermediate layers"}</text>`;
-  g += `<text class="lbl-sub" x="${W - m.r}" y="${y(46) + 18}" text-anchor="end">${zh ? "在约第 19 层之前接近随机水平" : "read at chance level until about layer 19"}</text>`;
-  const lineLegend = `<div class="legend">${series.map(([, name, c, w]) => `<span><i><svg width="26" height="12"><line x1="0" x2="26" y1="6" y2="6" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/><circle cx="13" cy="6" r="4" fill="#fff" stroke="${c}" stroke-width="2"/></svg></i>${name}</span>`).join("")}</div>`;
-  const sh = E.share_val, keys = ["12", "16", "20", "24", "32"], SW = 520, tones = ["var(--fg)", "var(--ink-2)", "var(--muted)", "var(--faint)", "var(--pale)"];
-  let acc = 0, s = "";
-  keys.forEach((k2, i) => {
-    const w = sh[k2] / 100 * SW;
-    s += `<rect x="${acc}" y="0" width="${Math.max(w - 3, 1)}" height="44" rx="${Math.min(12, (w - 3) / 2)}" fill="${tones[i]}"/>`;
-    s += `<text x="${acc + 4}" y="70" class="lbl" style="font-size:13px">L${k2}</text><text x="${acc + 4}" y="90" class="val" style="font-size:15px">${Math.round(sh[k2])}%</text>`;
-    acc += w;
-  });
-  const kp = (k2, v, f) => `<div class="kpi inner" style="padding:22px 24px"><span class="k">${k2}</span><span class="v" style="font-size:40px">${v}</span><span class="f">${f}</span></div>`;
-  const K = zh ? [["平均层数", `22.1<small>/ 32</small>`, "JevBench 公开集"], ["准确率", `86.1<small>%</small>`, "完整深度为 87.0%"], ["p50，RTX PRO 6000", `21.1<small>ms</small>`, "完整深度为 28.3 ms"], ["平均延迟，RTX PRO 6000", `35.3<small>ms</small>`, "全部请求，含 HTTP 开销"]]
-    : [["Layers used", `22.1<small>/ 32</small>`, "on average, JevBench public"], ["Accuracy", `86.1<small>%</small>`, "87.0% at full depth"], ["p50, RTX PRO 6000", `21.1<small>ms</small>`, "28.3 ms at full depth"], ["Mean, RTX PRO 6000", `35.3<small>ms</small>`, "all requests, HTTP included"]];
-  const body = `<div class="row"><div class="card" style="flex:1.6"><h2>${zh ? "各出口单独作答的准确率 <span>· 经温度校准</span>" : "Accuracy of each exit <span>· temperature-calibrated</span>"}</h2>${lineLegend}${svgTag(W, H)}${g}</svg></div>
-      <div style="flex:1; display:flex; flex-direction:column; gap:20px">
-        <div class="card" style="flex:none"><h2>${zh ? "自适应深度的终止层分布 <span>· 验证集</span>" : "Where adaptive answers <span>· our validation split</span>"}</h2><svg width="${SW}" height="96">${s}</svg></div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px">${K.map(a => kp(...a)).join("")}</div></div></div>`;
+  g += `<text class="axis-title" x="${l}" y="${ty + th + 62}">${zh ? "颜色越浅，仍在计算的请求越少" : "lighter = fewer requests still computing"}</text>`;
+  const kp = (k, a, b, u) => `<div class="kpi inner" style="padding:24px 26px"><span class="k">${k}</span><span class="v" style="font-size:46px">${a}<small>${u}</small></span><span class="f">${zh ? "完整深度" : "full depth"} ${b}${u === "%" ? u : u}</span></div>`;
+  const K = [kp(zh ? "平均用到的层数" : "layers used on average", fmt1(E.mean_layers.jevbench), "32", zh ? " 层" : " layers"),
+             kp(zh ? "中位延迟" : "median latency", fmt1(ad.p50), fmt1(full.p50), " ms"),
+             kp(zh ? "准确率" : "accuracy", fmt1(E.adaptive.jevbench), fmt1(E.jevbench.at(-1)), "%")];
+  const body = `<div class="row"><div class="card" style="flex:1.7"><h2>${zh ? "请求在哪一层给出答案" : "Where requests answer"}</h2>${svgTag(W, H)}${g}</svg></div>
+      <div style="flex:1; display:flex; flex-direction:column; gap:16px; justify-content:center">${K.join("")}</div></div>`;
   return frame(zh ? {
     title: "答案一确定就停止计算",
-    sub: "第 12、16、20、24 层各设一个 tuned-lens 出口，与最后一层读取相同的选项字母。请求在首个置信度达到阈值的出口处终止；否则沿用该层隐状态继续计算，无需重复计算前序各层。",
-    body, src: "各出口准确率在合并 LoRA 之前的训练检查点上测得（与发布权重相差不超过 0.1）。延迟测量条件：单张 RTX PRO 6000，经 scripts/serve.py 串行发送请求，JevBench 公开题。",
+    sub: "简单的题在浅层就有把握，提前给出答案；只有难题才走完全部 32 层。",
+    body, src: "第 12、16、20、24 层各有一个训练过的出口，置信度达到阈值即在该层作答，否则继续向后计算。各层作答比例取自验证集；层数与准确率为 JevBench 公开集；延迟为 RTX PRO 6000 上串行请求的 p50（CUDA graph）。",
   } : {
-    title: "Adaptive depth: stop once the answer settles",
-    sub: "Tuned-lens exits at layers 12, 16, 20 and 24 read the same option letters as the final layer. A request stops at the first confident exit; otherwise it carries on from there without recomputing earlier layers.",
-    body, src: "Per-exit accuracy measured on the training checkpoint before the LoRA merge (the released weights differ by at most 0.1). Latency: one RTX PRO 6000, serial requests through scripts/serve.py, JevBench public tasks.",
+    title: "Stop computing once the answer is clear",
+    sub: "Easy questions are settled in the early layers and answered there; only the hard ones go through all 32.",
+    body, src: "Trained exits at layers 12, 16, 20 and 24 answer once confidence passes a threshold; otherwise computation carries on. Share per exit: our validation split; layers and accuracy: JevBench public tasks; latency: serial p50 on an RTX PRO 6000 (CUDA graphs).",
   });
 }
 
