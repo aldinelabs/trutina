@@ -320,15 +320,15 @@ function bigger() {
   const rng = a => `${Math.min(...a).toFixed(1)}–${Math.max(...a).toFixed(1)}`;
   const p95s = small.filter(r => !r.us).map(r => r.p95);
   return frame(zh ? {
-    title: "具备同等级下最低的决策延迟",
+    title: "高准确率下的业界最低决策延迟",
     sub: `Trutina 自适应深度的 p50 为 ${fmt1(ad.p50)} ms；另外 5 个 4B 决策模型为其 ${rng(s4)} 倍，12–35B 系统为 ${rng(sl)} 倍。RTX PRO 6000，串行单请求。`,
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
-    src: `4B 模型由我们在同一 Modal 容器、同一 231 道 JevBench 公开题上测得，各用其作者提供的服务端（HTTP 往返，预热 10 条）；Trutina 经 CUDA graph 服务，完整深度为 ${fmt1(full.p50)} ms。p95：Trutina ${fmt1(ad.p95)} ms，另外 5 个 4B 为 ${fmt1(Math.min(...p95s))}–${fmt1(Math.max(...p95s))} ms。12–35B 系统为 JevBench v1.5.4 官方结果，由维护方在其 RTX PRO 6000 测试机上以 450 个请求串行测得（原始值），取 Intelligence ≥ 50 者；官方榜单上没有在 RTX PRO 6000 上测得的 4B 系统。两组的测试机与请求集不同。`,
+    src: `4B 模型由我们在同一 Modal 容器、同一 231 道 JevBench 公开题上测得，各用其作者提供的服务端（HTTP 往返，预热 10 条）；Trutina 经 CUDA graph 服务，完整深度为 ${fmt1(full.p50)} ms。p95：Trutina ${fmt1(ad.p95)} ms，另外 5 个 4B 为 ${fmt1(Math.min(...p95s))}–${fmt1(Math.max(...p95s))} ms。12–35B 系统为 JevBench v1.5.4 官方结果，由维护方在其 RTX PRO 6000 测试机上以 450 个请求串行测得（原始值），取 Intelligence ≥ 50 者；官方榜单上没有在 RTX PRO 6000 上测得的 4B 系统。两组的测试机与请求集不同。在整个 JevBench v1.5.4 官方榜单（各型号 GPU）上，p50 低于 Trutina 的只有 decider-2b（13.7 ms，H100），其 Intelligence 为 48.8；Intelligence ≥ 50 的系统中最快的是 JevK5 v0.3（15.8 ms，H100）。`,
   } : {
-    title: "The lowest decision latency in its class",
+    title: "The lowest decision latency at high accuracy",
     sub: `Trutina's adaptive-depth p50 is ${fmt1(ad.p50)} ms; the five other 4B decision models take ${rng(s4)}× as long, the 12–35B systems ${rng(sl)}×. RTX PRO 6000, one request at a time.`,
     body: `<div class="card">${svgTag(W, H)}${g}</svg></div>`,
-    src: `4B models: measured by us in one Modal container on the same 231 public JevBench tasks, each through its authors' server (HTTP round trip, 10 warm-up requests); Trutina is served with CUDA graphs and takes ${fmt1(full.p50)} ms at full depth. p95: Trutina ${fmt1(ad.p95)} ms, the other 4B models ${fmt1(Math.min(...p95s))}–${fmt1(Math.max(...p95s))} ms. 12–35B systems: JevBench v1.5.4 official results, measured by the maintainers on their RTX PRO 6000 pods over 450 serial requests (raw), those with Intelligence ≥ 50; the official board has no 4B system measured on an RTX PRO 6000. The two groups differ in machines and requests.`,
+    src: `4B models: measured by us in one Modal container on the same 231 public JevBench tasks, each through its authors' server (HTTP round trip, 10 warm-up requests); Trutina is served with CUDA graphs and takes ${fmt1(full.p50)} ms at full depth. p95: Trutina ${fmt1(ad.p95)} ms, the other 4B models ${fmt1(Math.min(...p95s))}–${fmt1(Math.max(...p95s))} ms. 12–35B systems: JevBench v1.5.4 official results, measured by the maintainers on their RTX PRO 6000 pods over 450 serial requests (raw), those with Intelligence ≥ 50; the official board has no 4B system measured on an RTX PRO 6000. The two groups differ in machines and requests. Across the whole JevBench v1.5.4 official board (any GPU), only decider-2b (13.7 ms, H100) has a lower p50 than Trutina, at Intelligence 48.8; the fastest system at Intelligence ≥ 50 is JevK5 v0.3 (15.8 ms, H100).`,
   });
 }
 
