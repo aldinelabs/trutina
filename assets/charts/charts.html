@@ -127,8 +127,6 @@ const bar = (x, y, w, h, fill) => `<rect x="${x}" y="${y}" width="${Math.max(w, 
 const usDot = (x, y, r = 9) => `<circle cx="${x}" cy="${y}" r="${r + 7}" fill="var(--fg)" opacity=".08"/><circle cx="${x}" cy="${y}" r="${r}" fill="var(--fg)" stroke="var(--card)" stroke-width="2.5"/>`;
 const chip = (x, y, text, dark) => `<rect x="${x}" y="${y - 12}" width="50" height="24" rx="12" fill="${dark ? "var(--fg)" : "var(--card)"}" stroke="${dark ? "none" : "var(--pale)"}"/>
   <text x="${x + 25}" y="${y + 5}" text-anchor="middle" style="font: 600 13px var(--mono); fill:${dark ? "#fff" : "var(--ink-2)"}">${text}</text>`;
-const pick = n => D.jevbench.rows.find(r => r.name === n);
-const pretty = n => n.replace(" (RTX PRO 6000)", "").replace(" v3", "");
 
 /* ---------- Same-run helpers: the six 4B systems on one JevBench re-run (lab/modal/compete_modal.py) ---------- */
 const RUNS = () => D.compete.runs.map(r => ({ ...r, label: r.us ? (r.mode === "adaptive" ? (zh ? "Trutina · 自适应深度" : "Trutina · adaptive") : (zh ? "Trutina · 完整深度" : "Trutina · full depth")) : r.name }));
