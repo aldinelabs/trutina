@@ -1557,40 +1557,53 @@
     "name": "Celeris-1 Decision",
     "size": "closed",
     "acc": 76.5,
-    "brier": 0.079
+    "brier": 0.079,
+    "cal": 66.8,
+    "index": 71.7
    },
    {
     "name": "Trutina",
     "size": "4B",
     "acc": 74.7,
     "brier": 0.079,
-    "ours": true
-   },
-   {
-    "name": "Decider v1.1",
-    "size": "27B",
-    "acc": 73.8,
-    "brier": 0.173
+    "ours": true,
+    "cal": 66.8,
+    "index": 70.8
    },
    {
     "name": "Jev 1.13.0",
     "size": "closed",
     "acc": 73.6,
-    "brier": 0.149
+    "brier": 0.149,
+    "cal": 37.4,
+    "index": 55.5
+   },
+   {
+    "name": "Decider v1.1",
+    "size": "27B",
+    "acc": 73.8,
+    "brier": 0.173,
+    "cal": 27.4,
+    "index": 50.6
    },
    {
     "name": "GPT-6 Luna",
     "size": "closed",
     "acc": 71.8,
-    "brier": 0.204
+    "brier": 0.204,
+    "cal": 14.4,
+    "index": 43.1
    },
    {
     "name": "Mercury Decide",
     "size": "closed",
     "acc": 71.5,
-    "brier": 0.27
+    "brier": 0.27,
+    "cal": -13.4,
+    "index": 35.8
    }
-  ]
+  ],
+  "brier_uniform": 0.2382
  },
  "compete": {
   "systems": [

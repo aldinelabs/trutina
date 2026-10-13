@@ -168,7 +168,13 @@ def main():
         {"name": "Decider v1.1", "size": "27B", "acc": 73.8, "brier": 0.173},
         {"name": "Jev 1.13.0", "size": "closed", "acc": 73.6, "brier": 0.149},
         {"name": "GPT-6 Luna", "size": "closed", "acc": 71.8, "brier": 0.204},
-        {"name": "Mercury Decide", "size": "closed", "acc": 71.5, "brier": 0.270}]}
+        {"name": "Mercury Decide", "size": "closed", "acc": 71.5, "brier": 0.270}],
+        # Brier of a uniform guess on the same 2,000 questions (600 two-way, 1,100 four-way, 300 five-way)
+        "brier_uniform": 0.2382}
+    for r in data["typed"]["rows"]:
+        r["cal"] = round(100 * (1 - r["brier"] / data["typed"]["brier_uniform"]), 1)  # Brier skill vs uniform
+        r["index"] = round((r["acc"] + max(r["cal"], 0)) / 2, 1)
+    data["typed"]["rows"].sort(key=lambda r: -r["index"])
     data["compete"] = compete()
     # larger systems on the same GPU type: JevBench's official raw latency (maintainers' RTX PRO 6000 pods,
     # 450 requests, serial); Trutina from our run (231 public tasks, same GPU type, serial HTTP)

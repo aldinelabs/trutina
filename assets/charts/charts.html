@@ -319,39 +319,33 @@ function bigger() {
 /* ---------- typed-decisions: 4B against 27B and closed decision systems ---------- */
 function typed() {
   const rows = D.typed.rows;
-  const W = 900, rowH = 62, top = 10, H = rows.length * rowH + top + 36, lx = 330;
-  const x = linScale(65, 80, lx, W - 90);
+  const W = 1470, rowH = 70, top = 12, H = rows.length * rowH + top + 40, lx = 360;
+  const x = linScale(0, 100, lx, W - 170);
   const size = r => r.size === "closed" ? (zh ? "闭源" : "closed") : r.size;
   let g = "";
-  for (const t of [65, 70, 75, 80]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 32}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - 6}" text-anchor="middle">${t}%</text>`;
+  for (const t of [0, 20, 40, 60, 80, 100]) g += `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 34}" stroke="var(--grid)"/><text class="axis" x="${x(t)}" y="${H - 10}" text-anchor="middle">${t}</text>`;
   rows.forEach((r, i) => {
-    const cy = top + i * rowH + rowH / 2;
-    g += `<text class="${r.ours ? "lbl-us" : "lbl"}" data-nopill x="${lx - 78}" y="${cy + 5}" text-anchor="end" style="font-size:${r.ours ? 17 : 15}px">${esc(r.name)}</text>`;
+    const cy = top + i * rowH + rowH / 2, a = r.acc / 2, c = Math.max(r.cal, 0) / 2;
+    g += `<text class="${r.us ? "lbl-us" : r.ours ? "lbl-us" : "lbl"}" data-nopill x="${lx - 80}" y="${cy + 1}" text-anchor="end" style="font-size:${r.ours ? 17 : 15}px">${esc(r.name)}</text>`;
+    g += `<text class="lbl-sub" x="${lx - 80}" y="${cy + 19}" text-anchor="end">${zh ? "准确率" : "accuracy"} ${r.acc.toFixed(1)}% · Brier ${r.brier.toFixed(3)}</text>`;
     g += chip(lx - 66, cy, size(r), r.ours);
-    g += `<line x1="${x(65)}" x2="${x(r.acc)}" y1="${cy}" y2="${cy}" stroke="${r.ours ? "var(--fg)" : "var(--pale)"}" stroke-width="2" stroke-linecap="round" stroke-dasharray="${r.ours ? "" : "2 5"}"/>`;
-    g += r.ours ? usDot(x(r.acc), cy, 9) : `<circle cx="${x(r.acc)}" cy="${cy}" r="8" fill="var(--muted)"/>`;
-    g += `<text class="${r.ours ? "val" : "val-muted"}" x="${x(r.acc) + 18}" y="${cy + 6}">${r.acc.toFixed(1)}</text>`;
+    g += `<rect x="${x(0)}" y="${cy - 14}" width="${x(a) - x(0)}" height="28" rx="6" fill="${r.ours ? "var(--fg)" : "var(--muted)"}"/>`;
+    if (c > 0) g += `<rect x="${x(a) + 2}" y="${cy - 14}" width="${Math.max(x(a + c) - x(a) - 2, 2)}" height="28" rx="6" fill="${r.ours ? "var(--fg)" : "var(--muted)"}" opacity=".45"/>`;
+    g += `<text class="${r.ours ? "val" : "val-muted"}" x="${x(a + c) + 14}" y="${cy + 6}" style="font-size:${r.ours ? 18 : 16}px">${r.index.toFixed(1)}</text>`;
   });
-  const W2 = 520, x2 = linScale(0, 0.3, 30, W2 - 80);
-  let k = "";
-  for (const t of [0, 0.1, 0.2, 0.3]) k += `<line x1="${x2(t)}" x2="${x2(t)}" y1="${top - 4}" y2="${H - 32}" stroke="var(--grid)"/><text class="axis" x="${x2(t)}" y="${H - 6}" text-anchor="middle">${t.toFixed(1)}</text>`;
-  rows.forEach((r, i) => {
-    const cy = top + i * rowH + rowH / 2;
-    k += bar(x2(0), cy - 12, x2(r.brier) - x2(0), 24, r.ours ? "var(--fg)" : "var(--pale)");
-    k += `<text class="${r.ours ? "val" : "val-muted"}" x="${x2(r.brier) + 12}" y="${cy + 6}">${r.brier.toFixed(3)}</text>`;
-  });
+  const legend = `<div class="legend"><span><i><svg width="26" height="14"><rect width="26" height="14" rx="4" fill="var(--fg)"/></svg></i>${zh ? "准确率 × ½" : "accuracy × ½"}</span>
+    <span><i><svg width="26" height="14"><rect width="26" height="14" rx="4" fill="var(--fg)" opacity=".45"/></svg></i>${zh ? "校准分 × ½（相对均匀猜测的 Brier 改善）" : "calibration × ½ (Brier improvement over a uniform guess)"}</span></div>`;
   const us = rows.find(r => r.ours), d27 = rows.find(r => r.size === "27B");
-  const cards = (a, b) => `<div class="row"><div class="card" style="flex:1.75"><h2>${a}</h2>${svgTag(W, H)}${g}</svg></div><div class="card"><h2>${b}</h2>${svgTag(W2, H)}${k}</svg></div></div>`;
   return frame(zh ? {
-    title: "typed-decisions：4B 的 Trutina 高于 27B 决策模型",
-    sub: `typed-decisions 测试集共 2,000 题（400 个案例 × 5 题）。Trutina 准确率 ${us.acc.toFixed(1)}%，高于 Decider v1.1 27B、Jev 1.13.0 与 GPT-6 Luna，仅次于闭源的 Celeris-1；Brier 分数 ${us.brier.toFixed(3)}，与其并列最低，不到 Decider v1.1 27B（${d27.brier.toFixed(3)}）的一半。`,
-    body: cards("准确率 <span>· 2,000 题</span>", "Brier 分数（软标签） <span>· 越低越好</span>"),
-    src: "除 Trutina 外，各系统数据取自 Celeris-1 Decision 发布时公布的对比表（评测框架 0cfd276，由 Celeris 自行测得，经 benchlm.ai 汇总），其中未能返回分布的请求按均匀分布计分。Trutina 为已发布权重、完整深度，由我们在同一 2,000 题测试集上测得；Brier 按每题各选项与软标签之差的平方和计算。Celeris 未公布所用切分与 Brier 的归一化方式。准确率坐标轴起点为 65%。",
+    title: "Typed Decisions Index：4B 的 Trutina 远高于 27B 决策模型",
+    sub: `typed-decisions 测试集 2,000 题（400 个案例 × 5 题）。指数为准确率与校准分各占一半。Trutina 为 ${us.index.toFixed(1)}，仅次于闭源的 Celeris-1，高于 Decider v1.1 27B（${d27.index.toFixed(1)}）、Jev 1.13.0 与 GPT-6 Luna。`,
+    body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
+    src: `指数 = ½ × 准确率 + ½ × 校准分，校准分 = 100 ×（1 − Brier ÷ 均匀猜测的 Brier），均匀猜测在该测试集上的 Brier 为 ${D.typed.brier_uniform}；Mercury Decide 的 Brier 高于均匀猜测，校准分记为 0。除 Trutina 外，准确率与 Brier 取自 Celeris-1 Decision 发布时公布的对比表（评测框架 0cfd276，由 Celeris 自行测得，经 benchlm.ai 汇总），未能返回分布的请求按均匀分布计分。Trutina 为已发布权重、完整深度，由我们在同一测试集上测得；Brier 按每题各选项与软标签之差的平方和计算，Celeris 未公布其切分与 Brier 的归一化方式。`,
   } : {
-    title: "typed-decisions: 4B Trutina above a 27B decision model",
-    sub: `typed-decisions test: 2,000 questions (400 cases × 5). Trutina scores ${us.acc.toFixed(1)}%, above Decider v1.1 27B, Jev 1.13.0 and GPT-6 Luna and second only to the closed Celeris-1; its Brier score of ${us.brier.toFixed(3)} ties for the lowest, less than half of Decider v1.1 27B's (${d27.brier.toFixed(3)}).`,
-    body: cards("Accuracy <span>· 2,000 questions</span>", "Brier score (soft labels) <span>· lower is better</span>"),
-    src: "Other systems: the comparison table Celeris published with Celeris-1 Decision (harness 0cfd276, measured by Celeris, collected by benchlm.ai); requests without a distribution scored as uniform. Trutina: released weights at full depth, measured by us on the same 2,000-question test; Brier is the per-question sum over options of the squared difference to the soft label. Celeris did not publish its split or Brier normalisation. The accuracy axis starts at 65%.",
+    title: "Typed Decisions Index: 4B Trutina far above a 27B decision model",
+    sub: `typed-decisions test, 2,000 questions (400 cases × 5). The index weighs accuracy and calibration equally. Trutina scores ${us.index.toFixed(1)}, second only to the closed Celeris-1 and above Decider v1.1 27B (${d27.index.toFixed(1)}), Jev 1.13.0 and GPT-6 Luna.`,
+    body: `<div class="card">${legend}${svgTag(W, H)}${g}</svg></div>`,
+    src: `Index = ½ × accuracy + ½ × calibration, calibration = 100 × (1 − Brier ÷ the Brier of a uniform guess), which is ${D.typed.brier_uniform} on this test; Mercury Decide's Brier is above the uniform guess's, so its calibration counts as 0. Other systems' accuracy and Brier: the table Celeris published with Celeris-1 Decision (harness 0cfd276, measured by Celeris, collected by benchlm.ai), requests without a distribution scored as uniform. Trutina: released weights at full depth, measured by us on the same test; Brier is the per-question sum over options of the squared difference to the soft label. Celeris did not publish its split or Brier normalisation.`,
   });
 }
 
