@@ -159,7 +159,37 @@ def main():
             {"name": "Bongard-mini", "acc": 59.4, "kl": 0.256, "open": True},
             {"name": "Jeff-Gemma4-E2B", "acc": 56.1, "kl": 0.403, "open": True}]},
     }
+    # typed-decisions (400 cases x 5 questions): Celeris's provider-reported table (harness 0cfd276, via
+    # benchlm.ai/decision-models) and Trutina measured by us on the same 2,000-question test (released weights,
+    # full depth; Brier = sum over options of (p - soft target)^2, per question)
+    data["typed"] = {"source": "Celeris-1 Decision launch table (provider-reported), benchlm.ai/decision-models", "rows": [
+        {"name": "Celeris-1 Decision", "size": "closed", "acc": 76.5, "brier": 0.079},
+        {"name": "Trutina", "size": "4B", "acc": 74.7, "brier": 0.079, "ours": True},
+        {"name": "Decider v1.1", "size": "27B", "acc": 73.8, "brier": 0.173},
+        {"name": "Jev 1.13.0", "size": "closed", "acc": 73.6, "brier": 0.149},
+        {"name": "GPT-6 Luna", "size": "closed", "acc": 71.8, "brier": 0.204},
+        {"name": "Mercury Decide", "size": "closed", "acc": 71.5, "brier": 0.270}]}
     data["compete"] = compete()
+    # larger systems on the same GPU type: JevBench's official raw latency (maintainers' RTX PRO 6000 pods,
+    # 450 requests, serial); Trutina from our run (231 public tasks, same GPU type, serial HTTP)
+    BIG = {"Cygnet": ("Cygnet", "12B"), "AutoJev-27B (RTX PRO 6000)": ("AutoJev-27B", "27B"),
+           "Surogate Rune 26B-A4B v3 (RTX PRO 6000)": ("Surogate Rune 26B-A4B", "26B"),
+           "JevOne": ("JevOne · Qwen3.6-35B-A3B", "35B"), "NInfer Qwen3.8-Flash-Next mixed": ("NInfer Qwen3.8-Flash-Next", "?"),
+           "swanOne": ("swanOne · Qwen3.8-Flash-Next", "?"), "CLM-8B": ("CLM-8B", "8B")}
+    big = []
+    for r in jb["systems"]:
+        if (r.get("gpu") or "").replace(" ", "") != "RTXPRO6000" or not (r.get("speed") or {}).get("p50_s_raw"):
+            continue
+        key = next((k for k in BIG if r["display"].startswith(k)), None)
+        if key:
+            sp = r["speed"]
+            big.append({"name": BIG[key][0], "size": BIG[key][1], "p50": round(sp["p50_s_raw"] * 1000, 1),
+                        "p95": round(sp["p95_s_raw"] * 1000, 1), "n": sp.get("n"), "by": "official",
+                        "i_open": round(r["intelligence"]["I_open"], 1)})
+    for r in data["compete"]["runs"]:
+        if r["us"]:
+            big.append({"name": "Trutina", "mode": r["mode"], "size": "4B", "p50": r["p50"], "p95": r["p95"], "us": True, "by": "us"})
+    data["bigger"] = sorted(big, key=lambda r: r["p50"])
     # LocalLLaMA: the dataset card's zero-shot rows, plus the six 4B systems we ran (same 5-questions-per-request protocol)
     card = [dict(r, by="card") for r in data["localllama"]["rows"] if not r.get("ours")]
     names = dict(SYSTEMS)

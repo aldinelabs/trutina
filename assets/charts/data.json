@@ -1550,6 +1550,48 @@
    }
   ]
  },
+ "typed": {
+  "source": "Celeris-1 Decision launch table (provider-reported), benchlm.ai/decision-models",
+  "rows": [
+   {
+    "name": "Celeris-1 Decision",
+    "size": "closed",
+    "acc": 76.5,
+    "brier": 0.079
+   },
+   {
+    "name": "Trutina",
+    "size": "4B",
+    "acc": 74.7,
+    "brier": 0.079,
+    "ours": true
+   },
+   {
+    "name": "Decider v1.1",
+    "size": "27B",
+    "acc": 73.8,
+    "brier": 0.173
+   },
+   {
+    "name": "Jev 1.13.0",
+    "size": "closed",
+    "acc": 73.6,
+    "brier": 0.149
+   },
+   {
+    "name": "GPT-6 Luna",
+    "size": "closed",
+    "acc": 71.8,
+    "brier": 0.204
+   },
+   {
+    "name": "Mercury Decide",
+    "size": "closed",
+    "acc": 71.5,
+    "brier": 0.27
+   }
+  ]
+ },
  "compete": {
   "systems": [
    {
@@ -1845,5 +1887,88 @@
    "decider": {},
    "sieve": {}
   }
- }
+ },
+ "bigger": [
+  {
+   "name": "Trutina",
+   "mode": "adaptive",
+   "size": "4B",
+   "p50": 14.0,
+   "p95": 110.2,
+   "us": true,
+   "by": "us"
+  },
+  {
+   "name": "CLM-8B",
+   "size": "8B",
+   "p50": 16.6,
+   "p95": 53.1,
+   "n": 450,
+   "by": "official",
+   "i_open": 17.1
+  },
+  {
+   "name": "Trutina",
+   "mode": "full",
+   "size": "4B",
+   "p50": 19.0,
+   "p95": 110.8,
+   "us": true,
+   "by": "us"
+  },
+  {
+   "name": "Cygnet",
+   "size": "12B",
+   "p50": 39.8,
+   "p95": 99.1,
+   "n": 450,
+   "by": "official",
+   "i_open": 72.5
+  },
+  {
+   "name": "JevOne \u00b7 Qwen3.6-35B-A3B",
+   "size": "35B",
+   "p50": 58.5,
+   "p95": 94.6,
+   "n": 450,
+   "by": "official",
+   "i_open": 53.9
+  },
+  {
+   "name": "NInfer Qwen3.8-Flash-Next",
+   "size": "?",
+   "p50": 79.8,
+   "p95": 147.3,
+   "n": 450,
+   "by": "official",
+   "i_open": 70.3
+  },
+  {
+   "name": "AutoJev-27B",
+   "size": "27B",
+   "p50": 88.1,
+   "p95": 225.9,
+   "n": 450,
+   "by": "official",
+   "i_open": 72.0
+  },
+  {
+   "name": "Surogate Rune 26B-A4B",
+   "size": "26B",
+   "p50": 100.5,
+   "p95": 285.6,
+   "n": 450,
+   "by": "official",
+   "i_open": 69.0
+  },
+  {
+   "name": "swanOne \u00b7 Qwen3.8-Flash-Next",
+   "size": "?",
+   "p50": 208.8,
+   "p95": 220.7,
+   "n": 450,
+   "by": "official",
+   "i_open": 70.5
+  }
+ ]
 }
