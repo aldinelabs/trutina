@@ -12,7 +12,9 @@ implementation. On the ROCK 5B these parts dominate a short decision prompt:
   a non-contiguous operand was 3x slower than with a contiguous copy. Here the
   transposes are materialized once, and both triangular solves share one call.
 
-Both are the same mathematics; outputs differ only by float summation order.
+Both are the same mathematics; outputs differ only by float summation order. On a
+quantized path (W8A8 NPU, CPU INT8) that rounding difference can still move decision
+probabilities by a few points, so this is opt-in (`fast_gdn=True`, `--fast-gdn`).
 `enable()` patches the transformers module in place and is idempotent.
 """
 from __future__ import annotations

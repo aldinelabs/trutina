@@ -66,7 +66,7 @@ class TorchTrutina:
     def load(cls, path: str = "aldinelabs/trutina-4b", device: str = "cuda", dtype=torch.bfloat16,
              batch_tokens: int = 32768, cuda_graphs: bool = True, graph_tokens: int = 2048,
              cpu_int8: bool = False, vision: bool = False,
-             npu_matmul: str | None = None) -> TorchTrutina:
+             npu_matmul: str | None = None, fast_gdn: bool = False) -> TorchTrutina:
         from safetensors import safe_open
         from transformers import AutoModelForCausalLM, AutoModelForImageTextToText, AutoTokenizer
 
@@ -86,7 +86,9 @@ class TorchTrutina:
         auto = AutoModelForImageTextToText if vision else AutoModelForCausalLM
         lm = auto.from_pretrained(str(local), dtype=dtype, attn_implementation="sdpa")
         torso = getattr(lm.model, "language_model", lm.model).to(device).eval()
-        if torch.device(device).type == "cpu":
+        if fast_gdn:
+            if torch.device(device).type != "cpu":
+                raise ValueError("fast_gdn requires device='cpu'")
             from trutina import cpu_gdn
 
             cpu_gdn.enable()

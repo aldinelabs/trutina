@@ -15,6 +15,7 @@ def main():
     ap.add_argument("--url", default="http://127.0.0.1:8000")
     ap.add_argument("--out", default="rock5-http-results.json")
     ap.add_argument("--backend", help="expect this resident backend for every request")
+    ap.add_argument("--api-key-file", help="send this file's key as a bearer token")
     a = ap.parse_args()
     from PIL import Image
 
@@ -33,11 +34,14 @@ def main():
              ("image", "/v1/systemone", image, "cpu"),
              ("adaptive", "/v1/decisions", predicate, "cpu"),
              ("deep_again", "/v1/systemone", invoice, "npu")]
+    headers = {"Content-Type": "application/json"}
+    if a.api_key_file:
+        headers["Authorization"] = "Bearer " + Path(a.api_key_file).read_text().strip()
     results = []
     for name, route, body, expected in cases:
         start = time.perf_counter()
         req = urllib.request.Request(a.url+route, data=json.dumps(body).encode(),
-                                     headers={"Content-Type": "application/json"})
+                                     headers=headers)
         with urllib.request.urlopen(req, timeout=360) as r:
             row = {"name": name, "status": r.status, "seconds": time.perf_counter()-start,
                    "backend": r.headers.get("X-Trutina-Backend"),

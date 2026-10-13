@@ -10,11 +10,13 @@ One request at a time (one GPU stream); requests queue on a lock. `--engine torc
 from __future__ import annotations
 
 import argparse
+import hmac
 import json
 import threading
 import time
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 from trutina.api import RequestError, handle
 from trutina.decisions_api import handle_decisions
@@ -22,7 +24,7 @@ from trutina.decisions_api import handle_decisions
 ROUTES = {"/v1/systemone": handle, "/v1/decisions": handle_decisions}
 
 
-def make_handler(engine, max_body: int):
+def make_handler(engine, max_body: int, api_key: str | None = None):
     lock = threading.Lock()
 
     class H(BaseHTTPRequestHandler):
@@ -39,6 +41,20 @@ def make_handler(engine, max_body: int):
             self.end_headers()
             self.wfile.write(body)
 
+        def authorized(self) -> bool:
+            """With an API key, every route except /health needs `Authorization: Bearer <key>` or `X-API-Key`."""
+            if api_key is None:
+                return True
+            given = self.headers.get("X-API-Key") or ""
+            auth = self.headers.get("Authorization") or ""
+            if auth[:7].lower() == "bearer ":
+                given = auth[7:].strip()
+            if hmac.compare_digest(given.encode(), api_key.encode()):
+                return True
+            self.send(401, {"error": {"status": 401, "message": "missing or invalid API key"}},
+                      {"WWW-Authenticate": "Bearer"})
+            return False
+
         def do_GET(self):
             if self.path == "/health":
                 state = {"status": "ok", "model": engine.config["name"]}
@@ -48,6 +64,8 @@ def make_handler(engine, max_body: int):
             self.send(404, {"error": {"status": 404, "message": "not found"}})
 
         def do_POST(self):
+            if not self.authorized():
+                return
             route = ROUTES.get(self.path.split("?")[0])
             if route is None:
                 return self.send(404, {"error": {"status": 404, "message": "not found"}})
@@ -89,6 +107,9 @@ def main():
     ap.add_argument("--cpu-int8", action="store_true", help="torch CPU: dynamic INT8 decoder layers")
     ap.add_argument("--npu-matmul", help="experimental torch CPU: RK3588 Linear bridge library")
     ap.add_argument("--vision", action="store_true", help="torch: load the vision tower")
+    ap.add_argument("--fast-gdn", action="store_true",
+                    help="torch CPU: faster Gated DeltaNet; float rounding differs (see trutina.cpu_gdn)")
+    ap.add_argument("--api-key-file", help="require this file's key on every route except /health")
     ap.add_argument("--threads", type=int, default=4, help="torch CPU worker threads")
     ap.add_argument("--batch-tokens", type=int, default=32768, help="torch: padded batch token budget")
     ap.add_argument("--rkllm-library", default="build/rkllm/libtrutina_rkllm.so")
@@ -102,6 +123,11 @@ def main():
     ap.add_argument("--warm-graphs", type=int, default=2048,
                     help="torch engine only: capture the length buckets up to this many tokens at start-up")
     a = ap.parse_args()
+    api_key = None
+    if a.api_key_file:
+        api_key = Path(a.api_key_file).read_text().strip()
+        if len(api_key) < 16:
+            ap.error("--api-key-file must contain a key of at least 16 characters")
     if a.npu_matmul and a.engine != "torch":
         ap.error("--npu-matmul requires --engine torch --device cpu")
     if a.engine == "torch":
@@ -115,7 +141,8 @@ def main():
             torch.set_num_threads(a.threads)
         engine = TorchTrutina.load(a.model, device=a.device, cuda_graphs=not a.no_cuda_graphs,
                                    graph_tokens=a.graph_tokens, cpu_int8=a.cpu_int8,
-                                   vision=a.vision, batch_tokens=a.batch_tokens, npu_matmul=a.npu_matmul)
+                                   vision=a.vision, batch_tokens=a.batch_tokens, npu_matmul=a.npu_matmul,
+                                   fast_gdn=a.fast_gdn)
         if engine.graph_tokens and a.warm_graphs:
             print(f"captured CUDA graphs for {engine.warm_graphs(a.warm_graphs)} length buckets", flush=True)
     elif a.engine == "rock5":
@@ -135,7 +162,7 @@ def main():
         engine = Trutina.load(a.model)
     if a.noul:
         engine.noul = a.noul
-    server = ThreadingHTTPServer((a.host, a.port), make_handler(engine, a.max_body))
+    server = ThreadingHTTPServer((a.host, a.port), make_handler(engine, a.max_body, api_key))
     print(f"trutina-4b on http://{a.host}:{a.port}  (POST /v1/systemone, /v1/decisions)", flush=True)
     try:
         server.serve_forever()

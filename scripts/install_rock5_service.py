@@ -21,6 +21,8 @@ def main():
     ap.add_argument("--vision", action="store_true")
     ap.add_argument("--library", default="build/rkllm/libtrutina_rkllm.so")
     ap.add_argument("--npu-matmul", help="torch: experimental RK3588 Linear library")
+    ap.add_argument("--api-key-file", help="require this key on every route except /health")
+    ap.add_argument("--cpu-affinity", help="CPUs for the service, e.g. 4-7 for the RK3588 A76 cores")
     a = ap.parse_args()
     root = Path(__file__).resolve().parents[1]
     model = Path(a.model).resolve()
@@ -43,6 +45,13 @@ def main():
             if not a.rkllm_model or not Path(a.rkllm_model).is_dir():
                 ap.error("rock5 engine requires a local --rkllm-model directory")
             args += ["--rkllm-model", str(Path(a.rkllm_model).resolve())]
+    if a.api_key_file:
+        key = Path(a.api_key_file).resolve()
+        if not key.is_file() or key.stat().st_mode & 0o077:
+            ap.error("--api-key-file must be an existing file readable only by its owner (chmod 600)")
+        args += ["--api-key-file", str(key)]
+    affinity = f"CPUAffinity={a.cpu_affinity}\n" if a.cpu_affinity else ""
+
     def quoted(value):
         return shlex.quote(str(value).replace("%", "%%"))
     unit = f"""[Unit]
@@ -57,7 +66,7 @@ WorkingDirectory={quoted(root)}
 Environment=OMP_NUM_THREADS=4
 Environment=OPENBLAS_NUM_THREADS=4
 MemoryMax=13G
-ExecStart={' '.join(quoted(arg) for arg in args)}
+{affinity}ExecStart={' '.join(quoted(arg) for arg in args)}
 Restart=on-failure
 RestartSec=10
 

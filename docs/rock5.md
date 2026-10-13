@@ -191,8 +191,8 @@ npu-matmul`; no model switch occurred.
 | Invoice, adaptive | 16 | 6.02 | 1.71 | 1.18 |
 | Invoice, deep again | 32 | 11.89 | 3.38 | 2.26 |
 
-"CPU work" adds NEON activation quantization in the bridge and the Gated DeltaNet
-changes in `trutina.cpu_gdn` (below). For comparison, RKLLM took 2.07 s for the
+"CPU work" adds NEON activation quantization in the bridge and the opt-in Gated
+DeltaNet changes in `trutina.cpu_gdn` (`--fast-gdn`, below). For comparison, RKLLM took 2.07 s for the
 same full-depth invoice. Adaptive requests that exit early are now faster here, and
 deep text is close to RKLLM, with one resident model for text and images. Raw
 results: [untiled](benchmarks/rock5b-npu-matmul-http.json),
@@ -205,11 +205,12 @@ latency distribution.
 After tiling, a profile of one deep request (3.26 s) found 0.84 s of NPU
 execution, 0.74 s of scalar quantization, binding and dequantization around it,
 and about 1.4 s in the reference torch Gated DeltaNet. On CPU devices,
-`trutina.cpu_gdn` replaces two transformers fallbacks: the chunked delta rule
+`--fast-gdn` (`trutina.cpu_gdn`) replaces two transformers fallbacks: the chunked delta rule
 uses a chunk sized to the prompt (the reference pads 70 tokens to two chunks of
 64) with contiguous key transposes, and the depthwise causal convolution uses
-shifted multiply-adds instead of mkldnn. This also applies to the CPU INT8
-backend, whose latency has not been re-measured.
+shifted multiply-adds instead of mkldnn. It is off by default because it
+changes probabilities (below); it also works with the CPU INT8 backend, whose
+latency has not been re-measured with it.
 
 Exact arithmetic is unchanged, but float rounding differs. Against a float64
 token-by-token recurrence on the image request's captured inputs, every chunk
@@ -220,6 +221,12 @@ size. Per-token INT8 activation quantization turns float-rounding differences
 into different integer roundings, which compound over layers. Expect
 probability shifts of this order from any numerically equivalent change on the
 W8A8 path, and evaluate calibration on the deployment distribution.
+
+Without `--fast-gdn`, tiling and NEON quantization leave every response identical
+to the original bridge. With the service pinned to the A76 cores
+(`--cpu-affinity 4-7`), that configuration measured 3.13-3.56 s deep, 4.77-4.81 s
+for the image and 1.59-1.60 s adaptive, with responses identical to the first
+untiled run.
 The [thread profile](benchmarks/rock5b-npu-matmul-thread-profile.json), measured
 before tiling, found no speed improvement from reducing CPU threads. Four CPU
 threads remain the default.
@@ -228,8 +235,14 @@ Use the service installer to retain the same 13 GiB limit:
 
 ```bash
 python scripts/install_rock5_service.py --engine torch --vision \
-  --model models/trutina-4b --npu-matmul build/rkmatmul/libtrutina_matmul.so
+  --model models/trutina-4b --npu-matmul build/rkmatmul/libtrutina_matmul.so \
+  --cpu-affinity 4-7 --api-key-file ~/.config/trutina/api-key
 ```
+
+`--api-key-file` (chmod 600) makes every route except `GET /health` require
+`Authorization: Bearer <key>` or `X-API-Key: <key>`; other requests get 401.
+Use it whenever the port is reachable beyond the board, for example through a
+Cloudflare Tunnel. There is no rate limit.
 
 ### RKLLM segmentation investigation
 
