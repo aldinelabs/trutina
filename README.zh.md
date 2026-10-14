@@ -5,7 +5,7 @@
 **trutina-4b** 是一个类型化决策模型（typed decision model）。模型的输入为一段状态描述（state，文本，可包含图像）及若干带类型的问题，输出为每个候选项上经过校准的概率分布；整个过程不生成文本。
 该模型以 Qwen3.5-4B 为骨干，引入了**多出口读出（multi-exit readout）**机制，可在第 12、16、20、24 或 32 层给出答案。在默认的**自适应深度（adaptive）**模式下，每个请求在首个置信度达到阈值的出口处终止计算；若未达到阈值，则从该层的隐状态继续向后计算。对于较简单的问题，模型约使用一半的层数；对于较困难的问题，则使用全部 32 层。
 
-权重：[aldinelabs/trutina-4b](https://huggingface.co/aldinelabs/trutina-4b) · 许可证：Apache-2.0
+权重：[aldinelabs/trutina-4b](https://huggingface.co/aldinelabs/trutina-4b) · 博客：[隆重推出 Trutina 4B](https://journal.aldine.cn/zh/blog/introducing-trutina/) · [技术报告](https://journal.aldine.cn/zh/blog/trutina-technical-report/) · 许可证：Apache-2.0
 
 ![trutina-4b：已发布权重回答的四个用例](assets/charts/png/zh/cover.png)
 
