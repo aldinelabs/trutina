@@ -16,15 +16,15 @@ Build locally with `tectonic trutina.tex`; `./package_arxiv.sh` writes `trutina-
 ## Metadata to enter
 
 - **Title:** Trutina: Typed Decision Probabilities from a 4B Language Model with Letter Readout and Trainable Early Exits
-- **Authors:** Xinyuan Weng (Aldine Labs)
+- **Authors:** Xinyuan Weng (University of Toronto; Aldine Labs). arXiv's affiliation field takes at most a city and country, e.g. `Xinyuan Weng (University of Toronto, Canada)`; use "University of Toronto Mississauga" if that is your campus.
 - **Abstract:** contents of `abstract.txt`
 - **Primary category:** cs.LG; **cross-list:** cs.CL
 - **Comments:** 18 pages, 4 figures, 9 tables. Code and weights: https://github.com/aldinelabs/trutina
-- **License:** the submitter's choice (CC BY 4.0 is the most open option and is commonly accepted by publishers)
+- **License:** CC BY 4.0. It is the closest match to the Apache-2.0 licence of the weights and code: both allow commercial use, modification and redistribution with attribution. CC0 drops attribution, ShareAlike adds copyleft, the NC options restrict commercial use, and the arXiv non-exclusive licence allows the least reuse. The choice is irrevocable.
 
 ## Before submitting
 
-1. Check the author name, affiliation and contact address on the title page. They were taken from the repository and the public contact address.
-2. A first-time submitter needs an endorsement for the category (see arXiv's endorsement page); an institutional email address speeds this up.
+1. The title page lists the University of Toronto and Aldine Labs with the University of Toronto email address. Change it if your campus or affiliation line should differ.
+2. Endorsement: since 21 January 2026 arXiv no longer accepts an institutional email address as the sole basis for endorsing a new author. Automatic endorsement needs both an institutional email and an earlier paper of yours accepted in the same endorsement domain; without one you need personal endorsement from an established arXiv author in that domain (arXiv itself cannot give one). Start the submission, choose cs.LG, and arXiv issues an endorsement link and code to pass to one endorser, for example a supervisor or course instructor who has cs papers on arXiv. Do not mass-email endorsers.
 3. arXiv holds authors responsible for the content of a paper however it was produced, and sanctions papers with clear signs of unchecked AI output such as invented references. The paper discloses AI assistance in its last section; edit that statement if it does not match your practice. Each arXiv reference was generated from the arXiv record; the non-arXiv entries (models, datasets, software) were opened and checked, but their years are the release year of the artefact as we understand it.
 4. Preview the PDF that arXiv builds before announcing; submissions received before 14:00 US Eastern are normally announced at 20:00 Eastern the same day.
