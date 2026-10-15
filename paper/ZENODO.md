@@ -11,7 +11,7 @@ Files (in `zenodo/`, git-ignored; rebuild with `./package_arxiv.sh` then copy):
 |---|---|
 | Resource type | Publication → Preprint (or Technical note) |
 | Title | Trutina: Typed Decision Probabilities from a 4B Language Model with Letter Readout and Trainable Early Exits |
-| Authors | Weng, Xinyuan — University of Toronto; Aldine Labs |
+| Authors | Weng, Xinyuan — Aldine Labs (independent research) |
 | Description | contents of `abstract.txt` (plain text; no LaTeX needed) |
 | License | Creative Commons Attribution 4.0 International (CC BY 4.0) |
 | Keywords | decision models; language models; early exit; calibration; LoRA; distillation; Qwen3.5 |
