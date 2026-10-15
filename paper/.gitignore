@@ -1,0 +1,8 @@
+# LaTeX build products. trutina.bbl is kept: arXiv uses it instead of running BibTeX.
+trutina.aux
+trutina.blg
+trutina.log
+trutina.out
+trutina.pdf
+arxiv/
+trutina-arxiv.tar.gz

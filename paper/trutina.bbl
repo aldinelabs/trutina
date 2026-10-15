@@ -1,0 +1,571 @@
+\begin{thebibliography}{88}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[{TypeSafe}(2026)]{jev}
+{TypeSafe}.
+\newblock {{Jev} 1.13 and the {System One} {API}}.
+\newblock Documentation, \url{https://docs.typesafe.ai/concepts/system-one},
+  2026.
+
+\bibitem[{crh225}(2026)]{plumb}
+{crh225}.
+\newblock {Plumb-4B}.
+\newblock Hugging Face model card,
+  \url{https://huggingface.co/crh225/plumb-4b}, 2026.
+
+\bibitem[{ngrok-adhoc}(2026)]{jevk5}
+{ngrok-adhoc}.
+\newblock {{JevK5}}.
+\newblock Software, \url{https://github.com/ngrok-adhoc/jevk5}, 2026.
+
+\bibitem[{Mapika}(2026)]{decider4b}
+{Mapika}.
+\newblock {decider-4b}.
+\newblock Hugging Face model card,
+  \url{https://huggingface.co/Mapika/decider-4b}, 2026.
+
+\bibitem[{sthanika-ai}(2026)]{sieve}
+{sthanika-ai}.
+\newblock {Sieve-4B}.
+\newblock Hugging Face model card,
+  \url{https://huggingface.co/sthanika-ai/Sieve-4B}, 2026.
+
+\bibitem[{abhishek085}(2026)]{spark}
+{abhishek085}.
+\newblock {spark-s1-4b-v6}.
+\newblock Hugging Face model card,
+  \url{https://huggingface.co/abhishek085/spark-s1-4b-v6}, 2026.
+
+\bibitem[{TheoLeeCJ}(2026)]{semif}
+{TheoLeeCJ}.
+\newblock {{SemIf} (formerly {OpenJev}): semantic ifs from open models}.
+\newblock Software, \url{https://github.com/TheoLeeCJ/SemIf}, 2026.
+
+\bibitem[{Liquid AI}(2026)]{d1}
+{Liquid AI}.
+\newblock {Open d1}.
+\newblock Blog post, \url{https://www.liquid.ai/blog/d1-open}, 2026.
+
+\bibitem[Li and Wagle(2026)]{llmjev}
+Yinheng Li and Justin Wagle.
+\newblock {LLM-as-Jev: LLMs Are Already Jev-Style Decision Models -- When and
+  How to Fine-Tune Them}.
+\newblock arXiv:2610.02076, 2026.
+
+\bibitem[Arora et~al.(2024)Arora, Timalsina, Singhal, Spector, Eyuboglu, Zhao,
+  Rao, Rudra, and R{\'e}]{arora}
+Simran Arora, Aman Timalsina, Aaryan Singhal, Benjamin Spector, Sabri Eyuboglu,
+  Xinyi Zhao, Ashish Rao, Atri Rudra, and Christopher R{\'e}.
+\newblock {Just read twice: closing the recall gap for recurrent language
+  models}.
+\newblock arXiv:2407.05483, 2024.
+
+\bibitem[Leviathan et~al.(2025)Leviathan, Kalman, and Matias]{leviathan}
+Yaniv Leviathan, Matan Kalman, and Yossi Matias.
+\newblock {Prompt Repetition Improves Non-Reasoning LLMs}.
+\newblock arXiv:2512.14982, 2025.
+
+\bibitem[{nostalgebraist}(2020)]{logitlens}
+{nostalgebraist}.
+\newblock {interpreting {GPT}: the logit lens}.
+\newblock LessWrong,
+  \url{https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens},
+  2020.
+
+\bibitem[Belrose et~al.(2023)Belrose, Ostrovsky, McKinney, Furman, Smith,
+  Halawi, Biderman, and Steinhardt]{tunedlens}
+Nora Belrose, Igor Ostrovsky, Lev McKinney, Zach Furman, Logan Smith, Danny
+  Halawi, Stella Biderman, and Jacob Steinhardt.
+\newblock {Eliciting Latent Predictions from Transformers with the Tuned Lens}.
+\newblock arXiv:2303.08112, 2023.
+
+\bibitem[Schuster et~al.(2022)Schuster, Fisch, Gupta, Dehghani, Bahri, Tran,
+  Tay, and Metzler]{calm}
+Tal Schuster, Adam Fisch, Jai Gupta, Mostafa Dehghani, Dara Bahri, Vinh~Q.
+  Tran, Yi~Tay, and Donald Metzler.
+\newblock {Confident Adaptive Language Modeling}.
+\newblock arXiv:2207.07061, 2022.
+
+\bibitem[Elhoushi et~al.(2024)Elhoushi, Shrivastava, Liskovich,
+  et~al.]{layerskip}
+Mostafa Elhoushi, Akshat Shrivastava, Diana Liskovich, et~al.
+\newblock {LayerSkip: Enabling Early Exit Inference and Self-Speculative
+  Decoding}.
+\newblock arXiv:2404.16710, 2024.
+
+\bibitem[Zheng et~al.(2023{\natexlab{a}})Zheng, Zhou, Meng, Zhou, and
+  Huang]{pride}
+Chujie Zheng, Hao Zhou, Fandong Meng, Jie Zhou, and Minlie Huang.
+\newblock {Large Language Models Are Not Robust Multiple Choice Selectors}.
+\newblock arXiv:2309.03882, 2023{\natexlab{a}}.
+
+\bibitem[Wang et~al.(2024)Wang, Zhang, Li, Huang, Han, Ji, Kakade, Peng, and
+  Ji]{pine}
+Ziqi Wang, Hanlin Zhang, Xiner Li, Kuan-Hao Huang, Chi Han, Shuiwang Ji,
+  Sham~M. Kakade, Hao Peng, and Heng Ji.
+\newblock {Eliminating Position Bias of Language Models: A Mechanistic
+  Approach}.
+\newblock arXiv:2407.01100, 2024.
+
+\bibitem[Liusie et~al.(2024)Liusie, Fathullah, and Gales]{liusie}
+Adian Liusie, Yassir Fathullah, and Mark J.~F. Gales.
+\newblock {Teacher-Student Training for Debiasing: General Permutation
+  Debiasing for Large Language Models}.
+\newblock arXiv:2403.13590, 2024.
+
+\bibitem[Hao et~al.(2024)Hao, Sukhbaatar, Su, Li, Hu, Weston, and
+  Tian]{coconut}
+Shibo Hao, Sainbayar Sukhbaatar, DiJia Su, Xian Li, Zhiting Hu, Jason Weston,
+  and Yuandong Tian.
+\newblock {Training Large Language Models to Reason in a Continuous Latent
+  Space}.
+\newblock arXiv:2412.06769, 2024.
+
+\bibitem[Geiping et~al.(2025)Geiping, McLeish, Jain, Kirchenbauer, Singh,
+  Bartoldson, Kailkhura, Bhatele, and Goldstein]{recdepth}
+Jonas Geiping, Sean McLeish, Neel Jain, John Kirchenbauer, Siddharth Singh,
+  Brian~R. Bartoldson, Bhavya Kailkhura, Abhinav Bhatele, and Tom Goldstein.
+\newblock {Scaling up Test-Time Compute with Latent Reasoning: A Recurrent
+  Depth Approach}.
+\newblock arXiv:2502.05171, 2025.
+
+\bibitem[Goyal et~al.(2023)Goyal, Ji, Rawat, Menon, Kumar, and
+  Nagarajan]{pause}
+Sachin Goyal, Ziwei Ji, Ankit~Singh Rawat, Aditya~Krishna Menon, Sanjiv Kumar,
+  and Vaishnavh Nagarajan.
+\newblock {Think before you speak: Training Language Models With Pause Tokens}.
+\newblock arXiv:2310.02226, 2023.
+
+\bibitem[Guo et~al.(2017)Guo, Pleiss, Sun, and Weinberger]{guo}
+Chuan Guo, Geoff Pleiss, Yu~Sun, and Kilian~Q. Weinberger.
+\newblock {On Calibration of Modern Neural Networks}.
+\newblock arXiv:1706.04599, 2017.
+
+\bibitem[{Benchmark Heaven}(2026)]{jevbench}
+{Benchmark Heaven}.
+\newblock {{JevBench}: benchmark and leaderboard for {AI} decision models}.
+\newblock Software and data, \url{https://github.com/fstandhartinger/jevbench},
+  2026.
+
+\bibitem[{LocalLLaMA}(2026)]{localllama}
+{LocalLLaMA}.
+\newblock {typed-decisions}.
+\newblock Hugging Face dataset card,
+  \url{https://huggingface.co/datasets/LocalLLaMA/typed-decisions}, 2026.
+
+\bibitem[{akhilaaa3}(2026)]{decisionbench}
+{akhilaaa3}.
+\newblock {decision-bench}.
+\newblock Hugging Face dataset,
+  \url{https://huggingface.co/datasets/akhilaaa3/decision-bench}, 2026.
+
+\bibitem[{limberc}(2026)]{thisthat}
+{limberc}.
+\newblock {this-that-complex-decisions}.
+\newblock Hugging Face dataset,
+  \url{https://huggingface.co/datasets/limberc/this-that-complex-decisions},
+  2026.
+
+\bibitem[Tan et~al.(2024)Tan, Zhuang, Montgomery, Tang, Cuadron, Wang, Popa,
+  and Stoica]{judgebench}
+Sijun Tan, Siyuan Zhuang, Kyle Montgomery, William~Y. Tang, Alejandro Cuadron,
+  Chenguang Wang, Raluca~Ada Popa, and Ion Stoica.
+\newblock {JudgeBench: A Benchmark for Evaluating LLM-based Judges}.
+\newblock arXiv:2410.12784, 2024.
+
+\bibitem[{fastino}(2026)]{fastdecisions}
+{fastino}.
+\newblock {fast-decisions}.
+\newblock Hugging Face dataset,
+  \url{https://huggingface.co/datasets/fastino/fast-decisions}, 2026.
+
+\bibitem[FitzGerald et~al.(2022)FitzGerald, Hench, Peris, et~al.]{massive}
+Jack FitzGerald, Christopher Hench, Charith Peris, et~al.
+\newblock {MASSIVE: A 1M-Example Multilingual Natural Language Understanding
+  Dataset with 51 Typologically-Diverse Languages}.
+\newblock arXiv:2204.08582, 2022.
+
+\bibitem[{apolinario}(2026)]{decisionindex}
+{apolinario}.
+\newblock {Decision Index: reproduce the decision-model benchmark suite}.
+\newblock Software, \url{https://github.com/apolinario/decision-index}, 2026.
+
+\bibitem[{Qwen Team}(2026{\natexlab{a}})]{qwen35}
+{Qwen Team}.
+\newblock {Qwen3.5: Towards Native Multimodal Agents}.
+\newblock \url{https://qwen.ai/blog?id=qwen3.5}, 2026{\natexlab{a}}.
+\newblock Model card: \url{https://huggingface.co/Qwen/Qwen3.5-4B}.
+
+\bibitem[Yang et~al.(2024{\natexlab{a}})Yang, Kautz, and Hatamizadeh]{gdn}
+Songlin Yang, Jan Kautz, and Ali Hatamizadeh.
+\newblock {Gated Delta Networks: Improving Mamba2 with Delta Rule}.
+\newblock arXiv:2412.06464, 2024{\natexlab{a}}.
+
+\bibitem[Hinton et~al.(2015)Hinton, Vinyals, and Dean]{hinton}
+Geoffrey Hinton, Oriol Vinyals, and Jeff Dean.
+\newblock {Distilling the Knowledge in a Neural Network}.
+\newblock arXiv:1503.02531, 2015.
+
+\bibitem[Hu et~al.(2021)Hu, Shen, Wallis, Allen-Zhu, Li, Wang, Wang, and
+  Chen]{lora}
+Edward~J. Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean
+  Wang, Lu~Wang, and Weizhu Chen.
+\newblock {LoRA: Low-Rank Adaptation of Large Language Models}.
+\newblock arXiv:2106.09685, 2021.
+
+\bibitem[Hendrycks et~al.(2021)Hendrycks, Burns, Chen, and Ball]{cuad}
+Dan Hendrycks, Collin Burns, Anya Chen, and Spencer Ball.
+\newblock {CUAD: An Expert-Annotated NLP Dataset for Legal Contract Review}.
+\newblock arXiv:2103.06268, 2021.
+
+\bibitem[Wang et~al.(2023{\natexlab{a}})Wang, Scardigli, Tang, Chen, Levkin,
+  Chen, Ball, Woodside, Zhang, and Hendrycks]{maud}
+Steven~H. Wang, Antoine Scardigli, Leonard Tang, Wei Chen, Dimitry Levkin, Anya
+  Chen, Spencer Ball, Thomas Woodside, Oliver Zhang, and Dan Hendrycks.
+\newblock {MAUD: An Expert-Annotated Legal NLP Dataset for Merger Agreement
+  Understanding}.
+\newblock arXiv:2301.00876, 2023{\natexlab{a}}.
+
+\bibitem[Saeidi et~al.(2018)Saeidi, Bartolo, Lewis, Singh, Rockt{\"a}schel,
+  Sheldon, Bouchard, and Riedel]{sharc}
+Marzieh Saeidi, Max Bartolo, Patrick Lewis, Sameer Singh, Tim Rockt{\"a}schel,
+  Mike Sheldon, Guillaume Bouchard, and Sebastian Riedel.
+\newblock {Interpretation of Natural Language Rules in Conversational Machine
+  Reading}.
+\newblock arXiv:1809.01494, 2018.
+
+\bibitem[Guha et~al.(2023)Guha, Nyarko, Ho, et~al.]{legalbench}
+Neel Guha, Julian Nyarko, Daniel~E. Ho, et~al.
+\newblock {LegalBench: A Collaboratively Built Benchmark for Measuring Legal
+  Reasoning in Large Language Models}.
+\newblock arXiv:2308.11462, 2023.
+
+\bibitem[Lightman et~al.(2023)Lightman, Kosaraju, Burda, Edwards, Baker, Lee,
+  Leike, Schulman, Sutskever, and Cobbe]{prm800k}
+Hunter Lightman, Vineet Kosaraju, Yura Burda, Harri Edwards, Bowen Baker, Teddy
+  Lee, Jan Leike, John Schulman, Ilya Sutskever, and Karl Cobbe.
+\newblock {Let's Verify Step by Step}.
+\newblock arXiv:2305.20050, 2023.
+
+\bibitem[Wang et~al.(2023{\natexlab{b}})Wang, Dong, Zeng, et~al.]{helpsteer}
+Zhilin Wang, Yi~Dong, Jiaqi Zeng, et~al.
+\newblock {HelpSteer: Multi-attribute Helpfulness Dataset for SteerLM}.
+\newblock arXiv:2311.09528, 2023{\natexlab{b}}.
+
+\bibitem[Zheng et~al.(2023{\natexlab{b}})Zheng, Chiang, Sheng, et~al.]{mtbench}
+Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, et~al.
+\newblock {Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena}.
+\newblock arXiv:2306.05685, 2023{\natexlab{b}}.
+
+\bibitem[Fabbri et~al.(2020)Fabbri, Kry{\'s}ci{\'n}ski, McCann, Xiong, Socher,
+  and Radev]{summeval}
+Alexander~R. Fabbri, Wojciech Kry{\'s}ci{\'n}ski, Bryan McCann, Caiming Xiong,
+  Richard Socher, and Dragomir Radev.
+\newblock {SummEval: Re-evaluating Summarization Evaluation}.
+\newblock arXiv:2007.12626, 2020.
+
+\bibitem[Li et~al.(2023{\natexlab{a}})Li, Cheng, Zhao, Nie, and Wen]{halueval}
+Junyi Li, Xiaoxue Cheng, Wayne~Xin Zhao, Jian-Yun Nie, and Ji-Rong Wen.
+\newblock {HaluEval: A Large-Scale Hallucination Evaluation Benchmark for Large
+  Language Models}.
+\newblock arXiv:2305.11747, 2023{\natexlab{a}}.
+
+\bibitem[Trivedi et~al.(2021)Trivedi, Balasubramanian, Khot, and
+  Sabharwal]{musique}
+Harsh Trivedi, Niranjan Balasubramanian, Tushar Khot, and Ashish Sabharwal.
+\newblock {MuSiQue: Multihop Questions via Single-hop Question Composition}.
+\newblock arXiv:2108.00573, 2021.
+
+\bibitem[Ho et~al.(2020)Ho, Nguyen, Sugawara, and Aizawa]{wiki2}
+Xanh Ho, Anh-Khoa~Duong Nguyen, Saku Sugawara, and Akiko Aizawa.
+\newblock {Constructing A Multi-hop QA Dataset for Comprehensive Evaluation of
+  Reasoning Steps}.
+\newblock arXiv:2011.01060, 2020.
+
+\bibitem[Yang et~al.(2018)Yang, Qi, Zhang, Bengio, Cohen, Salakhutdinov, and
+  Manning]{hotpot}
+Zhilin Yang, Peng Qi, Saizheng Zhang, Yoshua Bengio, William~W. Cohen, Ruslan
+  Salakhutdinov, and Christopher~D. Manning.
+\newblock {HotpotQA: A Dataset for Diverse, Explainable Multi-hop Question
+  Answering}.
+\newblock arXiv:1809.09600, 2018.
+
+\bibitem[Dua et~al.(2019)Dua, Wang, Dasigi, Stanovsky, Singh, and
+  Gardner]{drop}
+Dheeru Dua, Yizhong Wang, Pradeep Dasigi, Gabriel Stanovsky, Sameer Singh, and
+  Matt Gardner.
+\newblock {DROP: A Reading Comprehension Benchmark Requiring Discrete Reasoning
+  Over Paragraphs}.
+\newblock arXiv:1903.00161, 2019.
+
+\bibitem[Zhu et~al.(2021)Zhu, Lei, Huang, Wang, Zhang, Lv, Feng, and
+  Chua]{tatqa}
+Fengbin Zhu, Wenqiang Lei, Youcheng Huang, Chao Wang, Shuo Zhang, Jiancheng Lv,
+  Fuli Feng, and Tat-Seng Chua.
+\newblock {TAT-QA: A Question Answering Benchmark on a Hybrid of Tabular and
+  Textual Content in Finance}.
+\newblock arXiv:2105.07624, 2021.
+
+\bibitem[Clark et~al.(2019)Clark, Lee, Chang, Kwiatkowski, Collins, and
+  Toutanova]{boolq}
+Christopher Clark, Kenton Lee, Ming-Wei Chang, Tom Kwiatkowski, Michael
+  Collins, and Kristina Toutanova.
+\newblock {BoolQ: Exploring the Surprising Difficulty of Natural Yes/No
+  Questions}.
+\newblock arXiv:1905.10044, 2019.
+
+\bibitem[Geva et~al.(2021)Geva, Khashabi, Segal, Khot, Roth, and
+  Berant]{strategyqa}
+Mor Geva, Daniel Khashabi, Elad Segal, Tushar Khot, Dan Roth, and Jonathan
+  Berant.
+\newblock {Did Aristotle Use a Laptop? A Question Answering Benchmark with
+  Implicit Reasoning Strategies}.
+\newblock arXiv:2101.02235, 2021.
+
+\bibitem[Lin et~al.(2019)Lin, Tafjord, Clark, and Gardner]{ropes}
+Kevin Lin, Oyvind Tafjord, Peter Clark, and Matt Gardner.
+\newblock {Reasoning Over Paragraph Effects in Situations}.
+\newblock arXiv:1908.05852, 2019.
+
+\bibitem[Kennedy et~al.(2020)Kennedy, Bacon, Sahn, and Vacano]{mhs}
+Chris~J. Kennedy, Geoff Bacon, Alexander Sahn, and Claudia~von Vacano.
+\newblock {Measuring a hate speech spectrum with faceted Rasch item response
+  theory and perspective-aware, explainable-by-design deep learning}.
+\newblock arXiv:2009.10277, 2020.
+
+\bibitem[Sap et~al.(2019)Sap, Gabriel, Qin, Jurafsky, Smith, and Choi]{sbic}
+Maarten Sap, Saadia Gabriel, Lianhui Qin, Dan Jurafsky, Noah~A. Smith, and
+  Yejin Choi.
+\newblock {Social Bias Frames: Reasoning about Social and Power Implications of
+  Language}.
+\newblock arXiv:1911.03891, 2019.
+
+\bibitem[Nie et~al.(2020)Nie, Zhou, and Bansal]{chaosnli}
+Yixin Nie, Xiang Zhou, and Mohit Bansal.
+\newblock {What Can We Learn from Collective Human Opinions on Natural Language
+  Inference Data?}
+\newblock arXiv:2010.03532, 2020.
+
+\bibitem[Bowman et~al.(2015)Bowman, Angeli, Potts, and Manning]{snli}
+Samuel~R. Bowman, Gabor Angeli, Christopher Potts, and Christopher~D. Manning.
+\newblock {A large annotated corpus for learning natural language inference}.
+\newblock arXiv:1508.05326, 2015.
+
+\bibitem[Williams et~al.(2017)Williams, Nangia, and Bowman]{mnli}
+Adina Williams, Nikita Nangia, and Samuel~R. Bowman.
+\newblock {A Broad-Coverage Challenge Corpus for Sentence Understanding through
+  Inference}.
+\newblock arXiv:1704.05426, 2017.
+
+\bibitem[Bhagavatula et~al.(2019)Bhagavatula, Bras, Malaviya, Sakaguchi,
+  Holtzman, Rashkin, Downey, Yih, and Choi]{anli}
+Chandra Bhagavatula, Ronan~Le Bras, Chaitanya Malaviya, Keisuke Sakaguchi, Ari
+  Holtzman, Hannah Rashkin, Doug Downey, Scott Wen-tau Yih, and Yejin Choi.
+\newblock {Abductive Commonsense Reasoning}.
+\newblock arXiv:1908.05739, 2019.
+
+\bibitem[Deng et~al.(2023)Deng, Gu, Zheng, Chen, Stevens, Wang, Sun, and
+  Su]{mind2web}
+Xiang Deng, Yu~Gu, Boyuan Zheng, Shijie Chen, Samuel Stevens, Boshi Wang, Huan
+  Sun, and Yu~Su.
+\newblock {Mind2Web: Towards a Generalist Agent for the Web}.
+\newblock arXiv:2306.06070, 2023.
+
+\bibitem[Yang et~al.(2023)Yang, Zhang, Li, Zou, Li, and Gao]{som}
+Jianwei Yang, Hao Zhang, Feng Li, Xueyan Zou, Chunyuan Li, and Jianfeng Gao.
+\newblock {Set-of-Mark Prompting Unleashes Extraordinary Visual Grounding in
+  GPT-4V}.
+\newblock arXiv:2310.11441, 2023.
+
+\bibitem[Schwenk et~al.(2022)Schwenk, Khandelwal, Clark, Marino, and
+  Mottaghi]{aokvqa}
+Dustin Schwenk, Apoorv Khandelwal, Christopher Clark, Kenneth Marino, and
+  Roozbeh Mottaghi.
+\newblock {A-OKVQA: A Benchmark for Visual Question Answering using World
+  Knowledge}.
+\newblock arXiv:2206.01718, 2022.
+
+\bibitem[Lu et~al.(2022)Lu, Mishra, Xia, Qiu, Chang, Zhu, Tafjord, Clark, and
+  Kalyan]{scienceqa}
+Pan Lu, Swaroop Mishra, Tony Xia, Liang Qiu, Kai-Wei Chang, Song-Chun Zhu,
+  Oyvind Tafjord, Peter Clark, and Ashwin Kalyan.
+\newblock {Learn to Explain: Multimodal Reasoning via Thought Chains for
+  Science Question Answering}.
+\newblock arXiv:2209.09513, 2022.
+
+\bibitem[Fatemi et~al.(2024)Fatemi, Kazemi, Tsitsulin, Malkan, Yim, Palowitch,
+  Seo, Halcrow, and Perozzi]{tot}
+Bahare Fatemi, Mehran Kazemi, Anton Tsitsulin, Karishma Malkan, Jinyeong Yim,
+  John Palowitch, Sungyong Seo, Jonathan Halcrow, and Bryan Perozzi.
+\newblock {Test of Time: A Benchmark for Evaluating LLMs on Temporal
+  Reasoning}.
+\newblock arXiv:2406.09170, 2024.
+
+\bibitem[Tan et~al.(2023)Tan, Ng, and Bing]{tempreason}
+Qingyu Tan, Hwee~Tou Ng, and Lidong Bing.
+\newblock {Towards Benchmarking and Improving the Temporal Reasoning Capability
+  of Large Language Models}.
+\newblock arXiv:2306.08952, 2023.
+
+\bibitem[Chen et~al.(2021)Chen, Chen, Smiley, et~al.]{finqa}
+Zhiyu Chen, Wenhu Chen, Charese Smiley, et~al.
+\newblock {FinQA: A Dataset of Numerical Reasoning over Financial Data}.
+\newblock arXiv:2109.00122, 2021.
+
+\bibitem[Cheng et~al.(2021)Cheng, Dong, Wang, Jia, Guo, Gao, Han, Lou, and
+  Zhang]{hitab}
+Zhoujun Cheng, Haoyu Dong, Zhiruo Wang, Ran Jia, Jiaqi Guo, Yan Gao, Shi Han,
+  Jian-Guang Lou, and Dongmei Zhang.
+\newblock {HiTab: A Hierarchical Table Dataset for Question Answering and
+  Natural Language Generation}.
+\newblock arXiv:2108.06712, 2021.
+
+\bibitem[Zhong et~al.(2017)Zhong, Xiong, and Socher]{wikisql}
+Victor Zhong, Caiming Xiong, and Richard Socher.
+\newblock {Seq2SQL: Generating Structured Queries from Natural Language using
+  Reinforcement Learning}.
+\newblock arXiv:1709.00103, 2017.
+
+\bibitem[Tafjord et~al.(2020)Tafjord, Mishra, and Clark]{proofwriter}
+Oyvind Tafjord, Bhavana~Dalvi Mishra, and Peter Clark.
+\newblock {ProofWriter: Generating Implications, Proofs, and Abductive
+  Statements over Natural Language}.
+\newblock arXiv:2012.13048, 2020.
+
+\bibitem[Kazemi et~al.(2023)Kazemi, Yuan, Bhatia, Kim, Xu, Imbrasaite, and
+  Ramachandran]{boardgameqa}
+Mehran Kazemi, Quan Yuan, Deepti Bhatia, Najoung Kim, Xin Xu, Vaiva Imbrasaite,
+  and Deepak Ramachandran.
+\newblock {BoardgameQA: A Dataset for Natural Language Reasoning with
+  Contradictory Information}.
+\newblock arXiv:2306.07934, 2023.
+
+\bibitem[{Qwen Team}(2026{\natexlab{b}})]{qwen38}
+{Qwen Team}.
+\newblock {Qwen3.8-27B}.
+\newblock Hugging Face model card,
+  \url{https://huggingface.co/Qwen/Qwen3.8-27B}, 2026{\natexlab{b}}.
+
+\bibitem[{Perplexity}(2026)]{pplx}
+{Perplexity}.
+\newblock {pplx-decider-v1-27b}.
+\newblock Hugging Face model card,
+  \url{https://huggingface.co/perplexity-ai/pplx-decider-v1-27b}, 2026.
+
+\bibitem[Louis et~al.(2020)Louis, Roth, and Radlinski]{circa}
+Annie Louis, Dan Roth, and Filip Radlinski.
+\newblock {"I'd rather just go to bed": Understanding Indirect Answers}.
+\newblock arXiv:2010.03450, 2020.
+
+\bibitem[Malo et~al.(2013)Malo, Sinha, Takala, Korhonen, and Wallenius]{fpb}
+Pekka Malo, Ankur Sinha, Pyry Takala, Pekka Korhonen, and Jyrki Wallenius.
+\newblock {Good Debt or Bad Debt: Detecting Semantic Orientations in Economic
+  Texts}.
+\newblock arXiv:1307.5336, 2013.
+
+\bibitem[Niu et~al.(2023)Niu, Wu, Zhu, Xu, Shum, Zhong, Song, and
+  Zhang]{ragtruth}
+Cheng Niu, Yuanhao Wu, Juno Zhu, Siliang Xu, Kashun Shum, Randy Zhong, Juntong
+  Song, and Tong Zhang.
+\newblock {RAGTruth: A Hallucination Corpus for Developing Trustworthy
+  Retrieval-Augmented Language Models}.
+\newblock arXiv:2401.00396, 2023.
+
+\bibitem[Sakaguchi et~al.(2019)Sakaguchi, Bras, Bhagavatula, and
+  Choi]{winogrande}
+Keisuke Sakaguchi, Ronan~Le Bras, Chandra Bhagavatula, and Yejin Choi.
+\newblock {WinoGrande: An Adversarial Winograd Schema Challenge at Scale}.
+\newblock arXiv:1907.10641, 2019.
+
+\bibitem[Lin et~al.(2021)Lin, Hilton, and Evans]{truthfulqa}
+Stephanie Lin, Jacob Hilton, and Owain Evans.
+\newblock {TruthfulQA: Measuring How Models Mimic Human Falsehoods}.
+\newblock arXiv:2109.07958, 2021.
+
+\bibitem[{Gorilla project}(2026)]{bfcl}
+{Gorilla project}.
+\newblock {Berkeley Function-Calling Leaderboard}.
+\newblock \url{https://gorilla.cs.berkeley.edu/leaderboard.html}, 2026.
+
+\bibitem[Larson et~al.(2019)Larson, Mahendran, Peper, et~al.]{clinc}
+Stefan Larson, Anish Mahendran, Joseph~J. Peper, et~al.
+\newblock {An Evaluation Dataset for Intent Classification and Out-of-Scope
+  Prediction}.
+\newblock arXiv:1909.02027, 2019.
+
+\bibitem[Casanueva et~al.(2020)Casanueva, Tem{\v{c}}inas, Gerz, Henderson, and
+  Vuli{\'c}]{banking}
+I{\~n}igo Casanueva, Tadas Tem{\v{c}}inas, Daniela Gerz, Matthew Henderson, and
+  Ivan Vuli{\'c}.
+\newblock {Efficient Intent Detection with Dual Sentence Encoders}.
+\newblock arXiv:2003.04807, 2020.
+
+\bibitem[Li et~al.(2023{\natexlab{b}})Li, Zhao, Yu, Song, Li, Yu, Li, Huang,
+  and Li]{apibank}
+Minghao Li, Yingxiu Zhao, Bowen Yu, Feifan Song, Hangyu Li, Haiyang Yu, Zhoujun
+  Li, Fei Huang, and Yongbin Li.
+\newblock {API-Bank: A Comprehensive Benchmark for Tool-Augmented LLMs}.
+\newblock arXiv:2304.08244, 2023{\natexlab{b}}.
+
+\bibitem[Zellers et~al.(2019)Zellers, Holtzman, Bisk, Farhadi, and
+  Choi]{hellaswag}
+Rowan Zellers, Ari Holtzman, Yonatan Bisk, Ali Farhadi, and Yejin Choi.
+\newblock {HellaSwag: Can a Machine Really Finish Your Sentence?}
+\newblock arXiv:1905.07830, 2019.
+
+\bibitem[Gray(2019)]{cudagraphs}
+Alan Gray.
+\newblock {Getting Started with {CUDA} Graphs}.
+\newblock NVIDIA Technical Blog,
+  \url{https://developer.nvidia.com/blog/cuda-graphs/}, 2019.
+
+\bibitem[{ml-explore}(2023)]{mlx}
+{ml-explore}.
+\newblock {{MLX}: an array framework for {Apple} silicon}.
+\newblock Software, \url{https://github.com/ml-explore/mlx}, 2023.
+
+\bibitem[{airockchip}(2026)]{rknn}
+{airockchip}.
+\newblock {rknn-llm: the {RKLLM} runtime}.
+\newblock Software, \url{https://github.com/airockchip/rknn-llm}, 2026.
+
+\bibitem[Clark et~al.(2018)Clark, Cowhey, Etzioni, Khot, Sabharwal, Schoenick,
+  and Tafjord]{arc}
+Peter Clark, Isaac Cowhey, Oren Etzioni, Tushar Khot, Ashish Sabharwal, Carissa
+  Schoenick, and Oyvind Tafjord.
+\newblock {Think you have Solved Question Answering? Try ARC, the AI2 Reasoning
+  Challenge}.
+\newblock arXiv:1803.05457, 2018.
+
+\bibitem[Hendrycks et~al.(2020)Hendrycks, Burns, Basart, Zou, Mazeika, Song,
+  and Steinhardt]{mmlu}
+Dan Hendrycks, Collin Burns, Steven Basart, Andy Zou, Mantas Mazeika, Dawn
+  Song, and Jacob Steinhardt.
+\newblock {Measuring Massive Multitask Language Understanding}.
+\newblock arXiv:2009.03300, 2020.
+
+\bibitem[Yang et~al.(2024{\natexlab{b}})Yang, Wang, Zhang, Shen, and
+  Kim]{deltapar}
+Songlin Yang, Bailin Wang, Yu~Zhang, Yikang Shen, and Yoon Kim.
+\newblock {Parallelizing Linear Transformers with the Delta Rule over Sequence
+  Length}.
+\newblock arXiv:2406.06484, 2024{\natexlab{b}}.
+
+\bibitem[{fla-org}(2024)]{fla}
+{fla-org}.
+\newblock {flash-linear-attention: efficient implementations of linear
+  attention}.
+\newblock Software, \url{https://github.com/fla-org/flash-linear-attention},
+  2024.
+
+\bibitem[Zhang et~al.(2025)Zhang, Yin, Yen, Chen, and Ye]{qrhead}
+Wuwei Zhang, Fangcong Yin, Howard Yen, Danqi Chen, and Xi~Ye.
+\newblock {Query-Focused Retrieval Heads Improve Long-Context Reasoning and
+  Re-ranking}.
+\newblock arXiv:2506.09944, 2025.
+
+\end{thebibliography}
