@@ -25,7 +25,7 @@ Related works (Identifiers tab):
 |---|---|---|
 | is supplemented by | https://github.com/aldinelabs/trutina | URL |
 | is supplemented by | https://huggingface.co/aldinelabs/trutina-4b | URL |
-| is described by | https://journal.aldine.cn/en/blog/trutina-technical-report | URL |
+| is described by | https://aldine.cn/en/journal/trutina-technical-report | URL |
 
 ## Before publishing
 

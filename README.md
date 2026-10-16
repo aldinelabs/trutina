@@ -9,7 +9,7 @@ and in the default **adaptive** mode each request stops at the first layer that 
 enough, continuing from where it stopped when it is not. Easy questions finish in about half the
 network; hard ones get all 32 layers.
 
-Weights: [aldinelabs/trutina-4b](https://huggingface.co/aldinelabs/trutina-4b) · Blog: [Introducing Trutina 4B](https://journal.aldine.cn/en/blog/introducing-trutina/) · [Technical report](https://journal.aldine.cn/en/blog/trutina-technical-report/) · Paper: [doi:10.5281/zenodo.23403860](https://doi.org/10.5281/zenodo.23403860) · Licence: Apache-2.0
+Weights: [aldinelabs/trutina-4b](https://huggingface.co/aldinelabs/trutina-4b) · Blog: [Introducing Trutina 4B](https://aldine.cn/en/journal/introducing-trutina/) · [Technical report](https://aldine.cn/en/journal/trutina-technical-report/) · Paper: [doi:10.5281/zenodo.23403860](https://doi.org/10.5281/zenodo.23403860) · Licence: Apache-2.0
 
 ![trutina-4b: four use cases answered by the released weights](assets/charts/png/en/cover.png)
 
